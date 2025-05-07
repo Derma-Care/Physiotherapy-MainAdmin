@@ -11,7 +11,7 @@ export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
 export const SERVICE_URL = `http://${ipUrl}:8080/api/v1`
 
 // login
-
+//dss
 export const endPoint = 'admin/adminLogin'
 
 // Category Management
