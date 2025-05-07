@@ -1,0 +1,42 @@
+name: Deploy Frontend-Admin to AWS ECS
+
+on:
+  push:
+    branches:
+      - feature-admin-ci/cd # Replace with your backend branch name
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout Frontend-Admin Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Configure AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 3: Login to Amazon ECR
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # Step 4: Build and Push Docker Image for Frontend-Admin
+      - name: Build and Push Docker Image (Frontend-Admin)
+        run: |
+          docker build -t ${{ secrets.ECR_REPO_FRONTEND }} ./ # Path to your backend code
+          docker push ${{ secrets.ECR_REPO_FRONTEND }}
+
+      # Step 5: Deploy Frontend-Admin Service to ECS
+      - name: Deploy Frontend-Admin Service to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.CLUSTER_NAME }} \
+            --service ${{ secrets.FRONTEND_SERVICE_NAME }} \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}
