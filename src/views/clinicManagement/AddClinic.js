@@ -14,7 +14,7 @@ import {
   CRow,
   CCol,
 } from '@coreui/react'
-import { BASE_URL   } from '../../baseUrl'
+import { BASE_URL,subService_URL } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
 import { toast } from 'react-toastify'
@@ -23,6 +23,7 @@ const AddClinic = () => {
   const navigate = useNavigate()
   const [errors, setErrors] = useState({})
   const [categories, setCategories] = useState([])
+  const [serviceOptions, setServiceOptions] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -32,7 +33,6 @@ const AddClinic = () => {
     openingTime: '',
     closingTime: '',
     hospitalLogo: '',
-
     emailAddress: '',
     website: '',
     licenseNumber: '',
@@ -40,6 +40,30 @@ const AddClinic = () => {
     hospitalDoucuments: [],
     hospitalcategory: [],
   })
+
+  const handleCategoryChange = async (selectedOptions) => {
+    const selectedCategories = selectedOptions || []
+    setFormData((prev) => ({
+      ...prev,
+      hospitalcategory: selectedCategories,
+    }))
+
+    const allServices = []
+
+    for (const option of selectedCategories) {
+      try {
+        const res = await axios.get(`${subService_URL}/services/getServices/${option.value}`)
+        const data = res.data?.data || []
+        allServices.push(...data)
+      } catch (error) {
+        console.error(`Failed to fetch services for category ${option.label}:`, error)
+      }
+    }
+
+    const uniqueServices = Array.from(new Map(allServices.map((s) => [s.serviceId, s])).values())
+
+    setServiceOptions(uniqueServices)
+  }
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -180,18 +204,18 @@ const AddClinic = () => {
   const handleChange = (selectedOptions) => {
     setFormData((prev) => ({
       ...prev,
-      hospitalService: selectedOptions || [] // Update the formData with selected options
-    }));
-  };
+      hospitalService: selectedOptions || [], // Update the formData with selected options
+    }))
+  }
   const services = {
     peelRemoval: [
       { servicesId: '1', servicesName: 'Chemical Peel - Medium Depth' },
       { servicesId: '2', servicesName: 'Chemical Peel - Deep' },
       { servicesId: '3', servicesName: 'Glycolic Acid Peel' },
       { servicesId: '4', servicesName: 'TCA Peel' },
-      { servicesId: '5', servicesName: 'Microdermabrasion Peel' }
+      { servicesId: '5', servicesName: 'Microdermabrasion Peel' },
     ],
-  };
+  }
 
   // const [submittedData, setSubmittedData] = useState(null)
 
@@ -228,7 +252,7 @@ const AddClinic = () => {
 
     try {
       // Fix the URL construction
-      const response = await axios.post(`${BASE_URL}/admin/createClinic`, clinicData)
+      const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
 
       const savedClinicData = response.data
       navigate('/clinic-management', {
@@ -241,27 +265,27 @@ const AddClinic = () => {
       console.error('Error submitting clinic data:', error)
     }
   }
-  const handleCategoryChange = (selectedOptions) => {
-    const selectedCategories = selectedOptions
-      ? selectedOptions.map((option) => ({
-          categoryId: option.categoryId,
-          categoryName: option.categoryName,
-        }))
-      : []
-    console.log('Selected Categories:', selectedCategories)
+  // const handleCategoryChange = (selectedOptions) => {
+  //   const selectedCategories = selectedOptions
+  //     ? selectedOptions.map((option) => ({
+  //         categoryId: option.categoryId,
+  //         categoryName: option.categoryName,
+  //       }))
+  //     : []
+  //   console.log('Selected Categories:', selectedCategories)
 
-    setFormData((prev) => ({
-      ...prev,
-      clinicName: selectedCategories,
-    }))
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     clinicName: selectedCategories,
+  //   }))
 
-    if (errors.clinicName) {
-      setErrors((prev) => ({
-        ...prev,
-        clinicName: '',
-      }))
-    }
-  }
+  //   if (errors.clinicName) {
+  //     setErrors((prev) => ({
+  //       ...prev,
+  //       clinicName: '',
+  //     }))
+  //   }
+  // }
 
   return (
     <div className="container mt-4">
@@ -283,32 +307,32 @@ const AddClinic = () => {
                     label: cat.categoryName,
                   }))}
                   value={formData.hospitalcategory}
-                  onChange={(selectedOptions) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      hospitalcategory: selectedOptions || [],
-                    }))
-                  }
+                  onChange={handleCategoryChange}
                   placeholder="Select multiple categories..."
                 />
 
                 {/* {errors.clinicName && <CFormFeedback invalid>{errors.clinicName}</CFormFeedback>} */}
               </CCol>
               <CCol md={6}>
-      <CFormLabel>Clinic Services</CFormLabel>
-      <Select
-        isMulti
-        name="hospitalService"
-        className="mb-5"
-        options={services.peelRemoval.map((cat) => ({
-          value: cat.servicesId, // The unique ID for each service
-          label: cat.servicesName, // The name of the service to display
-        }))}
-        value={formData.hospitalService} // Set the value to formData.hospitalcategory
-        onChange={handleChange} // On change, update formData
-        placeholder="Select multiple categories..."
-      />
-    </CCol>
+                <CFormLabel>Clinic Services</CFormLabel>
+                <Select
+                  isMulti
+                  name="hospitalService"
+                  className="mb-5"
+                  options={serviceOptions.map((service) => ({
+                    value: service.serviceId,
+                    label: service.serviceName,
+                  }))}
+                  value={formData.hospitalService}
+                  onChange={(selectedOptions) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      hospitalService: selectedOptions || [],
+                    }))
+                  }
+                  placeholder="Select multiple services..."
+                />
+              </CCol>
               <CCol md={6}>
                 <CFormLabel>Hosiptal Name</CFormLabel>
                 <CFormInput

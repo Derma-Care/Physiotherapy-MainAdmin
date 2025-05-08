@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.0.107'
+const ipUrl = '192.168.1.27'
 
 export const BASE_URL = `http://${ipUrl}:8081`
 export const DOCTOR_URL = `http://${ipUrl}:8080`
@@ -9,13 +9,17 @@ export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
 // export const BASE_URLS = `http://${ipUrl}:8080/api/v1`
 // export const CLINIC_URL = `http://${ipUrl}:8081`
 export const SERVICE_URL = `http://${ipUrl}:8080/api/v1`
+export const subService_URL = `http://${ipUrl}:8800/api/v1`
 
+export const GET_ALL_SERVICES = 'services/getAllServices'
+export const ADD_SERVICE = 'services/addService'
+ 
 // login
 //dss
 export const endPoint = 'admin/adminLogin'
 
 // Category Management
-export const CategoryAllData = 'admin/getAllCategories'
+export const CategoryAllData = 'admin/getCategories'
 
 export const AddCategory = 'admin/addCategory'
 
@@ -26,7 +30,7 @@ export const deleteCategory = 'admin/deleteCategory'
 // Clinic Management
 export const ClinicAllData = 'admin/getAllClinics'
 
-export const AddClinic = 'admin/createClinic'
+export const AddClinic = 'admin/CreateClinic'
 
 export const UpdateClinic = 'admin/updateClinic'
 

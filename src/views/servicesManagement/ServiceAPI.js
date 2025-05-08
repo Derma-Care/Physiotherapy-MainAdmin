@@ -1,60 +1,57 @@
-// import axios from 'axios'
-// import { servicesEndPoint, BASE_URL } from '../config/baseUrl'
+import axios from 'axios'
+import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE,subService_URL } from '../../baseUrl'
 
-// // Service API endpoints
-// const endpoints = {
-//   getAll: `${SERVICE_URL}/services/getService`,
-//   add: `${SERVICE_URL}/services/addService`,
-//   update: `${SERVICE_URL}/services/updateService`,
-//   delete: `${SERVICE_URL}/services/deleteByServiceID`
-// }
+export const getAllServices = async () => {
+  try {
+    const response = await axios.get(`${subService_URL}/${GET_ALL_SERVICES}`, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+    })
+    console.log(response)
 
-// // Get all services
-// export const getServices = async () => {
-//   try {
-//     const response = await axios.get(endpoints.getAll)
-//     return response.data
-//   } catch (error) {
-//     console.error('Error fetching services:', error)
-//     throw error
-//   }
-// }
+    return response
+  } catch (error) {
+    throw error
+  }
+}
 
-// // Add new service
-// export const addService = async (serviceData) => {
-//   try {
-//     const response = await axios.post(endpoints.add, serviceData, {
-//       headers: { 'Content-Type': 'application/json' }
-//     })
-//     return response.data
-//   } catch (error) {
-//     console.error('Error adding service:', error)
-//     throw error
-//   }
-// }
+export const postServiceData = async (serviceData) => {
+  console.log(serviceData)
+  try {
+    const response = await axios.post(`${subService_URL}/${ADD_SERVICE}`, serviceData, {
+      headers: { 'Content-Type': 'application/json' },
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error creating service:', error)
+    throw error
+  }
+}
 
-// // Update service
-// export const updateService = async (serviceId, serviceData) => {
-//   try {
-//     const response = await axios.put(`${endpoints.update}/${serviceId}`, serviceData, {
-//       headers: { 'Content-Type': 'application/json' }
-//     })
-//     return response.data
-//   } catch (error) {
-//     console.error('Error updating service:', error)
-//     throw error
-//   }
-// }
+export const updateServiceData = async (updatedService, serviceId) => {
+  try {
+    const response = await axios.put(
+      `${SERVICE_URL}/${UPDATE_SERVICE}/${serviceId}`,
+      updatedService,
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
+    return response.data
+  } catch (error) {
+    console.error('Error updating service:', error)
+    throw error
+  }
+}
 
-// // Delete service
-// export const deleteService = async (serviceId) => {
-//   try {
-//     const response = await axios.delete(`${endpoints.delete}/${serviceId}`, {
-//       headers: { 'Content-Type': 'application/json' }
-//     })
-//     return response.data
-//   } catch (error) {
-//     console.error('Error deleting service:', error)
-//     throw error
-//   }
-// }
+export const deleteServiceData = async (serviceId) => {
+  try {
+    const response = await axios.delete(`${SERVICE_URL}/${DELETE_SERVICE}/${serviceId}`)
+    return response.data
+  } catch (error) {
+    console.error('Error deleting service:', error)
+    throw error
+  }
+}

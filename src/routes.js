@@ -3,7 +3,7 @@ import React from 'react'
 import AddDoctors from './views/clinicManagement/AddDoctors'
 
 const Login = React.lazy(() => import('./views/pages/login/Login'))
-
+const serviceManagement = React.lazy(() => import('./views/servicesManagement/ServiceManagement'))
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 
 const ClinicManagement = React.lazy(() => import('./views/clinicManagement/ClinicDetails'))
@@ -13,7 +13,7 @@ const AddClinic = React.lazy(() => import('./views/clinicManagement/AddClinic'))
 const categoryManagement = React.lazy(() => import('./views/categoryManagement/categoryManagement'))
 const customerManagement = React.lazy(() => import('./views/customerManagement/CustomerManagement'))
 
-const serviceManagement = React.lazy(() => import('./views/servicesManagement/serviceManagement'))
+ 
 
 const PatientManagement = React.lazy(() => import('./views/providerManagement/ProviderManagement'))
 const PatientViewDetails = React.lazy(
@@ -35,6 +35,11 @@ const routes = [
   { path: '/login', name: 'Login', element: Login },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
   { path: '/category-management', name: 'Category Management', element: categoryManagement },
+  {
+    path: '/service-management',
+    name: 'Service Management',
+    element: serviceManagement
+  },
 
   { path: '/customer-management', name: 'Customer Management', element: customerManagement },
   { path: '/service-management', name: 'Service Management', element: serviceManagement },
