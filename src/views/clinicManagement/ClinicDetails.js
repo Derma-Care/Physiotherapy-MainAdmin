@@ -93,9 +93,9 @@ const ClinicDetails = () => {
             Back
           </CButton>
           <h4 className="mb-0">Clinic Details</h4>
-          <CButton color="primary me-5" onClick={() => navigate('/add-doctor')}>
+          {/* <CButton color="primary me-5" onClick={() => navigate('/add-doctor')}>
             Add Doctor
-          </CButton>
+          </CButton> */}
 
           <div></div>
         </div>

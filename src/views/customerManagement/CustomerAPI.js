@@ -3,11 +3,11 @@ import axios from 'axios'
 import {
   CUSTOMER_SERVICE_URL,
   CustomerAllData,
-  CustomerByMbNum,
-  saveBasicDetails,
-  updateCustomerBasicDetails,
+  // CustomerByMbNum,
+  // saveBasicDetails,
+  // updateCustomerBasicDetails,
   deleteCustomer
-} from '../baseUrl'
+} from '../../baseUrl'
 
 // Fetch all customers
 export const CustomerData = async () => {

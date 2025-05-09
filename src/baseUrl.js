@@ -13,7 +13,7 @@ export const subService_URL = `http://${ipUrl}:8800/api/v1`
 
 export const GET_ALL_SERVICES = 'services/getAllServices'
 export const ADD_SERVICE = 'services/addService'
- 
+
 // login
 //dss
 export const endPoint = 'admin/adminLogin'
@@ -115,3 +115,5 @@ export const getAllBookingDetails = 'admin/getAllBookingDetails'
 export const getData = 'admin/NotificationToAdminForProviderReassign'
 
 export const postData = 'admin/providerReassign'
+
+//user

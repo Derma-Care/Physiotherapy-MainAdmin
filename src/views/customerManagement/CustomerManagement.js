@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { CForm, CFormInput, CInputGroup, CInputGroupText, CButton, CRow } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
-import { CustomerData } from './CustomerAPI'
+import { CustomerData, deleteCustomerData } from './CustomerAPI'
 import {
   CTable,
   CTableHead,
-  CTableRow,
+  CTableRow,              
   CTableHeaderCell,
   CTableBody,
   CTableDataCell,
@@ -22,6 +22,16 @@ const CustomerManagement = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // Centered message style
+  const centeredMessageStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '300px',
+    fontSize: '1.5rem',
+    color: '#808080',
+  }
+
   // Fetching customer data on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -29,12 +39,17 @@ const CustomerManagement = () => {
       setError(null)
       try {
         const data = await CustomerData()
-        console.log(data)
-        setCustomerData(data)
-        setFilteredData(data)
+        // Ensure data is always an array and filter out any invalid entries
+        const safeData = Array.isArray(data) 
+          ? data.filter(item => item && typeof item === 'object') 
+          : []
+        setCustomerData(safeData)
+        setFilteredData(safeData)
       } catch (error) {
         console.error('Error fetching data:', error)
         setError('Failed to fetch customer data.')
+        setCustomerData([])
+        setFilteredData([])
       } finally {
         setLoading(false)
       }
@@ -53,9 +68,9 @@ const CustomerManagement = () => {
 
       const filtered = customerData.filter((customer) => {
         return (
-          (customer.fullName || '').toLowerCase().startsWith(trimmedQuery) ||
-          (customer.mobileNumber || '').toString().startsWith(trimmedQuery) ||
-          (customer.emailId || '').toLowerCase().startsWith(trimmedQuery)
+          (customer?.fullName || '').toLowerCase().includes(trimmedQuery) ||
+          (customer?.mobileNumber || '').toString().includes(trimmedQuery) ||
+          (customer?.emailId || '').toLowerCase().includes(trimmedQuery)
         )
       })
 
@@ -65,69 +80,41 @@ const CustomerManagement = () => {
     handleSearch()
   }, [searchQuery, customerData])
 
-  const columns = [
-    {
-      name: 'Full Name',
-      selector: (row) => row.fullName || '-',
-      sortable: true,
-      style: {
-        fontWeight: 'bold',
-        fontSize: '14px',
-      },
-    },
-    {
-      name: 'Mobile Number',
-      selector: (row) => row.mobileNumber || '-',
-      sortable: true,
-    },
-
-    {
-      name: 'Gender',
-      selector: (row) => row.gender || '-',
-      sortable: true,
-    },
-    {
-      name: 'Actions',
-      cell: (row) => (
-        <CButton
-          color="primary"
-          size="sm"
-          onClick={() => handleCustomerViewDetails(row.mobileNumber)}
-        >
-          View
-        </CButton>
-      ),
-    },
-  ]
-
   const handleCustomerViewDetails = (mobileNumber) => {
     navigate(`/customer-management/${mobileNumber}`)
   }
 
-  const centeredMessageStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '300px',
-    fontSize: '1.5rem',
-    color: '#808080',
+  const handleDeleteCustomer = async(mobileNumber) => {
+    const confirmed = window.confirm("Are you sure you want to delete this customer")
+    if (!confirmed) return
+    try {
+      await deleteCustomerData(mobileNumber)
+      toast.success('Customer deleted Successfully')
+      // Refresh the customer list after deletion
+      const updatedData = customerData.filter(customer => customer?.mobileNumber !== mobileNumber)
+      setCustomerData(updatedData)
+      setFilteredData(updatedData)
+    } catch (error) {
+      console.log('Delete failed:', error)
+      toast.error('Failed to delete customer')
+    }
   }
 
   const fetchCustomers = async () => {
     try {
       const data = await CustomerData()
-      if (data) {
-        setCustomerData(data)
-        setFilteredData(data)
-      }
+      const safeData = Array.isArray(data) 
+        ? data.filter(item => item && typeof item === 'object') 
+        : []
+      setCustomerData(safeData)
+      setFilteredData(safeData)
     } catch (error) {
       console.error('Error fetching customers:', error)
+      setCustomerData([])
+      setFilteredData([])
     }
   }
 
-  useEffect(() => {
-    fetchCustomers()
-  }, [searchQuery])
   return (
     <>
       <CRow className="d-flex align-items-center mb-3">
@@ -156,53 +143,54 @@ const CustomerManagement = () => {
         <div style={centeredMessageStyle}>Loading...</div>
       ) : error ? (
         <div style={centeredMessageStyle}>{error}</div>
+      ) : filteredData.length === 0 ? (
+        <div style={centeredMessageStyle}>No Customer Data Found</div>
       ) : (
         <CTable hover striped responsive>
           <CTableHead>
             <CTableRow>
               <CTableHeaderCell>Full Name</CTableHeaderCell>
               <CTableHeaderCell>Mobile Number</CTableHeaderCell>
-              {/* <CTableHeaderCell>Email</CTableHeaderCell> */}
               <CTableHeaderCell>Gender</CTableHeaderCell>
               <CTableHeaderCell>Actions</CTableHeaderCell>
             </CTableRow>
           </CTableHead>
           <CTableBody>
             {filteredData.map((customer, index) => (
-              <CTableRow key={index}>
-                <CTableDataCell style={{ fontSize: '20px' }}>
-                  {customer.fullName || '-'}
-                </CTableDataCell>
-
-                <CTableDataCell>{customer.mobileNumber || '-'}</CTableDataCell>
-                {/* <CTableDataCell>{customer.emailId || '-'}</CTableDataCell> */}
-                <CTableDataCell>{customer.gender || '-'}</CTableDataCell>
-                <CTableDataCell>
-                  <CButton
-                    color="primary"
-                    size="sm"
-                    onClick={() => handleCustomerViewDetails(customer.mobileNumber)}
-                  >
-                    View
-                  </CButton>
-                  <CButton
-                    className="ms-3 text-white"
-                    color="warning"
-                    size="sm"
-                    onClick={() => handleCustomerViewDetails(customer.mobileNumber)}
-                  >
-                    Edit
-                  </CButton>
-                  <CButton
-                    className="ms-3 text-white"
-                    color="danger"
-                    size="sm"
-                    onClick={() => handleCustomerViewDetails(customer.mobileNumber)}
-                  >
-                    Delete
-                  </CButton>
-                </CTableDataCell>
-              </CTableRow>
+              customer && (
+                <CTableRow key={index}>
+                  <CTableDataCell style={{ fontSize: '20px' }}>
+                    {customer?.fullName || '-'}
+                  </CTableDataCell>
+                  <CTableDataCell>{customer?.mobileNumber || '-'}</CTableDataCell>
+                  <CTableDataCell>{customer?.gender || '-'}</CTableDataCell>
+                  <CTableDataCell>
+                    <CButton
+                      color="primary"
+                      size="sm"
+                      onClick={() => handleCustomerViewDetails(customer?.mobileNumber)}
+                    >
+                      View
+                    </CButton>
+                    <CButton
+                      className="ms-3 text-white"
+                      color="warning"
+                      size="sm"
+                      onClick={() => handleCustomerViewDetails(customer?.mobileNumber)}
+                    >
+                      Edit
+                    </CButton>
+                    <CButton
+                      className="ms-3 text-white"
+                      color="danger"
+                      size="sm"
+                      onClick={() => handleDeleteCustomer(customer?.mobileNumber)}
+                    >
+                      Delete
+                    </CButton>
+                  </CTableDataCell>
+                </CTableRow>
+              )
             ))}
           </CTableBody>
         </CTable>
