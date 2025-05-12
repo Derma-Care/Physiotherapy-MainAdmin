@@ -14,7 +14,7 @@ import {
   CRow,
   CCol,
 } from '@coreui/react'
-import { BASE_URL,subService_URL } from '../../baseUrl'
+import { BASE_URL, subService_URL } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
 import { toast } from 'react-toastify'
@@ -80,8 +80,24 @@ const AddClinic = () => {
     fetchCategories()
   }, [])
 
+  const websiteRegex = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/;
+
+  const preventNumberInput = (e) => {
+    const isNumber = /[0-9]/.test(e.key)
+    if (isNumber) {
+      e.preventDefault()
+    }
+  }
+
   const validateForm = () => {
     const newErrors = {}
+
+    // Hospital Name
+    if (!formData.name.trim()) {
+      newErrors.name = 'Clinic name is required'
+    } else if (!/^[a-zA-Z\s]{2,50}$/.test(formData.name)) {
+      newErrors.name = 'Clinic name must contain only letters'
+    }
 
     // Address validation
     if (!formData.address.trim()) {
@@ -89,61 +105,107 @@ const AddClinic = () => {
     }
 
     // City validation
-    if (!formData.city.trim()) newErrors.city = 'City is required'
-    else if (!/^[a-zA-Z\s]{2,30}$/.test(formData.city)) {
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required'
+    } else if (!/^[a-zA-Z\s]{2,30}$/.test(formData.city)) {
       newErrors.city = 'City name must contain only letters'
     }
+
+    // Hospital Registration
     if (!formData.hospitalRegistrations.trim()) {
       newErrors.hospitalRegistrations = 'Registration number is required'
     }
 
     // Email validation
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
-    if (!formData.emailAddress) {
-      newErrors.emailAddress = 'Email is required'
-    } else if (!formData.emailAddress.includes('@')) {
-      newErrors.emailAddress = 'Email must contain @ symbol'
-    } else if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(formData.emailAddress)) {
-      newErrors.emailAddress = 'Please enter a valid email format (example@domain.com)'
-    }
+    ;<CFormInput
+      type="email"
+      name="emailAddress"
+      value={formData.emailAddress}
+      onChange={handleInputChange}
+      onBlur={(e) => {
+        const value = e.target.value
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+        if (!value.trim()) {
+          setErrors((prev) => ({
+            ...prev,
+            emailAddress: 'Email is required',
+          }))
+        } else if (!emailRegex.test(value)) {
+          setErrors((prev) => ({
+            ...prev,
+            emailAddress: 'Please enter a valid email (example@domain.com)',
+          }))
+        } else {
+          setErrors((prev) => ({
+            ...prev,
+            emailAddress: '',
+          }))
+        }
+      }}
+      invalid={!!errors.emailAddress}
+    />
 
-    // Phone validation
-    const phoneRegex = /^(?:\+91)?[6-9]\d{9}$/
+    // Contact Number
+    const phoneRegex = /^[5-9]\d{9}$/ // This regex checks if the number starts with 5-9 and is followed by 9 digits
+
     if (!formData.contactNumber) {
       newErrors.contactNumber = 'Contact number is required'
-    } else if (!phoneRegex.test(formData.contactNumber)) {
-      newErrors.contactNumber = 'Please enter a valid 10-digit mobile number'
+    } else {
+      const contactNumber = formData.contactNumber.trim()
+      if (contactNumber.length !== 10) {
+        newErrors.contactNumber = 'Contact number must be exactly 10 digits long'
+      } else if (!phoneRegex.test(contactNumber)) {
+        newErrors.contactNumber = 'Contact number must start with a digit between 5 and 9'
+      }
     }
 
     // Time validation
     if (!formData.openingTime) {
       newErrors.openingTime = 'Opening time is required'
     }
+
     if (!formData.closingTime) {
       newErrors.closingTime = 'Closing time is required'
+    } else if (formData.openingTime && formData.closingTime <= formData.openingTime) {
+      newErrors.closingTime = 'Closing time must be after opening time'
     }
 
-    // License validation
+    // License Number
     if (!formData.licenseNumber.trim()) {
       newErrors.licenseNumber = 'License number is required'
     }
 
-    // Website validation (optional)
-    if (formData.website && !formData.website.startsWith('http')) {
-      newErrors.website = 'Website must start with http:// or https://'
-    }
-
-    if (!formData.hospitalLogo) {
-      newErrors.hospitalLogo = 'Hospital logo is required'
-    }
-
+    // Issuing Authority
     if (!formData.IssuingAuthority.trim()) {
       newErrors.IssuingAuthority = 'Issuing Authority is required'
     }
 
+    // Hospital Logo
+    if (!formData.hospitalLogo) {
+      newErrors.hospitalLogo = 'Hospital logo is required'
+    }
+
+    // Hospital Documents
     if (formData.hospitalDoucuments.length === 0) {
       newErrors.hospitalDoucuments = 'Please upload at least one document'
     }
+
+    // Website (optional)
+ if (!formData.website.trim()) {
+  errors.website = "Website is required.";
+} else if (
+  !formData.website.trim().startsWith("http") &&
+  !formData.website.trim().startsWith("https") &&
+  !formData.website.trim().startsWith("www")
+) {
+  errors.website = "Never a valid URL. Must start with http://, https://, or www.";
+} else if (!websiteRegex.test(formData.website.trim())) {
+  errors.website = "Enter a valid website URL.";
+} else {
+  errors.website = "";
+}
+
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -201,23 +263,28 @@ const AddClinic = () => {
       }))
     }
   }
-  const handleChange = (selectedOptions) => {
-    setFormData((prev) => ({
-      ...prev,
-      hospitalService: selectedOptions || [], // Update the formData with selected options
-    }))
-  }
-  const services = {
-    peelRemoval: [
-      { servicesId: '1', servicesName: 'Chemical Peel - Medium Depth' },
-      { servicesId: '2', servicesName: 'Chemical Peel - Deep' },
-      { servicesId: '3', servicesName: 'Glycolic Acid Peel' },
-      { servicesId: '4', servicesName: 'TCA Peel' },
-      { servicesId: '5', servicesName: 'Microdermabrasion Peel' },
-    ],
+  const handleEmailBlur = () => {
+    const email = formData.emailAddress.trim()
+    if (!email.includes('@')) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        emailAddress: 'Email must contain "@" symbol',
+      }))
+    } else {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        emailAddress: '',
+      }))
+    }
   }
 
-  // const [submittedData, setSubmittedData] = useState(null)
+  // const handleChange = (e) => {
+  //   const { name, value } = e.target
+  //   setFormData({ ...formData, [name]: value })
+
+  //   // Remove error while typing
+  //   setErrors((prev) => ({ ...prev, [name]: '' }))
+  // }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -265,27 +332,6 @@ const AddClinic = () => {
       console.error('Error submitting clinic data:', error)
     }
   }
-  // const handleCategoryChange = (selectedOptions) => {
-  //   const selectedCategories = selectedOptions
-  //     ? selectedOptions.map((option) => ({
-  //         categoryId: option.categoryId,
-  //         categoryName: option.categoryName,
-  //       }))
-  //     : []
-  //   console.log('Selected Categories:', selectedCategories)
-
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     clinicName: selectedCategories,
-  //   }))
-
-  //   if (errors.clinicName) {
-  //     setErrors((prev) => ({
-  //       ...prev,
-  //       clinicName: '',
-  //     }))
-  //   }
-  // }
 
   return (
     <div className="container mt-4">
@@ -310,8 +356,6 @@ const AddClinic = () => {
                   onChange={handleCategoryChange}
                   placeholder="Select multiple categories..."
                 />
-
-                {/* {errors.clinicName && <CFormFeedback invalid>{errors.clinicName}</CFormFeedback>} */}
               </CCol>
               <CCol md={6}>
                 <CFormLabel>Clinic Services</CFormLabel>
@@ -334,39 +378,45 @@ const AddClinic = () => {
                 />
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Hosiptal Name</CFormLabel>
+                <CFormLabel>
+                  Clinic Name
+                  <span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  invalid={!!errors.clinicName}
+                  onKeyDown={preventNumberInput}
+                  invalid={!!errors.name}
                 />
-                {errors.clinicName && <CFormFeedback invalid>{errors.clinicName}</CFormFeedback>}
+                {errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
               </CCol>
-              <CCol md={6}>
-                <CFormLabel>Email Address</CFormLabel>
-                <CFormInput
-                  type="email"
-                  name="emailAddress"
-                  value={formData.emailAddress}
-                  onChange={handleInputChange}
-                  invalid={!!errors.emailAddress}
-                />
-                {errors.emailAddress && (
-                  <CFormFeedback invalid>{errors.emailAddress}</CFormFeedback>
-                )}
-              </CCol>
+              <CFormLabel>
+                Email Address<span style={{ color: 'red' }}>*</span>
+              </CFormLabel>
+              <CFormInput
+                type="email"
+                name="emailAddress"
+                value={formData.emailAddress}
+                onChange={handleInputChange}
+                onBlur={handleEmailBlur}
+                invalid={!!errors.emailAddress}
+              />
+              {errors.emailAddress && <CFormFeedback invalid>{errors.emailAddress}</CFormFeedback>}
             </CRow>
 
             <CRow className="mb-3">
               <CCol md={6}>
-                <CFormLabel>Contact Number</CFormLabel>
+                <CFormLabel>
+                  Contact Number<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="tel"
                   name="contactNumber"
                   value={formData.contactNumber}
                   onChange={handleInputChange}
+                  maxLength="10"
                   invalid={!!errors.contactNumber}
                 />
                 {errors.contactNumber && (
@@ -374,21 +424,26 @@ const AddClinic = () => {
                 )}
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Website</CFormLabel>
+                <CFormLabel>
+                  Website<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
-                  type="url"
+                  type="text"
                   name="website"
                   value={formData.website}
                   onChange={handleInputChange}
+                  onKeyDown={preventNumberInput}
                   invalid={!!errors.website}
                 />
-                {errors.website && <CFormFeedback invalid>{errors.website}</CFormFeedback>}
+                {errors.website && <div className="text-danger">{errors.website}</div>}
               </CCol>
             </CRow>
 
             <CRow className="mb-3">
               <CCol md={6}>
-                <CFormLabel>Opening Time</CFormLabel>
+                <CFormLabel>
+                  Opening Time<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="time"
                   name="openingTime"
@@ -399,7 +454,9 @@ const AddClinic = () => {
                 {errors.openingTime && <CFormFeedback invalid>{errors.openingTime}</CFormFeedback>}
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Closing Time</CFormLabel>
+                <CFormLabel>
+                  Closing Time<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="time"
                   name="closingTime"
@@ -413,9 +470,11 @@ const AddClinic = () => {
 
             <CRow className="mb-3">
               <CCol md={6}>
-                <CFormLabel>License Number</CFormLabel>
+                <CFormLabel>
+                  License Number<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
-                  type="text"
+                  type="number"
                   name="licenseNumber"
                   value={formData.licenseNumber}
                   onChange={handleInputChange}
@@ -426,12 +485,15 @@ const AddClinic = () => {
                 )}
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Issuing Authority</CFormLabel>
+                <CFormLabel>
+                  Issuing Authority<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="text"
                   name="IssuingAuthority"
                   value={formData.IssuingAuthority}
                   onChange={handleInputChange}
+                  onKeyDown={preventNumberInput}
                   invalid={!!errors.IssuingAuthority}
                 />
                 {errors.IssuingAuthority && (
@@ -442,7 +504,9 @@ const AddClinic = () => {
 
             <CRow className="mb-3">
               <CCol md={12}>
-                <CFormLabel>Address</CFormLabel>
+                <CFormLabel>
+                  Address<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="text"
                   name="address"
@@ -456,18 +520,23 @@ const AddClinic = () => {
 
             <CRow className="mb-3">
               <CCol md={6}>
-                <CFormLabel>City</CFormLabel>
+                <CFormLabel>
+                  City<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="text"
                   name="city"
                   value={formData.city}
                   onChange={handleInputChange}
+                  onKeyDown={preventNumberInput}
                   invalid={!!errors.city}
                 />
                 {errors.city && <CFormFeedback invalid>{errors.city}</CFormFeedback>}
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Hospital Registration</CFormLabel>
+                <CFormLabel>
+                  Hospital Registration<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="text"
                   name="hospitalRegistrations"
@@ -483,7 +552,9 @@ const AddClinic = () => {
 
             <CRow className="mb-3">
               <CCol md={6}>
-                <CFormLabel>Hospital Logo</CFormLabel>
+                <CFormLabel>
+                  Hospital Logo<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="file"
                   name="hospitalLogo"
@@ -496,7 +567,9 @@ const AddClinic = () => {
                 )}
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Hospital Documents</CFormLabel>
+                <CFormLabel>
+                  Hospital Documents<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
                 <CFormInput
                   type="file"
                   name="hospitalDoucuments"
