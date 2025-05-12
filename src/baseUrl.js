@@ -34,7 +34,7 @@ export const AddClinic = 'admin/CreateClinic'
 
 export const UpdateClinic = 'admin/updateClinic'
 
-export const deleteClinic = 'admin/deleteClinic'
+export const DeleteClinic = 'admin/deleteClinic'
 
 // Doctor Management
 export const DoctorAllData = '/clinic-admin/doctors/hospitalById'

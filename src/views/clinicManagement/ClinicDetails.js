@@ -22,9 +22,10 @@ import {
 } from '@coreui/react'
 import { DoctorAllData } from '../../baseUrl'
 
-import { BASE_URL, DOCTOR_URL } from '../../baseUrl'
+import {DOCTOR_URL } from '../../baseUrl'
 import classNames from 'classnames'
 import axios from 'axios'
+import { BASE_URL,UpdateClinic, DeleteClinic } from '../../baseUrl'
 
 const ClinicDetails = () => {
   const { hospitalId } = useParams()
@@ -46,7 +47,7 @@ const ClinicDetails = () => {
     setLoading(true)
     try {
       const response = await axios.get(`${BASE_URL}/admin/getClinicById/${hospitalId}`)
-      console.log('Clinic Response:', response.data) // ✅ add this
+      console.log('Clinic Response:', response.data) 
       setClinicData(response.data.data)
       setEditableClinicData(response.data.data)
     } catch (error) {
@@ -72,12 +73,12 @@ const ClinicDetails = () => {
   }, [hospitalId])
 
   const updateClinicData = async (id, data) => {
-    await axios.put(`${BASE_URL}/admin/updateClinic/${id}`, data)
+    await axios.put(`${BASE_URL}/${UpdateClinic}/${id}`, data)
   }
 
   const handleDeleteClinic = async () => {
     try {
-      await axios.delete(`http://localhost:8080/api/clinics/${hospitalId}`)
+      await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId }`)
       setShowDeleteModal(false)
       navigate('/clinic-Management') // navigate back after delete
     } catch (error) {
@@ -195,25 +196,23 @@ const ClinicDetails = () => {
               {/* Tab 2: Additional Details */}
               <CTabPane visible={activeTab === 1}>
                 <p>
-                  <strong>Administrator Name:</strong> {clinicData.address}
+                  <strong>Email:</strong> {clinicData.emailAddress}
                 </p>
                 <p>
                   <strong>Clinic Registration No:</strong> {clinicData.hospitalRegistrations}
                 </p>
+                
                 <p>
-                  <strong>GST No:</strong> {clinicData.gstNo}
-                </p>
-                <p>
-                  <strong>Status:</strong> {clinicData.status}
+                  <strong>Website:</strong> {clinicData.website}
                 </p>
                 <p>
                   <strong>Working Days & Timings:</strong> {clinicData.openingTime}-
                   {clinicData.closingTime}
                 </p>
                 <p>
-                  <strong>Clinic Description:</strong> {clinicData.description}
+                  <strong>IssuingAuthority:</strong> {clinicData.issuingAuthority}
                 </p>
-                <p>
+                {/* <p>
                   <strong>Uploaded Documents:</strong>
                 </p>
                 <ul>
@@ -224,7 +223,7 @@ const ClinicDetails = () => {
                       </a>
                     </li>
                   ))}
-                </ul>
+                </ul> */}
               </CTabPane>
 
               {/* Tab 3: Doctors */}
