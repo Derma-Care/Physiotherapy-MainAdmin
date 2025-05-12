@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.1.27'
+const ipUrl = '192.168.0.101'
 
 export const BASE_URL = `http://${ipUrl}:8081`
 export const DOCTOR_URL = `http://${ipUrl}:8080`
@@ -34,7 +34,7 @@ export const AddClinic = 'admin/CreateClinic'
 
 export const UpdateClinic = 'admin/updateClinic'
 
-export const deleteClinic = 'admin/deleteClinic'
+export const DeleteClinic = 'admin/deleteClinic'
 
 // Doctor Management
 export const DoctorAllData = '/clinic-admin/doctors/hospitalById'

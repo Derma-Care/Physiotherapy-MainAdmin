@@ -3,7 +3,7 @@ import axios from 'axios'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import ClinicManagement from './ClinicManagement'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
-import { BASE_URL, ClinicAllData, AddClinic, UpdateClinic, deleteClinic } from '../../baseUrl'
+import { BASE_URL, ClinicAllData, AddClinic, UpdateClinic, DeleteClinic } from '../../baseUrl'
 
 const ClinicAPI = () => {
   const [categories, setCategories] = useState([])
