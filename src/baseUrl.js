@@ -45,13 +45,15 @@ export const UpdateDoctor = 'clinic-admin/updateClinic'
 export const deleteDoctor = 'clinic-admin/deleteClinic'
 
 // Customer Management
-export const CustomerAllData = 'customer/getAllCustomers'
+export const CustomerAllData = 'admin/getAllCustomers'
 
-export const AddCustomer = 'customer/saveBasicDetails'
+export const AddCustomer = 'admin/saveBasicDetails'
 
-export const updateCustomer = 'customer/updateCustomerBasicDetails'
+export const updateCustomer = 'admin/updateCustomerBasicDetails'
 
-export const deleteCustomer = 'customer/deleteCustomerBasicDetails'
+export const deleteCustomer = 'admin/deleteCustomerBasicDetails'
+
+export const getBasicDetails = 'admin/getBasicDetails'
 // export const bookServices ='customers/bookServices'
 // export const deleteAppointments ='customers/deleteService'
 

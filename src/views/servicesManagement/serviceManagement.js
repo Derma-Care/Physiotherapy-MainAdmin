@@ -501,16 +501,16 @@ const ServiceManagement = () => {
             <CCol sm={4}>
               <strong>Service Name:</strong>
             </CCol>
-            <CCol sm={8}>{viewService?.ServiceName}</CCol>
+            <CCol sm={8}>{viewService?.serviceName}</CCol>
           </CRow>
           <CRow>
             <CCol sm={4}>
               <strong>Service Image:</strong>
             </CCol>
             <CCol sm={8}>
-              {viewService?.ServiceImage && (
+              {viewService?.serviceImage && (
                 <img
-                  src={`data:image/png;base64,${viewService.ServiceImage}`}
+                  src={`data:image/png;base64,${viewService?.serviceImage}`}
                   alt="Service"
                   style={{ maxWidth: '200px' }}
                 />

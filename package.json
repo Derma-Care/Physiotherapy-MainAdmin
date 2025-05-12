@@ -46,6 +46,7 @@
     "react-toastify": "^10.0.6",
     "redux": "5.0.1",
     "simplebar-react": "^3.2.6",
+    "toast": "^0.5.4",
     "toastify": "^2.0.1"
   },
   "devDependencies": {

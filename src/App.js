@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux'
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
 
+import { ToastContainer } from 'react-toastify'
+
 // Lazy-loaded components
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
 const Login = React.lazy(() => import('./views/pages/login/Login'))
@@ -38,6 +40,7 @@ const App = () => {
           <Route path="*" element={<DefaultLayout />} />
         </Routes>
       </Suspense>
+      
     </BrowserRouter>
   )
 }

@@ -1,18 +1,17 @@
-// src/apiService/customerApi.js
 import axios from 'axios'
 import {
-  CUSTOMER_SERVICE_URL,
+  BASE_URL,
   CustomerAllData,
-  // CustomerByMbNum,
-  // saveBasicDetails,
-  // updateCustomerBasicDetails,
-  deleteCustomer
+  AddCustomer,
+  updateCustomer,
+  deleteCustomer,
+  getBasicDetails,
 } from '../../baseUrl'
 
 // Fetch all customers
 export const CustomerData = async () => {
   try {
-    const url = `${CUSTOMER_SERVICE_URL}/${CustomerAllData}`
+    const url = `${BASE_URL}/${CustomerAllData}`
     const response = await axios.get(url)
     // Assuming backend wraps list in response.data.data
     return Array.isArray(response.data.data) ? response.data.data : [response.data.data]
@@ -25,9 +24,9 @@ export const CustomerData = async () => {
 // Add a new customer
 export const addCustomer = async (customerDTO) => {
   try {
-    const url = `${CUSTOMER_SERVICE_URL}/${saveBasicDetails}`
+    const url = `${BASE_URL}/${AddCustomer}`
     const response = await axios.post(url, customerDTO, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     })
     return response.data
   } catch (error) {
@@ -39,11 +38,22 @@ export const addCustomer = async (customerDTO) => {
 // Get one customer by mobile number
 export const getCustomerByMobile = async (mobileNumber) => {
   try {
-    const url = `${CUSTOMER_SERVICE_URL}/${CustomerByMbNum}/${mobileNumber}`
+    // Using the endpoint from your baseUrl configuration
+    const url = `${BASE_URL}/${getBasicDetails}/${mobileNumber}`
     const response = await axios.get(url)
     return response.data
   } catch (error) {
-    console.error('Failed to fetch customer:', error)
+    if (error.response) {
+      // Server responded with a status code outside 2xx
+      console.error('Server responded with error:', error.response.status)
+      console.error('Response data:', error.response.data)
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('No response received:', error.request)
+    } else {
+      // Something happened in setting up the request
+      console.error('Request setup error:', error.message)
+    }
     throw error
   }
 }
@@ -51,9 +61,9 @@ export const getCustomerByMobile = async (mobileNumber) => {
 // Update existing customer
 export const updateCustomerData = async (mobileNumber, customerDTO) => {
   try {
-    const url = `${CUSTOMER_SERVICE_URL}/${updateCustomerBasicDetails}/${mobileNumber}`
+    const url = `${BASE_URL}/${updateCustomer}/${mobileNumber}`
     const response = await axios.put(url, customerDTO, {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     })
     return response.data
   } catch (error) {
@@ -65,7 +75,7 @@ export const updateCustomerData = async (mobileNumber, customerDTO) => {
 // Delete a customer
 export const deleteCustomerData = async (mobileNumber) => {
   try {
-    const url = `${CUSTOMER_SERVICE_URL}/${deleteCustomer}/${mobileNumber}`
+    const url = `${BASE_URL}/${deleteCustomer}/${mobileNumber}`
     const response = await axios.delete(url)
     return response.data
   } catch (error) {

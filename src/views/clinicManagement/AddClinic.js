@@ -14,11 +14,12 @@ import {
   CRow,
   CCol,
 } from '@coreui/react'
-import { BASE_URL,subService_URL } from '../../baseUrl'
+import { BASE_URL, subService_URL } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
-import { toast } from 'react-toastify'
 
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 const AddClinic = () => {
   const navigate = useNavigate()
   const [errors, setErrors] = useState({})
@@ -255,40 +256,29 @@ const AddClinic = () => {
       const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
 
       const savedClinicData = response.data
-      navigate('/clinic-management', {
-        state: {
-          refresh: true,
-          newClinic: savedClinicData,
-        },
-      })
+
+      if (savedClinicData.success) {
+        toast.success(response.message, { position: 'top-right' })
+        navigate('/clinic-management', {
+          state: {
+            refresh: true,
+            newClinic: savedClinicData,
+          },
+        })
+      } else {
+        alert(response.message)
+        toast.error(response.message || 'Something went wrong', { position: 'top-right' })
+      }
     } catch (error) {
+      
       console.error('Error submitting clinic data:', error)
+      toast.error(`${error.message}`, { position: 'top-right' })
     }
   }
-  // const handleCategoryChange = (selectedOptions) => {
-  //   const selectedCategories = selectedOptions
-  //     ? selectedOptions.map((option) => ({
-  //         categoryId: option.categoryId,
-  //         categoryName: option.categoryName,
-  //       }))
-  //     : []
-  //   console.log('Selected Categories:', selectedCategories)
-
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     clinicName: selectedCategories,
-  //   }))
-
-  //   if (errors.clinicName) {
-  //     setErrors((prev) => ({
-  //       ...prev,
-  //       clinicName: '',
-  //     }))
-  //   }
-  // }
 
   return (
     <div className="container mt-4">
+       <ToastContainer />
       <CCard>
         <CCardHeader>
           <h3 className="mb-0">Add New Clinic</h3>
