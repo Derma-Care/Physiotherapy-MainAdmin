@@ -41,7 +41,6 @@ const CategoryManagement = () => {
   const [editCategoryMode, setEditCategoryMode] = useState(false)
   const [categoryToEdit, setCategoryToEdit] = useState(null)
 
-  
   const [imagePreview, setImagePreview] = useState(null)
   const [errors, setErrors] = useState({
     categoryName: '',
@@ -109,16 +108,40 @@ const CategoryManagement = () => {
 
   const columns = [
     {
-      name: <div style={{ fontSize: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Category Name</div>,
+      name: (
+        <div
+          style={{
+            fontSize: '20px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          Category Name
+        </div>
+      ),
       selector: (row) => row.categoryName,
       sortable: true,
       width: '50%',
-      cell: (row) => <div style={{ textAlign: 'center',fontSize:"20px" }}>{row.categoryName}</div>,
+      cell: (row) => (
+        <div style={{ textAlign: 'center', fontSize: '20px' }}>{row.categoryName}</div>
+      ),
       headerStyle: { textAlign: 'center' },
     },
- 
+
     {
-      name: <div style={{ fontSize: '20px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Actions</div>,
+      name: (
+        <div
+          style={{
+            fontSize: '20px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          Actions
+        </div>
+      ),
       cell: (row) => (
         <div
           style={{
@@ -126,35 +149,34 @@ const CategoryManagement = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
             width: '230px',
-            
           }}
         >
           <CButton
-          //  color="link"
-           className="text-primary p-0"
-           onClick={() => setViewCategory(row)}
-           style={{ marginRight: '10px', width: '80px' }}
-         >
-           View
-         </CButton>
-         
-         <CButton
-           color="link"
-           className="text-success p-0"
-           onClick={() => handleCategoryEdit(row)}
-           style={{ marginRight: '10px', width: '80px' }}
-         >
-           Edit
-         </CButton>
-         
-         <CButton
-           color="link"
-           className="text-danger p-0"
-           onClick={() => handleCategoryDelete(row.categoryId)}
-           style={{ width: '80px' }}
-         >
-           Delete
-         </CButton>
+            //  color="link"
+            className="text-primary p-0"
+            onClick={() => setViewCategory(row)}
+            style={{ marginRight: '10px', width: '80px' }}
+          >
+            View
+          </CButton>
+
+          <CButton
+            color="link"
+            className="text-success p-0"
+            onClick={() => handleCategoryEdit(row)}
+            style={{ marginRight: '10px', width: '80px' }}
+          >
+            Edit
+          </CButton>
+
+          <CButton
+            color="link"
+            className="text-danger p-0"
+            onClick={() => handleCategoryDelete(row.categoryId)}
+            style={{ width: '80px' }}
+          >
+            Delete
+          </CButton>
 
           <ConfirmationModal
             isVisible={isModalVisible}
@@ -284,44 +306,44 @@ const CategoryManagement = () => {
     }
   }
   const handleCategoryEdit = (category) => {
-    console.log('Category to edit:', category); // Debug log
-    setCategoryToEdit(category);
+    console.log('Category to edit:', category) // Debug log
+    setCategoryToEdit(category)
     setUpdatedCategory({
       categoryId: category.categoryId || '',
       categoryName: category.categoryName || '',
       categoryImage: category.categoryImage || null,
       // _id: category._id // Make sure to capture the ID
-    });
-    setEditCategoryMode(true);
-  };
+    })
+    setEditCategoryMode(true)
+  }
 
   const handleUpdateCategory = async () => {
     if (!updatedCategory.categoryName.trim()) {
-      toast.error('Category name is required');
-      return;
+      toast.error('Category name is required')
+      return
     }
-  
+
     try {
       const updateData = {
         categoryName: updatedCategory.categoryName,
-        categoryImage: updatedCategory.categoryImage
-      };
-  
-      const response = await updateCategoryData(updateData,updatedCategory.categoryId);
+        categoryImage: updatedCategory.categoryImage,
+      }
+
+      const response = await updateCategoryData(updateData, updatedCategory.categoryId)
       if (response) {
-        toast.success('Category updated successfully!');
-        setEditCategoryMode(false);
-        fetchData();
+        toast.success('Category updated successfully!')
+        setEditCategoryMode(false)
+        fetchData()
       }
     } catch (error) {
-      console.error('Error updating category:', error);
-      toast.error('Failed to update category');
+      console.error('Error updating category:', error)
+      toast.error('Failed to update category')
     }
-  };
+  }
 
   const handleCancel = () => {
     setUpdatedCategory({
-      categoryId:"",
+      categoryId: '',
       categoryName: '',
       categoryImage: null,
       // description: '',
@@ -329,26 +351,25 @@ const CategoryManagement = () => {
     setEditCategoryMode(false)
   }
 
- const handleEditFileChange = async (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    try {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result.split(',')[1];
-        setUpdatedCategory(prev => ({
-          ...prev,
-          categoryImage: base64String
-        }));
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      toast.error('Error processing image');
+  const handleEditFileChange = async (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      try {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64String = reader.result.split(',')[1]
+          setUpdatedCategory((prev) => ({
+            ...prev,
+            categoryImage: base64String,
+          }))
+        }
+        reader.readAsDataURL(file)
+      } catch (error) {
+        console.error('Error reading file:', error)
+        toast.error('Error processing image')
+      }
     }
   }
-};
-
 
   const handleCategoryDelete = (categoryId) => {
     setCategoryIdToDelete(categoryId)
@@ -356,6 +377,7 @@ const CategoryManagement = () => {
   }
 
   const handleConfirmDelete = async () => {
+    console.log(categoryIdToDelete)
     try {
       await deleteCategoryData(categoryIdToDelete)
       setIsModalVisible(false)

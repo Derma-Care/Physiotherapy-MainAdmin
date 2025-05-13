@@ -23,6 +23,7 @@ import 'react-toastify/dist/ReactToastify.css'
 const AddClinic = () => {
   const navigate = useNavigate()
   const [errors, setErrors] = useState({})
+  const [backendErrors, setBackendErrors] = ''
   const [categories, setCategories] = useState([])
   const [serviceOptions, setServiceOptions] = useState([])
   const [formData, setFormData] = useState({
@@ -38,6 +39,7 @@ const AddClinic = () => {
     website: '',
     licenseNumber: '',
     IssuingAuthority: '',
+    recommended: false,
     hospitalDoucuments: [],
     hospitalcategory: [],
   })
@@ -81,7 +83,7 @@ const AddClinic = () => {
     fetchCategories()
   }, [])
 
-  const websiteRegex = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/;
+  const websiteRegex = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/
 
   const preventNumberInput = (e) => {
     const isNumber = /[0-9]/.test(e.key)
@@ -192,20 +194,19 @@ const AddClinic = () => {
     }
 
     // Website (optional)
- if (!formData.website.trim()) {
-  errors.website = "Website is required.";
-} else if (
-  !formData.website.trim().startsWith("http") &&
-  !formData.website.trim().startsWith("https") &&
-  !formData.website.trim().startsWith("www")
-) {
-  errors.website = "Never a valid URL. Must start with http://, https://, or www.";
-} else if (!websiteRegex.test(formData.website.trim())) {
-  errors.website = "Enter a valid website URL.";
-} else {
-  errors.website = "";
-}
-
+    if (!formData.website.trim()) {
+      errors.website = 'Website is required.'
+    } else if (
+      !formData.website.trim().startsWith('http') &&
+      !formData.website.trim().startsWith('https') &&
+      !formData.website.trim().startsWith('www')
+    ) {
+      errors.website = 'Never a valid URL. Must start with http://, https://, or www.'
+    } else if (!websiteRegex.test(formData.website.trim())) {
+      errors.website = 'Enter a valid website URL.'
+    } else {
+      errors.website = ''
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -313,15 +314,18 @@ const AddClinic = () => {
         categoryName: cat.label, // Using 'label' from selected option
       })),
       hospitalDocuments: formData.hospitalDoucuments,
+      recommended: formData.recommended,
     }
 
     console.log('Clinic Data Saved:', clinicData)
     console.log(`${BASE_URL}/admin/createClinic`)
 
     try {
+      console.log('Clinic Data Saved: try', clinicData)
+
       // Fix the URL construction
       const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
-
+      
       const savedClinicData = response.data
 
       if (savedClinicData.success) {
@@ -333,11 +337,9 @@ const AddClinic = () => {
           },
         })
       } else {
-        alert(response.message)
         toast.error(response.message || 'Something went wrong', { position: 'top-right' })
       }
     } catch (error) {
-      
       console.error('Error submitting clinic data:', error)
       toast.error(`${error.message}`, { position: 'top-right' })
     }
@@ -345,7 +347,7 @@ const AddClinic = () => {
 
   return (
     <div className="container mt-4">
-       <ToastContainer />
+      <ToastContainer />
       <CCard>
         <CCardHeader>
           <h3 className="mb-0">Add New Clinic</h3>
@@ -403,18 +405,23 @@ const AddClinic = () => {
                 />
                 {errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
               </CCol>
-              <CFormLabel>
-                Email Address<span style={{ color: 'red' }}>*</span>
-              </CFormLabel>
-              <CFormInput
-                type="email"
-                name="emailAddress"
-                value={formData.emailAddress}
-                onChange={handleInputChange}
-                onBlur={handleEmailBlur}
-                invalid={!!errors.emailAddress}
-              />
-              {errors.emailAddress && <CFormFeedback invalid>{errors.emailAddress}</CFormFeedback>}
+              <CCol md={6}>
+                <CFormLabel>
+                  Email Address<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
+                <CFormInput
+                  type="email"
+                  name="emailAddress"
+                  value={formData.emailAddress}
+                  onChange={handleInputChange}
+                  onBlur={handleEmailBlur}
+                  invalid={!!errors.emailAddress}
+                />
+
+                {errors.emailAddress && (
+                  <CFormFeedback invalid>{errors.emailAddress}</CFormFeedback>
+                )}
+              </CCol>
             </CRow>
 
             <CRow className="mb-3">
@@ -514,7 +521,7 @@ const AddClinic = () => {
             </CRow>
 
             <CRow className="mb-3">
-              <CCol md={12}>
+              <CCol md={6}>
                 <CFormLabel>
                   Address<span style={{ color: 'red' }}>*</span>
                 </CFormLabel>
@@ -526,6 +533,22 @@ const AddClinic = () => {
                   invalid={!!errors.address}
                 />
                 {errors.address && <CFormFeedback invalid>{errors.address}</CFormFeedback>}
+              </CCol>
+              <CCol md={6}>
+                <CFormLabel>Recommendation Status</CFormLabel>
+                <CFormSelect
+                  name="isRecommended"
+                  value={formData.recommended}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      recommended: e.target.value === 'true',
+                    }))
+                  }
+                >
+                  <option value="true">Yes, Recommend</option>
+                  <option value="false">No, Don't Recommend</option>
+                </CFormSelect>
               </CCol>
             </CRow>
 
