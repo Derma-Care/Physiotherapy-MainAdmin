@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import Logo from './header/derma2.png'
+import Logo from './header/DermaLogoP.png'
 
 import {
   CCloseButton,
@@ -39,15 +39,24 @@ const AppSidebar = () => {
             <img
               src={Logo}
               alt="DermaCare Logo"
-              style={{ width: '80px', height: '80px', marginBottom: '0px', marginLeft: '30px' }}
+              style={{ width: '140px', height: '120px', marginBottom: '0px', marginLeft: '30px' }}
             />
           </div>
           <div
             className="d-flex justify-content-center underline-none"
             style={{ marginLeft: '20px' }}
           >
-            <h1 style={{ color: '#A020F0', fontSize: '30px' }}>Derma</h1>
-            <h1 style={{ color: '#ffffff', fontSize: '30px' }}>Care</h1>
+            <h1
+              style={{
+                fontSize: '30px',
+                background: 'linear-gradient(to right, #0072CE, #00AEEF)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontWeight: 'bold',
+              }}
+            >
+              DermaCare
+            </h1>
           </div>
         </div>
         {/* <CCloseButton

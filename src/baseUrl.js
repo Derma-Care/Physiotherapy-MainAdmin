@@ -8,7 +8,8 @@ export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
 // export const BOOKING_SERVICE_URL = `http://${ipUrl}:8087/api/v1`
 // export const BASE_URLS = `http://${ipUrl}:8080/api/v1`
 // export const CLINIC_URL = `http://${ipUrl}:8081`
-export const SERVICE_URL = `http://${ipUrl}:8080/api/v1`
+export const SERVICE_URL = `admin/updateByServiceId`
+export const DELETE_SERVICE_URL = `services/deleteService`
 export const subService_URL = `http://${ipUrl}:8800/api/v1`
 
 export const GET_ALL_SERVICES = 'services/getAllServices'

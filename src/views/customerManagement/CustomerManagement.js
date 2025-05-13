@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   CForm,
   CFormInput,
@@ -18,25 +18,31 @@ import {
   CTableDataCell,
   CPagination,
   CPaginationItem,
-} from '@coreui/react';
-import CIcon from '@coreui/icons-react';
-import { cilSearch } from '@coreui/icons';
-import { CustomerData, deleteCustomerData, addCustomer, getCustomerByMobile, updateCustomerData } from './CustomerAPI';
-import { toast } from 'react-toastify';
+} from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import { cilSearch } from '@coreui/icons'
+import {
+  CustomerData,
+  deleteCustomerData,
+  addCustomer,
+  getCustomerByMobile,
+  updateCustomerData,
+} from './CustomerAPI'
+import { toast } from 'react-toastify'
 
 const CustomerManagement = () => {
-  const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [customerData, setCustomerData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [customerData, setCustomerData] = useState([])
+  const [filteredData, setFilteredData] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
 
-  const [isAdding, setIsAdding] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentMobile, setCurrentMobile] = useState(null);
+  const [isAdding, setIsAdding] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [currentMobile, setCurrentMobile] = useState(null)
   const [formData, setFormData] = useState({
     fullName: '',
     mobileNumber: '',
@@ -44,7 +50,7 @@ const CustomerManagement = () => {
     emailId: '',
     dateOfBirth: '',
     referCode: '',
-  });
+  })
 
   const centeredMessageStyle = {
     display: 'flex',
@@ -53,38 +59,38 @@ const CustomerManagement = () => {
     height: '300px',
     fontSize: '1.5rem',
     color: '#808080',
-  };
+  }
 
   const fetchCustomers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const data = await CustomerData();
+      const data = await CustomerData()
       const safeData = Array.isArray(data)
-        ? data.filter(item => item && typeof item === 'object')
-        : [];
-      setCustomerData(safeData);
-      setFilteredData(safeData);
+        ? data.filter((item) => item && typeof item === 'object')
+        : []
+      setCustomerData(safeData)
+      setFilteredData(safeData)
     } catch (error) {
-      console.error('Error fetching customers:', error);
-      setError('Failed to fetch customer data.');
-      setCustomerData([]);
-      setFilteredData([]);
+      console.error('Error fetching customers:', error)
+      setError('Failed to fetch customer data.')
+      setCustomerData([])
+      setFilteredData([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    fetchCustomers()
+  }, [fetchCustomers])
 
   useEffect(() => {
-    const trimmedQuery = searchQuery.toLowerCase().trim();
+    const trimmedQuery = searchQuery.toLowerCase().trim()
     if (!trimmedQuery) {
-      setFilteredData(customerData);
-      setCurrentPage(1);
-      return;
+      setFilteredData(customerData)
+      setCurrentPage(1)
+      return
     }
 
     const filtered = customerData.filter((customer) => {
@@ -92,62 +98,62 @@ const CustomerManagement = () => {
         (customer?.fullName || '').toLowerCase().includes(trimmedQuery) ||
         (customer?.mobileNumber || '').toString().includes(trimmedQuery) ||
         (customer?.emailId || '').toLowerCase().includes(trimmedQuery)
-      );
-    });
+      )
+    })
 
-    setFilteredData(filtered);
-    setCurrentPage(1);
-  }, [searchQuery, customerData]);
+    setFilteredData(filtered)
+    setCurrentPage(1)
+  }, [searchQuery, customerData])
 
   const handleCustomerViewDetails = (mobileNumber) => {
-    navigate(`/customer-management/${mobileNumber}`);
-  };
+    navigate(`/customer-management/${mobileNumber}`)
+  }
 
   const handleDeleteCustomer = async (mobileNumber) => {
-    const confirmed = window.confirm("Are you sure you want to delete this customer?");
-    if (!confirmed) return;
+    const confirmed = window.confirm('Are you sure you want to delete this customer?')
+    if (!confirmed) return
 
     try {
-      await deleteCustomerData(mobileNumber);
-      toast.success('Customer deleted successfully');
-      const updatedData = customerData.filter(customer => customer?.mobileNumber !== mobileNumber);
-      setCustomerData(updatedData);
-      setFilteredData(updatedData);
+      await deleteCustomerData(mobileNumber)
+      toast.success('Customer deleted successfully')
+      const updatedData = customerData.filter((customer) => customer?.mobileNumber !== mobileNumber)
+      setCustomerData(updatedData)
+      setFilteredData(updatedData)
     } catch (error) {
-      console.error('Delete failed:', error);
-      toast.error('Failed to delete customer');
+      console.error('Delete failed:', error)
+      toast.error('Failed to delete customer')
     }
-  };
+  }
 
   const handleEditCustomer = async (mobileNumber) => {
     try {
-      setLoading(true);
-      const response = await getCustomerByMobile(mobileNumber);
-      const customer = response.data || response;
-      
-      console.log('Customer data:', customer); // Debug: Check what's actually being returned
-  
+      setLoading(true)
+      const response = await getCustomerByMobile(mobileNumber)
+      const customer = response.data || response
+
+      console.log('Customer data:', customer) // Debug: Check what's actually being returned
+
       // Safely handle date formatting
-      let formattedDate = '';
+      let formattedDate = ''
       if (customer.dateOfBirth) {
         try {
           // Check if date is already in YYYY-MM-DD format (what input type="date" expects)
           if (/^\d{4}-\d{2}-\d{2}$/.test(customer.dateOfBirth)) {
-            formattedDate = customer.dateOfBirth;
-          } 
+            formattedDate = customer.dateOfBirth
+          }
           // Handle DD/MM/YYYY format
           else if (customer.dateOfBirth.includes('/')) {
-            const parts = customer.dateOfBirth.split('/');
+            const parts = customer.dateOfBirth.split('/')
             if (parts.length === 3) {
-              const [day, month, year] = parts;
-              formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+              const [day, month, year] = parts
+              formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
             }
           }
         } catch (e) {
-          console.warn('Failed to format date:', e);
+          console.warn('Failed to format date:', e)
         }
       }
-      
+
       setFormData({
         fullName: customer.fullName || '',
         mobileNumber: customer.mobileNumber || '',
@@ -155,44 +161,44 @@ const CustomerManagement = () => {
         emailId: customer.emailId || '',
         dateOfBirth: formattedDate,
         referCode: customer.referCode || '',
-      });
-      
-      setCurrentMobile(mobileNumber);
-      setIsEditing(true);
-      setIsAdding(true);
+      })
+
+      setCurrentMobile(mobileNumber)
+      setIsEditing(true)
+      setIsAdding(true)
     } catch (error) {
-      console.error('Failed to fetch customer:', error);
-      toast.error('Failed to load customer data');
+      console.error('Failed to fetch customer:', error)
+      toast.error('Failed to load customer data')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= Math.ceil(filteredData.length / itemsPerPage)) {
-      setCurrentPage(page);
+      setCurrentPage(page)
     }
-  };
+  }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
+  }
 
   const handleFormSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
       if (isEditing) {
-        await updateCustomerData(currentMobile, formData);
-        toast.success('Customer updated successfully!');
+        await updateCustomerData(currentMobile, formData)
+        toast.success('Customer updated successfully!')
       } else {
-        await addCustomer(formData);
-        toast.success('Customer added successfully!');
+        await addCustomer(formData)
+        toast.success('Customer added successfully!')
       }
-      
-      setIsAdding(false);
-      setIsEditing(false);
-      setCurrentMobile(null);
+
+      setIsAdding(false)
+      setIsEditing(false)
+      setCurrentMobile(null)
       setFormData({
         fullName: '',
         mobileNumber: '',
@@ -200,20 +206,20 @@ const CustomerManagement = () => {
         emailId: '',
         dateOfBirth: '',
         referCode: '',
-      });
-      await fetchCustomers(); // Refresh data after update
+      })
+      await fetchCustomers() // Refresh data after update
     } catch (error) {
-      console.error('Operation failed:', error);
-      toast.error(`Failed to ${isEditing ? 'update' : 'add'} customer: ${error.message}`);
+      console.error('Operation failed:', error)
+      toast.error(`Failed to ${isEditing ? 'update' : 'add'} customer: ${error.message}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleCancel = () => {
-    setIsAdding(false);
-    setIsEditing(false);
-    setCurrentMobile(null);
+    setIsAdding(false)
+    setIsEditing(false)
+    setCurrentMobile(null)
     setFormData({
       fullName: '',
       mobileNumber: '',
@@ -221,13 +227,13 @@ const CustomerManagement = () => {
       emailId: '',
       dateOfBirth: '',
       referCode: '',
-    });
-  };
+    })
+  }
 
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    currentPage * itemsPerPage,
+  )
 
   return (
     <>
@@ -268,6 +274,7 @@ const CustomerManagement = () => {
               <CTable hover striped responsive>
                 <CTableHead>
                   <CTableRow>
+                    <CTableHeaderCell>S.No</CTableHeaderCell>
                     <CTableHeaderCell>Full Name</CTableHeaderCell>
                     <CTableHeaderCell>Mobile Number</CTableHeaderCell>
                     <CTableHeaderCell>Gender</CTableHeaderCell>
@@ -277,6 +284,7 @@ const CustomerManagement = () => {
                 <CTableBody>
                   {paginatedData.map((customer, index) => (
                     <CTableRow key={customer.mobileNumber || index}>
+                      <CTableDataCell>{index + 1}</CTableDataCell>
                       <CTableDataCell>{customer?.fullName || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.mobileNumber || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.gender || '-'}</CTableDataCell>
@@ -322,7 +330,7 @@ const CustomerManagement = () => {
 
                     {Array.from(
                       { length: Math.ceil(filteredData.length / itemsPerPage) },
-                      (_, i) => i + 1
+                      (_, i) => i + 1,
                     ).map((page) => (
                       <CPaginationItem
                         key={page}
@@ -352,20 +360,20 @@ const CustomerManagement = () => {
             <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel>Full Name</CFormLabel>
-                <CFormInput 
-                  name="fullName" 
-                  value={formData.fullName} 
-                  onChange={handleInputChange} 
-                  required 
+                <CFormInput
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  required
                 />
               </CCol>
               <CCol md={6}>
                 <CFormLabel>Mobile Number</CFormLabel>
-                <CFormInput 
-                  name="mobileNumber" 
-                  value={formData.mobileNumber} 
-                  onChange={handleInputChange} 
-                  required 
+                <CFormInput
+                  name="mobileNumber"
+                  value={formData.mobileNumber}
+                  onChange={handleInputChange}
+                  required
                   disabled={isEditing}
                 />
               </CCol>
@@ -374,20 +382,20 @@ const CustomerManagement = () => {
             <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel>Email ID</CFormLabel>
-                <CFormInput 
-                  name="emailId" 
-                  value={formData.emailId} 
-                  onChange={handleInputChange} 
+                <CFormInput
+                  name="emailId"
+                  value={formData.emailId}
+                  onChange={handleInputChange}
                   type="email"
                 />
               </CCol>
               <CCol md={6}>
                 <CFormLabel>Date of Birth</CFormLabel>
-                <CFormInput 
-                  name="dateOfBirth" 
-                  value={formData.dateOfBirth} 
-                  onChange={handleInputChange} 
-                  type="date" 
+                <CFormInput
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={handleInputChange}
+                  type="date"
                 />
               </CCol>
             </CRow>
@@ -395,11 +403,7 @@ const CustomerManagement = () => {
             <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel>Gender</CFormLabel>
-                <CFormSelect 
-                  name="gender" 
-                  value={formData.gender} 
-                  onChange={handleInputChange}
-                >
+                <CFormSelect name="gender" value={formData.gender} onChange={handleInputChange}>
                   <option value="">Select</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
@@ -407,10 +411,10 @@ const CustomerManagement = () => {
               </CCol>
               <CCol md={6}>
                 <CFormLabel>Refer Code</CFormLabel>
-                <CFormInput 
-                  name="referCode" 
-                  value={formData.referCode} 
-                  onChange={handleInputChange} 
+                <CFormInput
+                  name="referCode"
+                  value={formData.referCode}
+                  onChange={handleInputChange}
                 />
               </CCol>
             </CRow>
@@ -427,7 +431,7 @@ const CustomerManagement = () => {
         </>
       )}
     </>
-  );
-};
+  )
+}
 
-export default React.memo(CustomerManagement);
+export default React.memo(CustomerManagement)

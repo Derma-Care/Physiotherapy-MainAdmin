@@ -19,13 +19,15 @@ import {
   CModalBody,
   CModalFooter,
   CModalHeader,
+  CModalTitle,
 } from '@coreui/react'
 import { DoctorAllData } from '../../baseUrl'
 
-import {DOCTOR_URL } from '../../baseUrl'
+import { DOCTOR_URL } from '../../baseUrl'
 import classNames from 'classnames'
 import axios from 'axios'
-import { BASE_URL,UpdateClinic, DeleteClinic } from '../../baseUrl'
+import { BASE_URL, UpdateClinic, DeleteClinic } from '../../baseUrl'
+import capitalizeWords from '../../Utils/capitalizeWords'
 
 const ClinicDetails = () => {
   const { hospitalId } = useParams()
@@ -40,14 +42,14 @@ const ClinicDetails = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [showDoctorModal, setShowDoctorModal] = useState(false)
   const [allDoctors, setAllDoctors] = useState([])
-
+  const [isEditingAdditional, setIsEditingAdditional] = useState(false)
   const tabList = ['Basic Details', 'Additional Details', 'Doctors', 'Appointments']
 
   const fetchClinicDetails = async () => {
     setLoading(true)
     try {
       const response = await axios.get(`${BASE_URL}/admin/getClinicById/${hospitalId}`)
-      console.log('Clinic Response:', response.data) 
+      console.log('Clinic Response:', response.data)
       setClinicData(response.data.data)
       setEditableClinicData(response.data.data)
     } catch (error) {
@@ -64,6 +66,25 @@ const ClinicDetails = () => {
       console.error('Error fetching doctors data:', error.response?.data || error.message)
     }
   }
+  const downloadBase64File = (base64Data, fileName) => {
+    const link = document.createElement('a')
+    link.href = base64Data
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const openPdfPreview = (base64) => {
+    const byteCharacters = atob(base64)
+    const byteNumbers = new Array(byteCharacters.length)
+      .fill(0)
+      .map((_, i) => byteCharacters.charCodeAt(i))
+    const byteArray = new Uint8Array(byteNumbers)
+    const blob = new Blob([byteArray], { type: 'application/pdf' })
+    const blobUrl = URL.createObjectURL(blob)
+    window.open(blobUrl)
+  }
 
   useEffect(() => {
     if (hospitalId) {
@@ -78,7 +99,7 @@ const ClinicDetails = () => {
 
   const handleDeleteClinic = async () => {
     try {
-      await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId }`)
+      await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId}`)
       setShowDeleteModal(false)
       navigate('/clinic-Management') // navigate back after delete
     } catch (error) {
@@ -123,8 +144,9 @@ const ClinicDetails = () => {
             <CTabContent className="mt-3">
               {/* Tab 1: Basic Details */}
               <CTabPane visible={activeTab === 0}>
-                <CForm>
-                  <CRow className="mb-3">
+                <CForm className="p-3 border rounded shadow-sm bg-white">
+                  {/* Clinic Logo Section */}
+                  <CRow className="mb-4 align-items-start">
                     <CCol md={6}>
                       <CFormLabel>Clinic Name</CFormLabel>
                       <CFormInput
@@ -136,9 +158,9 @@ const ClinicDetails = () => {
                         }
                       />
                     </CCol>
-                   
                   </CRow>
 
+                  {/* Contact & Location Section */}
                   <CRow className="mb-3">
                     <CCol md={6}>
                       <CFormLabel>Contact Number</CFormLabel>
@@ -164,6 +186,45 @@ const ClinicDetails = () => {
                           setEditableClinicData({ ...editableClinicData, city: e.target.value })
                         }
                       />
+                    </CCol>
+                    <CCol md={6} className="text-start mt-5">
+                      {editableClinicData.hospitalLogo && (
+                        <img
+                          src={
+                            editableClinicData.hospitalLogo.startsWith('data:')
+                              ? editableClinicData.hospitalLogo
+                              : `data:image/jpeg;base64,${editableClinicData.hospitalLogo}`
+                          }
+                          alt="Hospital Logo"
+                          className="img-thumbnail mb-2"
+                          style={{ maxWidth: '150px', height: 'auto' }}
+                        />
+                      )}
+
+                      {isEditing && (
+                        <CFormInput
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files[0]
+                            const reader = new FileReader()
+
+                            reader.onloadend = () => {
+                              if (reader.result) {
+                                const base64String = reader.result.split(',')[1]
+                                setEditableClinicData({
+                                  ...editableClinicData,
+                                  hospitalLogo: base64String,
+                                })
+                              }
+                            }
+
+                            if (file) {
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      )}
                     </CCol>
                   </CRow>
 
@@ -195,35 +256,175 @@ const ClinicDetails = () => {
 
               {/* Tab 2: Additional Details */}
               <CTabPane visible={activeTab === 1}>
-                <p>
-                  <strong>Email:</strong> {clinicData.emailAddress}
-                </p>
-                <p>
-                  <strong>Clinic Registration No:</strong> {clinicData.hospitalRegistrations}
-                </p>
-                
-                <p>
-                  <strong>Website:</strong> {clinicData.website}
-                </p>
-                <p>
-                  <strong>Working Days & Timings:</strong> {clinicData.openingTime}-
-                  {clinicData.closingTime}
-                </p>
-                <p>
-                  <strong>IssuingAuthority:</strong> {clinicData.issuingAuthority}
-                </p>
-                {/* <p>
-                  <strong>Uploaded Documents:</strong>
-                </p>
-                <ul>
-                  {clinicData?.documents?.map((doc, idx) => (
-                    <li key={idx}>
-                      <a href={doc.url} target="_blank" rel="noreferrer">
-                        {doc.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul> */}
+                <CForm>
+                  <CRow className="mb-3">
+                    <CCol md={6}>
+                      <CFormLabel>Email</CFormLabel>
+                      <CFormInput
+                        type="email"
+                        value={editableClinicData.emailAddress || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) =>
+                          setEditableClinicData({
+                            ...editableClinicData,
+                            emailAddress: e.target.value,
+                          })
+                        }
+                      />
+                    </CCol>
+                    <CCol md={6}>
+                      <CFormLabel>Clinic Registration No</CFormLabel>
+                      <CFormInput
+                        type="text"
+                        value={editableClinicData.hospitalRegistrations || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) =>
+                          setEditableClinicData({
+                            ...editableClinicData,
+                            hospitalRegistrations: e.target.value,
+                          })
+                        }
+                      />
+                    </CCol>
+                  </CRow>
+
+                  <CRow className="mb-3">
+                    <CCol md={6}>
+                      <CFormLabel>Website</CFormLabel>
+                      <CFormInput
+                        type="text"
+                        value={editableClinicData.website || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) =>
+                          setEditableClinicData({ ...editableClinicData, website: e.target.value })
+                        }
+                      />
+                    </CCol>
+                    <CCol md={6}>
+                      <CFormLabel>Issuing Authority</CFormLabel>
+                      <CFormInput
+                        type="text"
+                        value={editableClinicData.issuingAuthority || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) =>
+                          setEditableClinicData({
+                            ...editableClinicData,
+                            issuingAuthority: e.target.value,
+                          })
+                        }
+                      />
+                    </CCol>
+                  </CRow>
+
+                  <CRow className="mb-3">
+                    <CCol md={6}>
+                      <CFormLabel>Opening Time</CFormLabel>
+                      <CFormInput
+                        type="time"
+                        value={editableClinicData.openingTime || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) =>
+                          setEditableClinicData({
+                            ...editableClinicData,
+                            openingTime: e.target.value,
+                          })
+                        }
+                      />
+                    </CCol>
+                    <CCol md={6}>
+                      <CFormLabel>Closing Time</CFormLabel>
+                      <CFormInput
+                        type="time"
+                        value={editableClinicData.closingTime || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) =>
+                          setEditableClinicData({
+                            ...editableClinicData,
+                            closingTime: e.target.value,
+                          })
+                        }
+                      />
+                    </CCol>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Hospital Documents</CFormLabel>
+
+                      {Array.isArray(editableClinicData.hospitalDocuments) &&
+                      editableClinicData.hospitalDocuments.length > 0 ? (
+                        editableClinicData.hospitalDocuments.map((base64Data, index) => {
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx' // choose docx as default for Office ZIP
+                          }
+
+                          const fileName = `hospital_doc_${index + 1}.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div key={index} className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      // onClick={() => window.open(fileDataUrl, '_blank')}
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })
+                      ) : (
+                        <div className="text-muted">No documents available.</div>
+                      )}
+                    </CCol>
+                  </CRow>
+
+                  <CButton
+                    color="primary"
+                    className="me-2"
+                    onClick={async () => {
+                      if (isEditingAdditional) {
+                        try {
+                          await updateClinicData(hospitalId, editableClinicData)
+                          await fetchClinicDetails()
+                          setIsEditingAdditional(false)
+                        } catch (error) {
+                          console.error('Error updating additional details:', error)
+                        }
+                      } else {
+                        setIsEditingAdditional(true)
+                      }
+                    }}
+                  >
+                    {isEditingAdditional ? 'Update' : 'Edit'}
+                  </CButton>
+                </CForm>
               </CTabPane>
 
               {/* Tab 3: Doctors */}
@@ -242,13 +443,14 @@ const ClinicDetails = () => {
                     {allDoctors.length > 0 ? (
                       allDoctors.map((doc, idx) => (
                         <tr key={idx}>
-                          <td>{doc.doctorName}</td>
+                          <td>{capitalizeWords(doc.doctorName)}</td>
                           <td>{doc.doctorMobileNumber}</td>
                           <td>{doc.specialization}</td>
                           <td>{doc.status || 'Active'}</td>{' '}
                           {/* Defaulting to 'Active' if no status is provided */}
                           <td>
                             <CButton
+                              className="btn btn-primary"
                               size="sm"
                               onClick={() => {
                                 setSelectedDoctor(doc)
@@ -302,64 +504,137 @@ const ClinicDetails = () => {
                 </CButton>
               </CModalFooter>
             </CModal>
-            <CModal visible={showDoctorModal} onClose={() => setShowDoctorModal(false)}>
-              <CModalHeader>Doctor Profile</CModalHeader>
+            <CModal visible={showDoctorModal} onClose={() => setShowDoctorModal(false)} size="lg">
+              <CModalHeader>
+                <CModalTitle>Doctor Profile</CModalTitle>
+              </CModalHeader>
               <CModalBody>
                 {selectedDoctor && (
-                  <>
-                    <p>
-                      <strong>Name:</strong> {selectedDoctor.doctorName}
-                    </p>
-                    <p>
-                      <strong>Contact:</strong> {selectedDoctor.doctorMobileNumber}
-                    </p>
-                    <p>
-                      <strong>Specialization:</strong> {selectedDoctor.specialization}
-                    </p>
-                    <p>
-                      <strong>Qualification:</strong> {selectedDoctor.qualification}
-                    </p>
-                    <p>
-                      <strong>Experience:</strong> {selectedDoctor.experience} years
-                    </p>
-                    <p>
-                      <strong>Available Days:</strong> {selectedDoctor.availableDays}
-                    </p>
-                    <p>
-                      <strong>Available Times:</strong> {selectedDoctor.availableTimes}
-                    </p>
-                    <p>
-                      <strong>Languages:</strong> {selectedDoctor.languages?.join(', ')}
-                    </p>
-                    <p>
-                      <strong>Focus Areas:</strong> {selectedDoctor.focusAreas?.join(', ')}
-                    </p>
-                    <p>
-                      <strong>Highlights:</strong> {selectedDoctor.highlights?.join(', ')}
-                    </p>
-                    <p>
-                      <strong>Profile Description:</strong> {selectedDoctor.profileDescription}
-                    </p>
-                    <p>
-                      <strong>Fees:</strong> In-Clinic ₹{selectedDoctor.doctorFees?.inClinicFee},
-                      Video ₹{selectedDoctor.doctorFees?.vedioConsultationFee}
-                    </p>
-                    <p>
-                      <strong>Services:</strong>{' '}
-                      {selectedDoctor.service?.map((s) => s.serviceName).join(', ')}
-                    </p>
-                    <p>
-                      <strong>Sub Services:</strong>{' '}
-                      {selectedDoctor.subSerives?.map((s) => s.subServiceName).join(', ')}
-                    </p>
-                  </>
+                  <div className="container-fluid">
+                    {/* Personal Info */}
+                    <h6 className="text-primary border-bottom pb-2 mb-4">Personal Information</h6>
+                    <CRow className="gy-4 align-items-start">
+                      {/* Doctor Image */}
+                      <CCol md={3} className="text-center">
+                        <img
+                          src={selectedDoctor.doctorPicture}
+                          alt="Doctor"
+                          className="img-thumbnail"
+                          style={{ width: '100%', maxWidth: '180px', borderRadius: '10px' }}
+                        />
+                      </CCol>
+
+                      {/* Doctor Info */}
+                      <CCol md={9}>
+                        <CRow className="gy-3">
+                          <CCol md={6}>
+                            <strong>Name:</strong>
+                            <div className="text-muted">{selectedDoctor.doctorName}</div>
+                          </CCol>
+                          <CCol md={6}>
+                            <strong>Contact:</strong>
+                            <div className="text-muted">{selectedDoctor.doctorMobileNumber}</div>
+                          </CCol>
+                          <CCol md={6}>
+                            <strong>Qualification:</strong>
+                            <div className="text-muted">{selectedDoctor.qualification}</div>
+                          </CCol>
+                          <CCol md={6}>
+                            <strong>Specialization:</strong>
+                            <div className="text-muted">{selectedDoctor.specialization}</div>
+                          </CCol>
+                          <CCol md={6}>
+                            <strong>Experience:</strong>
+                            <div className="text-muted">{selectedDoctor.experience} years</div>
+                          </CCol>
+                        </CRow>
+                      </CCol>
+                    </CRow>
+
+                    {/* Availability */}
+                    <h6 className="text-primary border-bottom pb-2 mt-4 mb-3">Availability</h6>
+                    <CRow className="gy-3">
+                      <CCol md={6}>
+                        <strong>Available Days:</strong>
+                        <div className="text-muted">{selectedDoctor.availableDays}</div>
+                      </CCol>
+                      <CCol md={6}>
+                        <strong>Available Times:</strong>
+                        <div className="text-muted">{selectedDoctor.availableTimes}</div>
+                      </CCol>
+                    </CRow>
+
+                    {/* Languages & Areas */}
+                    <h6 className="text-primary border-bottom pb-2 mt-4 mb-3">Expertise</h6>
+                    <CRow className="gy-3">
+                      <CCol md={6}>
+                        <strong>Languages:</strong>
+                        <div className="text-muted">
+                          {selectedDoctor.languages?.join(', ') || '-'}
+                        </div>
+                      </CCol>
+                      <CCol md={6}>
+                        <strong>Focus Areas:</strong>
+                        <div className="text-muted">
+                          {selectedDoctor.focusAreas?.join(', ') || '-'}
+                        </div>
+                      </CCol>
+                      <CCol md={12}>
+                        <strong>Highlights:</strong>
+                        <div className="text-muted">
+                          {selectedDoctor.highlights?.join(', ') || '-'}
+                        </div>
+                      </CCol>
+                    </CRow>
+
+                    {/* Services */}
+                    <h6 className="text-primary border-bottom pb-2 mt-4 mb-3">Services Offered</h6>
+                    <CRow className="gy-3">
+                      <CCol md={12}>
+                        <strong>Services:</strong>
+                        <div className="text-muted">
+                          {selectedDoctor.service?.map((s) => s.serviceName).join(', ') || '-'}
+                        </div>
+                      </CCol>
+                      <CCol md={12}>
+                        <strong>Sub Services:</strong>
+                        <div className="text-muted">
+                          {selectedDoctor.subSerives?.map((s) => s.subServiceName).join(', ') ||
+                            '-'}
+                        </div>
+                      </CCol>
+                    </CRow>
+
+                    {/* Fees */}
+                    <h6 className="text-primary border-bottom pb-2 mt-4 mb-3">Consultation Fees</h6>
+                    <CRow className="gy-3">
+                      <CCol md={6}>
+                        <strong>In-Clinic:</strong>
+                        <div className="text-muted">
+                          ₹{selectedDoctor.doctorFees?.inClinicFee || 0}
+                        </div>
+                      </CCol>
+                      <CCol md={6}>
+                        <strong>Video:</strong>
+                        <div className="text-muted">
+                          ₹{selectedDoctor.doctorFees?.vedioConsultationFee || 0}
+                        </div>
+                      </CCol>
+                    </CRow>
+
+                    {/* Profile Description */}
+                    <h6 className="text-primary border-bottom pb-2 mt-4 mb-3">Profile Summary</h6>
+                    <div className="border rounded p-3 bg-light text-muted">
+                      {selectedDoctor.profileDescription || 'No description available.'}
+                    </div>
+                  </div>
                 )}
               </CModalBody>
               <CModalFooter>
                 <CButton color="secondary" onClick={() => setShowDoctorModal(false)}>
                   Close
                 </CButton>
-                <CButton color="primary">Edit</CButton>
+                {/* <CButton color="primary">Edit</CButton> */}
               </CModalFooter>
             </CModal>
           </>

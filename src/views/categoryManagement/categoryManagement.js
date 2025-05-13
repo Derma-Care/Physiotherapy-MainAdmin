@@ -117,6 +117,25 @@ const CategoryManagement = () => {
             textOverflow: 'ellipsis',
           }}
         >
+          S.No
+        </div>
+      ),
+      selector: (row, index) => index + 1,
+      sortable: true,
+      width: '10%',
+    
+      headerStyle: { textAlign: 'center' },
+    },
+    {
+      name: (
+        <div
+          style={{
+            fontSize: '20px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           Category Name
         </div>
       ),
@@ -438,6 +457,12 @@ const CategoryManagement = () => {
             <CModalTitle>Category Details</CModalTitle>
           </CModalHeader>
           <CModalBody>
+            <CRow className="mb-4">
+              <CCol sm={4}>
+                <strong>Category ID :</strong>
+              </CCol>
+              <CCol sm={8}>{viewCategory.categoryId}</CCol>
+            </CRow>
             <CRow className="mb-4">
               <CCol sm={4}>
                 <strong>Category Name :</strong>

@@ -20,14 +20,15 @@ import {
   CTableHeaderCell,
   CTableDataCell,
 } from '@coreui/react'
-
+import { CategoryData } from '../categoryManagement/CategoryAPI'
 const ClinicManagement = ({ service, onBack }) => {
   const navigate = useNavigate()
   const [clinics, setClinics] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-
+  const [filterCategory, setFilterCategory] = useState('')
+  const [categories, setCategories] = useState([])
   const location = useLocation()
 
   const handleAddClinic = () => {
@@ -38,84 +39,59 @@ const ClinicManagement = ({ service, onBack }) => {
       },
     })
   }
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const res = await CategoryData()
+      setCategories(res.data)
+    }
+    fetchCategories()
+  }, [])
 
   useEffect(() => {
     fetchClinics()
     if (location.state?.newClinic) {
       setClinics((prev) => [...prev, location.state.newClinic])
     }
-  }, [location.state?.newClinic])
+  }, [location.state?.newClinic, filterCategory])
 
   const fetchClinics = async () => {
-    console.log('calling')
     setLoading(true)
     try {
       const response = await axios.get(`${BASE_URL}/${ClinicAllData}`)
-      console.log(response.data)
-      if (response.data) {
-        // Filter clinics based on selected service if needed
-        const clinicList = Array.isArray(response.data)
-          ? response.data
-          : response.data.hospitalCategory || response.data.data || []
+      const clinicList = Array.isArray(response.data)
+        ? response.data
+        : response.data.hospitalCategory || response.data.data || []
 
-        console.log('Raw response data:', response.data)
-        console.log('Extracted clinicList:', clinicList)
-        console.log('Selected service:', service)
+      const filteredClinics = filterCategory
+        ? clinicList.filter(
+            (clinic) =>
+              Array.isArray(clinic.hospitalCategory) &&
+              clinic.hospitalCategory.some((cat) => cat.categoryId === filterCategory),
+          )
+        : clinicList
 
-        if (clinicList.length > 0) {
-          clinicList.forEach((clinic, index) => {
-            console.log(`Clinic ${index}:`, clinic)
-            console.log(`clinic.hospitalCategory:`, clinic.hospitalCategory)
-
-            // Check if hospitalCategory exists and is an array
-            if (Array.isArray(clinic.hospitalCategory)) {
-              clinic.hospitalCategory.forEach((category, catIndex) => {
-                console.log(`--> Category ${catIndex}:`, category)
-              })
-            }
-          })
-        }
-
-        const filteredClinics = service
-          ? clinicList.filter(
-              (clinic) =>
-                Array.isArray(clinic.hospitalCategory) &&
-                clinic.hospitalCategory.some((cat) => cat.categoryId === service.categoryId),
-            )
-          : clinicList
-
-        console.log('Filtered Clinics:', filteredClinics)
-
-        setClinics(filteredClinics)
-
-        console.log('Fetched clinics:', clinicList)
-        console.log('Fetched clinics:', filteredClinics)
-
-        setClinics(filteredClinics)
-        setLoading(false)
-      }
+      setClinics(filteredClinics)
     } catch (error) {
       console.error('Error fetching clinics:', error)
+    } finally {
       setLoading(false)
     }
   }
 
- 
-
   const filteredClinics = clinics.filter(
     (clinic) =>
       clinic.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      clinic.mobile?.includes(searchTerm) ||
-      clinic.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+      clinic.contactNumber?.includes(searchTerm) ||
+      clinic.emailAddress?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   return (
     <CCard className="mt-4">
       <CCardHeader>
         <div className="d-flex justify-content-between align-items-center">
-          <CButton color="secondary" onClick={onBack}>
+          {/* <CButton color="secondary" onClick={onBack}>
             Back
-          </CButton>
+          </CButton> */}
           <h2 className="mb-0">{service?.categoryName} Clinics</h2>
           <CButton color="primary" onClick={handleAddClinic}>
             Add Clinic
@@ -125,7 +101,7 @@ const ClinicManagement = ({ service, onBack }) => {
 
       <CCardBody>
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <div className="col-8">
+          <div className="col-4 mx-2">
             <CFormInput
               type="text"
               placeholder="Search by full name, mobile, or email"
@@ -133,16 +109,30 @@ const ClinicManagement = ({ service, onBack }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="col-4 text-end">No.of Hospitals: {filteredClinics?.length || 0}</div>
+          <div className="col-md-4 ">
+            <select
+              className="form-select"
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+            >
+              <option value="">Filter by Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.categoryId} value={cat.categoryId}>
+                  {cat.categoryName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-2 text-end">No.of Hospitals: {filteredClinics?.length || 0}</div>
         </div>
 
-        
         {error && <p className="text-center text-danger">{error}</p>}
 
         <CTable hover responsive>
           <CTableHead>
             <CTableRow>
-              <CTableHeaderCell>ID</CTableHeaderCell>
+              <CTableHeaderCell>S.No</CTableHeaderCell>
               <CTableHeaderCell>Clinic Name</CTableHeaderCell>
               <CTableHeaderCell>Contact Number</CTableHeaderCell>
               <CTableHeaderCell>Email Address</CTableHeaderCell>
@@ -150,7 +140,7 @@ const ClinicManagement = ({ service, onBack }) => {
               <CTableHeaderCell>Actions</CTableHeaderCell>
             </CTableRow>
           </CTableHead>
-       
+
           <CTableBody>
             {filteredClinics?.length > 0
               ? filteredClinics.map((clinic, index) => (
@@ -181,16 +171,14 @@ const ClinicManagement = ({ service, onBack }) => {
           </CTableBody>
         </CTable>
       </CCardBody>
-      
+
       {loading && (
         <div className="text-center">
           <ClipLoader color="#3498db" loading={loading} size={50} />
           <p>Loading...</p>
         </div>
       )}
-    
     </CCard>
-    
   )
 }
 

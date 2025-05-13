@@ -34,7 +34,6 @@ const ClinicAPI = () => {
     console.log('Selected service:', service)
     setSelectedService(service)
   }
-  
 
   if (selectedService) {
     return <ClinicManagement service={selectedService} onBack={() => setSelectedService(null)} />
@@ -65,8 +64,6 @@ const ClinicAPI = () => {
                 {/* or service.serviceName if that's correct */}
                 <h5 className="card-title">{service.categoryName}</h5>{' '}
                 {/* or service.serviceName if that's correct */}
-                <p className="card-text text-muted">{service.categoryId}</p>{' '}
-                {/* or service.serviceId */}
               </div>
             </div>
           </div>

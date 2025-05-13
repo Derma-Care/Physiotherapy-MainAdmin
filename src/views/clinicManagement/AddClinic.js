@@ -42,6 +42,7 @@ const AddClinic = () => {
     recommended: false,
     hospitalDoucuments: [],
     hospitalcategory: [],
+    hospitalContract: [],
   })
 
   const handleCategoryChange = async (selectedOptions) => {
@@ -192,6 +193,9 @@ const AddClinic = () => {
     if (formData.hospitalDoucuments.length === 0) {
       newErrors.hospitalDoucuments = 'Please upload at least one document'
     }
+    if (formData.hospitalContract.length === 0) {
+      newErrors.hospitalContract = 'Please upload at least one document'
+    }
 
     // Website (optional)
     if (!formData.website.trim()) {
@@ -256,6 +260,14 @@ const AddClinic = () => {
           ...prev,
           hospitalDoucuments: base64Files,
         }))
+      } else if (name === 'hospitalContract') {
+        const base64Files = await Promise.all(
+          Array.from(files).map((file) => convertToBase64(file).then(stripBase64Prefix)),
+        )
+        setFormData((prev) => ({
+          ...prev,
+          hospitalContract: base64Files,
+        }))
       }
     } catch (error) {
       console.error('File conversion error:', error)
@@ -308,13 +320,14 @@ const AddClinic = () => {
       website: formData.website,
       licenseNumber: formData.licenseNumber,
       issuingAuthority: formData.IssuingAuthority,
-      hospitalService: [],
-      hospitalCategory: formData.hospitalcategory.map((cat) => ({
-        categoryId: cat.value, // Using 'value' from selected option
-        categoryName: cat.label, // Using 'label' from selected option
-      })),
+      // hospitalService: [],
+      // hospitalCategory: formData.hospitalcategory.map((cat) => ({
+      //   categoryId: cat.value, // Using 'value' from selected option
+      //   categoryName: cat.label, // Using 'label' from selected option
+      // })),
       hospitalDocuments: formData.hospitalDoucuments,
       recommended: formData.recommended,
+      contractorDocuments: formData.hospitalContract,
     }
 
     console.log('Clinic Data Saved:', clinicData)
@@ -325,7 +338,7 @@ const AddClinic = () => {
 
       // Fix the URL construction
       const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
-      
+
       const savedClinicData = response.data
 
       if (savedClinicData.success) {
@@ -355,7 +368,7 @@ const AddClinic = () => {
         <CCardBody>
           <CForm onSubmit={handleSubmit}>
             <CRow className="mb-3">
-              <CCol md={6}>
+              {/* <CCol md={6}>
                 <CFormLabel>Clinic Category</CFormLabel>
                 <Select
                   isMulti
@@ -389,7 +402,7 @@ const AddClinic = () => {
                   }
                   placeholder="Select multiple services..."
                 />
-              </CCol>
+              </CCol> */}
               <CCol md={6}>
                 <CFormLabel>
                   Clinic Name
@@ -487,7 +500,7 @@ const AddClinic = () => {
             </CRow>
 
             <CRow className="mb-3">
-              <CCol md={6}>
+              <CCol md={4}>
                 <CFormLabel>
                   License Number<span style={{ color: 'red' }}>*</span>
                 </CFormLabel>
@@ -502,7 +515,7 @@ const AddClinic = () => {
                   <CFormFeedback invalid>{errors.licenseNumber}</CFormFeedback>
                 )}
               </CCol>
-              <CCol md={6}>
+              <CCol md={4}>
                 <CFormLabel>
                   Issuing Authority<span style={{ color: 'red' }}>*</span>
                 </CFormLabel>
@@ -516,6 +529,21 @@ const AddClinic = () => {
                 />
                 {errors.IssuingAuthority && (
                   <CFormFeedback invalid>{errors.IssuingAuthority}</CFormFeedback>
+                )}
+              </CCol>
+              <CCol md={4}>
+                <CFormLabel>
+                  Hospital Registration<span style={{ color: 'red' }}>*</span>
+                </CFormLabel>
+                <CFormInput
+                  type="text"
+                  name="hospitalRegistrations"
+                  value={formData.hospitalRegistrations}
+                  onChange={handleInputChange}
+                  invalid={!!errors.hospitalRegistrations}
+                />
+                {errors.hospitalRegistrations && (
+                  <CFormFeedback invalid>{errors.hospitalRegistrations}</CFormFeedback>
                 )}
               </CCol>
             </CRow>
@@ -569,17 +597,18 @@ const AddClinic = () => {
               </CCol>
               <CCol md={6}>
                 <CFormLabel>
-                  Hospital Registration<span style={{ color: 'red' }}>*</span>
+                  Hospital Contract<span style={{ color: 'red' }}>*</span>
                 </CFormLabel>
                 <CFormInput
-                  type="text"
-                  name="hospitalRegistrations"
-                  value={formData.hospitalRegistrations}
-                  onChange={handleInputChange}
-                  invalid={!!errors.hospitalRegistrations}
+                  type="file"
+                  name="hospitalContract"
+                  onChange={handleFileChange}
+                  multiple
+                  accept=".pdf,.doc,.docx"
+                  invalid={!!errors.hospitalContract}
                 />
-                {errors.hospitalRegistrations && (
-                  <CFormFeedback invalid>{errors.hospitalRegistrations}</CFormFeedback>
+                {errors.hospitalContract && (
+                  <CFormFeedback invalid>{errors.hospitalContract}</CFormFeedback>
                 )}
               </CCol>
             </CRow>

@@ -5,15 +5,16 @@ import AddDoctors from './views/clinicManagement/AddDoctors'
 const Login = React.lazy(() => import('./views/pages/login/Login'))
 const serviceManagement = React.lazy(() => import('./views/servicesManagement/ServiceManagement'))
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
-
-const ClinicManagement = React.lazy(() => import('./views/clinicManagement/ClinicDetails'))
+const CustomerViewDetails = React.lazy(
+  () => import('./views/customerManagement/CustomerViewDetails'),
+)
+const ClinicManagement = React.lazy(() => import('./views/clinicManagement/ClinicManagement'))
+const ClinicManagementDetails = React.lazy(() => import('./views/clinicManagement/ClinicDetails'))
 const Registration = React.lazy(() => import('./views/clinicManagement/ClinicAPI'))
 const AddClinic = React.lazy(() => import('./views/clinicManagement/AddClinic'))
 
 const categoryManagement = React.lazy(() => import('./views/categoryManagement/categoryManagement'))
 const customerManagement = React.lazy(() => import('./views/customerManagement/CustomerManagement'))
-
- 
 
 const PatientManagement = React.lazy(() => import('./views/providerManagement/ProviderManagement'))
 const PatientViewDetails = React.lazy(
@@ -38,17 +39,20 @@ const routes = [
   {
     path: '/service-management',
     name: 'Service Management',
-    element: serviceManagement
+    element: serviceManagement,
   },
-
+  {
+    path: '/customer-management/:mobileNumber',
+    name: 'Customer View Details',
+    element: CustomerViewDetails,
+  },
   { path: '/customer-management', name: 'Customer Management', element: customerManagement },
   { path: '/service-management', name: 'Service Management', element: serviceManagement },
 
-  { path: '/clinic-Management', name: 'Clinic Management ', element: Registration },
+  { path: '/clinic-Management', name: 'Clinic Management ', element: ClinicManagement },
   { path: '/add-clinic', name: 'Add Clinic', element: AddClinic },
-  { path: '/clinic-Management/:hospitalId', name: 'Clinic Details', element: ClinicManagement },
+  { path: '/clinic-Management/:hospitalId', name: 'Clinic Details', element: ClinicManagementDetails },
 
-  
   { path: '/add-doctor', name: 'Add Doctor', element: AddDoctors },
 
   { path: '/patients-management', name: 'Patient Management', element: PatientManagement },
@@ -61,7 +65,6 @@ const routes = [
   { path: '/reassign-Appointment', name: 'Reassign Appointment', element: ReassignAppointment },
 
   { path: '/provider-management/:id', name: 'Patient View Details', element: PatientViewDetails },
-
- ]
+]
 
 export default routes

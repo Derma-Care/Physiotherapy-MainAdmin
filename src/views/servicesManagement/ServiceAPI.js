@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE,subService_URL } from '../../baseUrl'
+import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE, subService_URL, BASE_URL,DELETE_SERVICE_URL } from '../../baseUrl'
 
 export const getAllServices = async () => {
   try {
@@ -31,14 +31,13 @@ export const postServiceData = async (serviceData) => {
 }
 
 export const updateServiceData = async (updatedService, serviceId) => {
+  //TODO:service api need
+  console.log(updatedService)
+  console.log(serviceId)
   try {
-    const response = await axios.put(
-      `${SERVICE_URL}/${UPDATE_SERVICE}/${serviceId}`,
-      updatedService,
-      {
-        headers: { 'Content-Type': 'application/json' },
-      },
-    )
+    const response = await axios.put(`${BASE_URL}/${SERVICE_URL}/${serviceId}`, updatedService, {
+      headers: { 'Content-Type': 'application/json' },
+    })
     return response.data
   } catch (error) {
     console.error('Error updating service:', error)
@@ -48,7 +47,7 @@ export const updateServiceData = async (updatedService, serviceId) => {
 
 export const deleteServiceData = async (serviceId) => {
   try {
-    const response = await axios.delete(`${SERVICE_URL}/${DELETE_SERVICE}/${serviceId}`)
+    const response = await axios.delete(`${subService_URL}/${DELETE_SERVICE_URL}/${serviceId}`)
     return response.data
   } catch (error) {
     console.error('Error deleting service:', error)

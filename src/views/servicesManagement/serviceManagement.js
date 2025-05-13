@@ -20,9 +20,10 @@ import { cilSearch } from '@coreui/icons'
 import DataTable from 'react-data-table-component'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { getAllServices, postServiceData } from './ServiceAPI'
+import { getAllServices, postServiceData, updateServiceData, deleteServiceData } from './ServiceAPI'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
-
+import Select from 'react-select'
+import '../../Utils/CreateTheme'
 const ServiceManagement = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [service, setService] = useState([])
@@ -97,14 +98,18 @@ const ServiceManagement = () => {
     const handleSearch = () => {
       const trimmedQuery = searchQuery.toLowerCase().trim()
       if (!trimmedQuery) {
-        setFilteredData([])
+        setFilteredData(service)
         return
       }
-      const filtered = service.filter((services) =>
-        services.serviceName.toLowerCase().includes(searchQuery.toLowerCase().trim()),
-      )
+      const filtered = service.filter((services) => {
+        const serviceNameMatch = services.serviceName.toLowerCase().startsWith(trimmedQuery)
+        const categoryMatch = services.categoryName?.toLowerCase().startsWith(trimmedQuery)
+        const descriptionMatch = services.description?.toLowerCase().startsWith(trimmedQuery)
+        return serviceNameMatch || categoryMatch || descriptionMatch
+      })
       setFilteredData(filtered)
     }
+
     handleSearch()
   }, [searchQuery, service])
 
@@ -137,6 +142,11 @@ const ServiceManagement = () => {
   //     [name]: value,
   //   }));
   // };
+  const categoryOptions =
+    categories?.map((cat) => ({
+      value: cat.categoryId,
+      label: cat.categoryName,
+    })) || []
 
   const handleServiceChange = (e) => {
     const { name, value } = e.target
@@ -212,20 +222,34 @@ const ServiceManagement = () => {
       toast.error('Failed to add service')
     }
   }
+  const [serviceToEdit, setServiceToEdit] = useState(null)
+  const handleServiceEdit = (service) => {
+    console.log(service)
+    setServiceToEdit(service)
+    setUpdatedService({
+      ServiceId: service.serviceId,
+      ServiceName: service.serviceName,
+      categoryId: service.categoryId || '',
+      categoryName: service.categoryName || '',
+      description: service.description || '',
+      ServiceImage: service.serviceImage, // Will upload new one if needed
+    })
+    setEditServiceMode(true)
+  }
 
-  // const handleServiceEdit = (service) => {
-  //   setServiceToEdit(service)
-  //   setUpdatedService({
-  //     ServiceId: service.ServiceId,
-  //     ServiceName: service.ServiceName,
-  //     ServiceImage: service.ServiceImage,
-  //   })
-  //   setEditServiceMode(true)
-  // }
-
-  const handleUpdateService = async () => {
+  const handleUpdateService = async (id) => {
     try {
-      await updateServiceData(updatedService, updatedService.serviceId)
+      const payload = {
+        serviceId: updatedService.ServiceId,
+        serviceName: updatedService.ServiceName,
+        categoryId: updatedService.categoryId,
+        serviceImage: updatedService.ServiceImage, // base64 string
+      }
+
+      console.log('Payload:', payload)
+      console.log('Payload:', updatedService.ServiceId)
+
+      await updateServiceData(payload, updatedService.ServiceId) // Ensure this does axios.post(url, data)
       toast.success('Service updated successfully!')
       setEditServiceMode(false)
       await fetchData()
@@ -234,12 +258,15 @@ const ServiceManagement = () => {
     }
   }
 
-  const handleDeleteService = (serviceId) => {
-    setServiceIdToDelete(serviceId)
-    setIsModalVisible(true)
-  }
+  // const handleDeleteService = (serviceId) => {
+  //   setServiceIdToDelete(serviceId)
+  //   setIsModalVisible(true)
+  // }
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async (serviceIdToDelete) => {
+    const confirm = window.confirm('Are you sure you want to delete this service?')
+    if (!confirm) return
+    console.log(serviceIdToDelete)
     try {
       await deleteServiceData(serviceIdToDelete)
       toast.success('Service deleted successfully!')
@@ -249,6 +276,7 @@ const ServiceManagement = () => {
       toast.error('Failed to delete service')
     }
   }
+
   const columns = [
     {
       name: (
@@ -283,7 +311,7 @@ const ServiceManagement = () => {
       selector: (row) => row.serviceName,
       sortable: true,
       width: '20%',
-      cell: (row) => <div style={{ textAlign: 'center', fontSize: '16px' }}>{row.serviceName}</div>,
+      cell: (row) => <div style={{ textAlign: 'start', fontSize: '16px' }}>{row.serviceName}</div>,
       headerStyle: { textAlign: 'center' },
     },
     {
@@ -302,9 +330,7 @@ const ServiceManagement = () => {
       selector: (row) => row.categoryName,
       sortable: true,
       width: '20%',
-      cell: (row) => (
-        <div style={{ textAlign: 'center', fontSize: '16px' }}>{row.categoryName}</div>
-      ),
+      cell: (row) => <div style={{ textAlign: 'start', fontSize: '16px' }}>{row.categoryName}</div>,
       headerStyle: { textAlign: 'center' },
     },
     {
@@ -322,8 +348,8 @@ const ServiceManagement = () => {
       ),
       selector: (row) => row.description,
       sortable: true,
-      width: '30%',
-      cell: (row) => <div style={{ textAlign: 'center', fontSize: '16px' }}>{row.description}</div>,
+      width: '25%',
+      cell: (row) => <div style={{ textAlign: 'start', fontSize: '16px' }}>{row.description}</div>,
       headerStyle: { textAlign: 'center' },
     },
     {
@@ -368,7 +394,7 @@ const ServiceManagement = () => {
           <CButton
             color="link"
             className="text-danger p-0"
-            onClick={() => handleServiceDelete(row.serviceId)}
+            onClick={() => handleConfirmDelete(row.serviceId)}
             style={{ width: '80px' }}
           >
             Delete
@@ -410,10 +436,11 @@ const ServiceManagement = () => {
 
       <DataTable
         columns={columns}
-        data={service}
+        data={filteredData}
         pagination
         progressPending={loading}
         noDataComponent={error || 'No services found'}
+        // theme="darkCustom" // ✅ apply the dark theme here
       />
 
       {/* Add Service Modal */}
@@ -422,21 +449,30 @@ const ServiceManagement = () => {
           <CModalTitle>Add New Service</CModalTitle>
         </CModalHeader>
         <CModalBody>
-          <CFormSelect
-            name="categoryId"
-            label="Category"
-            value={newService.categoryId}
-            onChange={handleServiceChange}
-            className="mb-3"
-            feedbackInvalid={errors.categoryId}
-          >
-            <option value="">Select Category</option>
-            {(categories || []).map((cat) => (
-              <option key={cat.categoryId} value={cat.categoryId}>
-                {cat.categoryName}
-              </option>
-            ))}
-          </CFormSelect>
+          <div className="mb-3">
+            <label className="form-label">
+              Category <span style={{ color: 'red' }}>*</span>
+            </label>
+            <Select
+              name="categoryId"
+              options={categoryOptions}
+              value={categoryOptions.find((opt) => opt.value === newService.categoryId) || null}
+              onChange={(selectedOption) =>
+                handleServiceChange({
+                  target: {
+                    name: 'categoryId',
+                    value: selectedOption ? selectedOption.value : '',
+                  },
+                })
+              }
+              placeholder="Search or select a category"
+              isClearable
+              className={errors.categoryId ? 'is-invalid' : ''}
+            />
+            {errors.categoryId && (
+              <div className="invalid-feedback d-block">{errors.categoryId}</div>
+            )}
+          </div>
 
           {/* <select
   name="categoryId"
@@ -499,6 +535,18 @@ const ServiceManagement = () => {
         <CModalBody>
           <CRow className="mb-3">
             <CCol sm={4}>
+              <strong>Category Id:</strong>
+            </CCol>
+            <CCol sm={8}>{viewService?.categoryId}</CCol>
+          </CRow>
+          <CRow className="mb-3">
+            <CCol sm={4}>
+              <strong>Category Name:</strong>
+            </CCol>
+            <CCol sm={8}>{viewService?.categoryName}</CCol>
+          </CRow>
+          <CRow className="mb-3">
+            <CCol sm={4}>
               <strong>Service Name:</strong>
             </CCol>
             <CCol sm={8}>{viewService?.serviceName}</CCol>
@@ -532,6 +580,59 @@ const ServiceManagement = () => {
           </CButton>
           <CButton color="danger" onClick={handleConfirmDelete}>
             Delete
+          </CButton>
+        </CModalFooter>
+      </CModal>
+
+      <CModal visible={editServiceMode} onClose={() => setEditServiceMode(false)}>
+        <CModalHeader>
+          <CModalTitle>Edit Service</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          <CForm>
+            <CFormInput
+              label="Service Name"
+              value={updatedService.ServiceName}
+              onChange={(e) =>
+                setUpdatedService({ ...updatedService, ServiceName: e.target.value })
+              }
+            />
+            <CFormSelect
+              label="Category"
+              value={updatedService.categoryId}
+              onChange={(e) =>
+                setUpdatedService({
+                  ...updatedService,
+                  categoryId: e.target.value,
+                })
+              }
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat) => (
+                <option key={cat.categoryId} value={cat.categoryId}>
+                  {cat.categoryName}
+                </option>
+              ))}
+            </CFormSelect>
+            <CFormInput
+              type="file"
+              label="Service Image"
+              accept="image/*"
+              onChange={(e) =>
+                setUpdatedService({
+                  ...updatedService,
+                  ServiceImage: e.target.files[0],
+                })
+              }
+            />
+          </CForm>
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setEditServiceMode(false)}>
+            Cancel
+          </CButton>
+          <CButton color="primary" onClick={handleUpdateService}>
+            Update
           </CButton>
         </CModalFooter>
       </CModal>

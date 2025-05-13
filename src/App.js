@@ -40,7 +40,6 @@ const App = () => {
           <Route path="*" element={<DefaultLayout />} />
         </Routes>
       </Suspense>
-      
     </BrowserRouter>
   )
 }
