@@ -17,7 +17,7 @@ import {
 import { BASE_URL, subService_URL } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
-
+import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 const AddClinic = () => {
@@ -340,9 +340,28 @@ const AddClinic = () => {
       const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
 
       const savedClinicData = response.data
+      console.log(savedClinicData)
 
       if (savedClinicData.success) {
         toast.success(response.message, { position: 'top-right' })
+        const hospitalID = localStorage.getItem('HospitalId') // Assuming it's an email or unique ID
+        const password = savedClinicData.password // Or extract from correct path
+        const clinicUsername = savedClinicData.data.clinicUsername
+        const clinicTemporaryPassword = savedClinicData.data.clinicTemporaryPassword
+        console.log(clinicUsername)
+        console.log(clinicTemporaryPassword)
+        // sendDermaCareOnboardingEmail({
+        //   name: 'Dr. Neha’s Clinic',
+        //   email: 'prashanthr@gmail.com',
+        //   password: 'Derma@1234',
+        // })
+        sendDermaCareOnboardingEmail({
+          name: formData.name,
+          email: formData.emailAddress,
+          password: clinicTemporaryPassword,
+          userID: clinicUsername,
+        })
+
         navigate('/clinic-management', {
           state: {
             refresh: true,

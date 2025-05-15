@@ -15,6 +15,7 @@ import {
   cilCash,
   cilChartLine,
   cilSpeaker,
+  cilSettings,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
 import appointmentIcon from './assets/images/avatars/calendar.png'
@@ -57,6 +58,12 @@ const _nav = [
     name: 'Service Management',
     to: '/service-management',
     icon: <CIcon icon={cilApps} customClassName="nav-icon" />,
+  },
+   {
+    component: CNavItem,
+    name: 'Sub Service Management',
+    to: '/sub-service-management',
+    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
