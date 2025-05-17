@@ -5,6 +5,7 @@ import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
 
 import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 // Lazy-loaded components
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
@@ -30,6 +31,18 @@ const App = () => {
 
   return (
     <BrowserRouter>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <Suspense fallback={<CSpinner color="primary" variant="grow" />}>
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />

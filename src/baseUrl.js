@@ -60,7 +60,7 @@ export const getBasicDetails = 'admin/getBasicDetails'
 
 // Service management
 
-export const service = 'services/getService'
+export const getService = 'services/getServices'
 
 export const Category = 'category/getServices'
 
@@ -69,6 +69,13 @@ export const AddService = 'services/addService'
 export const updateService = 'services/updateService'
 
 export const deleteService = 'services/deleteByServiceID'
+
+//Subservice
+export const getSubservices='admin/getAllSubServices'
+export const addSubservices='admin/addSubService'
+export const deleteSubservices='admin/deleteSubService'
+export const updateSubservices='admin/updateBySubServiceId'
+
 // Provider Management
 
 export const ProviderAllData = 'admin/getAllProviderDetails'

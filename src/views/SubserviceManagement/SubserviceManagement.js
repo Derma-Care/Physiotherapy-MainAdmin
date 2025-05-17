@@ -6,8 +6,10 @@ import Select from 'react-select'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { subService_URL } from '../../baseUrl'
+import { BASE_URL, subService_URL, updateSubservices, getService } from '../../baseUrl'
 import DataTable from 'react-data-table-component'
+import postSubService from '../SubserviceManagement/SUbServiceAPI'
+import { getAllSubServices, deleteSubServiceData } from '../SubserviceManagement/SUbServiceAPI'
 const AddSubService = () => {
   const [category, setCategory] = useState([])
   const [serviceOptions, setServiceOptions] = useState([])
@@ -15,39 +17,198 @@ const AddSubService = () => {
   const [selectedSubServices, setSelectedSubServices] = useState([])
   const [subServiceInput, setSubServiceInput] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editSubServiceId, setEditSubServiceId] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filteredSubServices, setFilteredSubServices] = useState([])
+
   const [newService, setNewService] = useState({
     categoryName: '',
     categoryId: '',
     serviceName: '',
     serviceId: '',
   })
+  const [subServices, setSubServices] = useState([]) // will be filled by API
 
-  const dummySubservices = [
-    { id: 'SS001', name: 'Skin Brightening', category: 'Dermatology', service: 'Facial' },
-    { id: 'SS002', name: 'Hair Fall Treatment', category: 'Hair', service: 'Hair Therapy' },
-  ]
+  useEffect(() => {
+    fetchSubServices()
+  }, [])
+  const fetchSubServices = async () => {
+    const result = await getAllSubServices()
+
+    // Flatten subservice structure if needed
+    const formattedSubServices = result.flatMap((item) =>
+      Array.isArray(item.subServices)
+        ? item.subServices.map((sub) => ({
+            id: sub.subServiceId,
+            name: sub.subServiceName,
+            category: item.categoryName,
+            service: item.serviceName,
+            serviceId: item.serviceId,
+          }))
+        : [],
+    )
+
+    setSubServices(formattedSubServices) // your state setter
+  }
+  const handleCategoryEdit = async (row) => {
+    setEditMode(true)
+    setEditSubServiceId(row.id)
+    setShowModal(true)
+
+    // Get the categoryId from name
+    const selectedCategory = category.find((c) => c.categoryName === row.category)
+    const selectedCategoryId = selectedCategory?.categoryId || ''
+
+    // Fetch services for that category
+    try {
+      const res = await axios.get(`${subService_URL}/${getService}/${selectedCategoryId}`)
+      const serviceList = res.data?.data || []
+      setServiceOptions(serviceList)
+
+      // Find the selected service by name
+      const selectedService = serviceList.find((s) => s.serviceName === row.service)
+
+      setNewService({
+        categoryName: row.category,
+        categoryId: selectedCategoryId,
+        serviceName: row.service,
+        serviceId: selectedService?.serviceId || '',
+      })
+    } catch (err) {
+      console.error('❌ Failed to load services for edit:', err)
+      setServiceOptions([])
+    }
+
+    // Set the subservice being edited
+    setSelectedSubServices([row.name])
+  }
+
+  const handleConfirmDelete = async (serviceId) => {
+    const confirmed = window.confirm('Are you sure you want to delete this subservice?')
+    if (!confirmed) return
+
+    try {
+      const res = await deleteSubServiceData(serviceId)
+      console.log('🧪 Delete Response:', res)
+
+      if (res?.data?.success === true) {
+        toast.success('Subservice deleted successfully!', { position: 'top-right' })
+        await fetchSubServices()
+      } else {
+        toast.error('Failed to delete subservice.', { position: 'top-right' })
+      }
+    } catch (error) {
+      console.error('❌ Delete error:', error)
+      toast.error('Failed to delete subservice.', { position: 'top-right' })
+    }
+  }
 
   const columns = [
     {
       name: 'S.No',
-      selector: (row,index) => index+1,
+      selector: (row, index) => index + 1,
       sortable: true,
       width: '120px',
     },
     {
-      name: 'SubService',
+      name: (
+        <div
+          style={{
+            fontSize: '14px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          SubService
+        </div>
+      ),
       selector: (row) => row.name,
       sortable: true,
     },
     {
-      name: 'Category',
+      name: (
+        <div
+          style={{
+            fontSize: '14px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          Category
+        </div>
+      ),
       selector: (row) => row.category,
       sortable: true,
     },
     {
-      name: 'Service',
+      name: (
+        <div
+          style={{
+            fontSize: '14px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          Service
+        </div>
+      ),
       selector: (row) => row.service,
       sortable: true,
+    },
+    {
+      name: (
+        <div
+          style={{
+            fontSize: '14px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          Actions
+        </div>
+      ),
+      cell: (row) => (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '230px',
+          }}
+        >
+          {/* <CButton
+            //  color="link"
+            className="text-primary p-0"
+            onClick={() => setViewCategory(row)}
+            style={{ marginRight: '10px', width: '80px' }}
+          >
+            View
+          </CButton> */}
+
+          <CButton
+            color="link"
+            className="text-success p-0"
+            onClick={() => handleCategoryEdit(row)}
+            style={{ marginRight: '10px', width: '80px' }}
+          >
+            Edit
+          </CButton>
+
+          <CButton
+            color="link"
+            className="text-danger p-0"
+            onClick={() => handleConfirmDelete(row.id)}
+            style={{ width: '80px' }}
+          >
+            Delete
+          </CButton>
+        </div>
+      ),
     },
   ]
 
@@ -85,7 +246,7 @@ const AddSubService = () => {
       }))
 
       try {
-        const res = await axios.get(`${subService_URL}/services/getServices/${value}`)
+        const res = await axios.get(`${subService_URL}/${getService}/${value}`)
         const serviceList = res.data?.data || []
         setServiceOptions(serviceList)
       } catch (err) {
@@ -93,50 +254,124 @@ const AddSubService = () => {
         setServiceOptions([])
       }
     } else if (name === 'serviceName') {
-      const selectedService = serviceOptions.find((s) => s.serviceName === value)
+      const selectedService = serviceOptions.find((s) => s.serviceId === value)
 
       setNewService((prev) => ({
         ...prev,
-        serviceName: value,
-        serviceId: selectedService?.serviceId || '',
+        serviceName: selectedService?.serviceName || '',
+        serviceId: value,
       }))
     }
   }
 
   const handleSubmit = async () => {
-    const payload = {
-      categoryId: newService.categoryId,
-      serviceId: newService.serviceId,
-      subServiceIds: selectedSubServices,
-    }
-
     try {
-      const res = await axios.post(`${subService_URL}/subservices/add`, payload)
-      if (res.data.success) {
-        toast.success('SubServices linked successfully')
-        // reset states if needed
+      if (editMode && editSubServiceId) {
+        // Send only one subservice name
+        const payload = {
+          categoryId: newService.categoryId,
+          serviceId: newService.serviceId,
+          subServiceName: selectedSubServices[0], // ✅ only one subservice
+        }
+
+        const res = await axios.put(`${BASE_URL}/${updateSubservices}/${editSubServiceId}`, payload)
+
+        if (res?.data?.success) {
+          toast.success('SubService updated successfully!')
+        } else {
+          toast.error('Failed to update subservice.')
+        }
       } else {
-        toast.error('Submission failed')
+        const formattedSubServices = selectedSubServices.map((name) => ({
+          subServiceName: name,
+        }))
+
+        const payload = {
+          categoryId: newService.categoryId,
+          serviceId: newService.serviceId,
+          subServices: formattedSubServices,
+        }
+
+        const res = await postSubService(payload)
+        if (res?.data?.success) {
+          toast.success('SubServices linked successfully')
+        } else {
+          toast.error('Submission failed')
+        }
       }
+
+      await fetchSubServices()
+      setSelectedSubServices([])
+      setSubServiceInput('')
+      setNewService({
+        categoryName: '',
+        categoryId: '',
+        serviceName: '',
+        serviceId: '',
+      })
+      setEditMode(false)
+      setEditSubServiceId(null)
+      setShowModal(false)
     } catch (err) {
       console.error('Submission Error:', err)
       toast.error('Error submitting subservices')
     }
   }
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredSubServices(subServices)
+    } else {
+      const lowerSearch = searchQuery.toLowerCase()
+      const filtered = subServices.filter(
+        (item) =>
+          item.name.toLowerCase().includes(lowerSearch) ||
+          item.category.toLowerCase().includes(lowerSearch) ||
+          item.service.toLowerCase().includes(lowerSearch),
+      )
+      setFilteredSubServices(filtered)
+    }
+  }, [searchQuery, subServices])
 
   return (
     <>
+      <CRow>
+        <CCol md={6}>
+          <div className="d-flex justify-content-start mb-3">
+            <CFormInput
+              type="text"
+              placeholder="Search by Category, Service, SubService"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </CCol>
+      </CRow>
+
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h4>SubService Management</h4>
-        <CButton color="primary" onClick={() => setShowModal(true)}>
+        <CButton
+          color="primary"
+          onClick={() => {
+            setEditMode(false) // ✅ Reset edit mode
+            setEditSubServiceId(null)
+            setNewService({
+              categoryName: '',
+              categoryId: '',
+              serviceName: '',
+              serviceId: '',
+            })
+            setSelectedSubServices([])
+            setSubServiceInput('')
+            setShowModal(true)
+          }}
+        >
           + Add New SubService
         </CButton>
       </div>
       {/* Modal Form */}
       <DataTable
-        title="SubService List"
         columns={columns}
-        data={dummySubservices}
+        data={filteredSubServices}
         pagination
         highlightOnHover
         striped
@@ -145,17 +380,19 @@ const AddSubService = () => {
 
       <CModal visible={showModal} onClose={() => setShowModal(false)} size="lg">
         <div className="p-4">
-          <h5 className="mb-4">Add New SubService</h5>
+          <h5 className="mb-4">➕ Add New SubService</h5>
 
           <CRow className="g-4">
+            {/* Category Select */}
             <CCol md={6}>
               <h6>
-                Category Name <span className="text-danger">*</span>
+                Category <span className="text-danger">*</span>
               </h6>
               <CFormSelect
                 name="categoryName"
                 value={newService.categoryId || ''}
                 onChange={handleChanges}
+                disabled={editMode}
               >
                 <option value="">Select Category</option>
                 {category.map((cat) => (
@@ -166,50 +403,77 @@ const AddSubService = () => {
               </CFormSelect>
             </CCol>
 
+            {/* Service Select */}
             <CCol md={6}>
               <h6>
-                Service Name <span className="text-danger">*</span>
+                Service <span className="text-danger">*</span>
               </h6>
               <CFormSelect
                 name="serviceName"
-                value={newService.serviceName || ''}
+                value={newService.serviceId || ''}
                 onChange={handleChanges}
+                disabled={editMode} // Make it disabled only in edit mode
               >
                 <option value="">Select Service</option>
                 {serviceOptions.map((s) => (
-                  <option key={s.serviceId} value={s.serviceName}>
+                  <option key={s.serviceId} value={s.serviceId}>
                     {s.serviceName}
                   </option>
                 ))}
               </CFormSelect>
             </CCol>
 
+            {/* SubService Entry */}
+            {/* SubService Entry */}
             <CCol md={12}>
-              <h6>Sub Services</h6>
-              <div className="mb-2 d-flex gap-2">
-                <CFormInput
-                  placeholder="Enter Sub Service"
-                  value={subServiceInput}
-                  onChange={(e) => setSubServiceInput(e.target.value)}
-                />
-                <CButton
-                  color="primary"
-                  onClick={() => {
-                    if (
-                      subServiceInput.trim() &&
-                      !selectedSubServices.includes(subServiceInput.trim())
-                    ) {
-                      setSelectedSubServices((prev) => [...prev, subServiceInput.trim()])
-                      setSubServiceInput('')
-                    }
-                  }}
-                >
-                  Add
-                </CButton>
-              </div>
+              <h6>{editMode ? 'Edit Sub Service' : 'Add Sub Services'}</h6>
 
-              {selectedSubServices.length > 0 && (
-                <ul className="list-group">
+              {/* Add Mode: Input + Button */}
+              {!editMode && (
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  <CFormInput
+                    placeholder="Enter Sub Service"
+                    value={subServiceInput}
+                    onChange={(e) => setSubServiceInput(e.target.value)}
+                    style={{ flexGrow: 1 }}
+                  />
+
+                  <CButton
+                    color="success"
+                    className="text-white"
+                    onClick={() => {
+                      const trimmedInput = subServiceInput.trim()
+                      if (!trimmedInput) return
+
+                      if (selectedSubServices.includes(trimmedInput)) {
+                        toast.warn('Subservice already added!', {
+                          position: 'top-right',
+                          autoClose: 2000,
+                        })
+                        return
+                      }
+
+                      setSelectedSubServices((prev) => [...prev, trimmedInput])
+                      setSubServiceInput('')
+                    }}
+                  >
+                    Add
+                  </CButton>
+                </div>
+              )}
+
+              {/* Edit Mode: Single Input Field */}
+              {editMode && (
+                <CFormInput
+                  placeholder="Edit Sub Service"
+                  value={selectedSubServices[0] || ''}
+                  onChange={(e) => setSelectedSubServices([e.target.value])}
+                />
+              )}
+
+              {/* Show List of Subservices only in Add Mode */}
+              {!editMode && selectedSubServices.length > 0 && (
+                <ul className="list-group mt-3">
                   {selectedSubServices.map((sub, index) => (
                     <li
                       key={index}
@@ -231,19 +495,25 @@ const AddSubService = () => {
                 </ul>
               )}
             </CCol>
-
-            <CCol md={12} className="text-end">
-              <CButton
-                color="success"
-                onClick={() => {
-                  handleSubmit()
-                  setShowModal(false)
-                }}
-              >
-                Save SubService
-              </CButton>
-            </CCol>
           </CRow>
+
+          {/* Modal Footer Buttons */}
+          <div className="d-flex justify-content-end gap-2 mt-4">
+            <CButton color="secondary" variant="outline" onClick={() => setShowModal(false)}>
+              Cancel
+            </CButton>
+
+            <CButton
+              color="primary"
+              className="text-white"
+              onClick={async () => {
+                await handleSubmit() // call first
+                setShowModal(false) // close only after success
+              }}
+            >
+              Save SubService
+            </CButton>
+          </div>
         </div>
       </CModal>
     </>

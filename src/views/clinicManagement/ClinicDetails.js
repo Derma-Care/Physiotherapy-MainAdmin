@@ -28,6 +28,7 @@ import classNames from 'classnames'
 import axios from 'axios'
 import { BASE_URL, UpdateClinic, DeleteClinic } from '../../baseUrl'
 import capitalizeWords from '../../Utils/capitalizeWords'
+import { toast } from 'react-toastify'
 
 const ClinicDetails = () => {
   const { hospitalId } = useParams()
@@ -99,10 +100,17 @@ const ClinicDetails = () => {
 
   const handleDeleteClinic = async () => {
     try {
-      await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId}`)
-      setShowDeleteModal(false)
-      navigate('/clinic-Management') // navigate back after delete
+      const res = await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId}`)
+      if (res) {
+        toast.success(`${res.data.message}`)
+        setShowDeleteModal(false)
+        navigate('/clinic-Management')
+      } else {
+        toast.error(`${res.data.message}`)
+      }
+      // navigate back after delete
     } catch (error) {
+      toast.error(`${error.message}`)
       console.error('Failed to delete clinic:', error)
     }
   }
