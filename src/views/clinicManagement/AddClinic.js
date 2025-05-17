@@ -14,7 +14,7 @@ import {
   CRow,
   CCol,
 } from '@coreui/react'
-import { BASE_URL, subService_URL } from '../../baseUrl'
+import { BASE_URL, subService_URL,getService } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
 import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
@@ -56,7 +56,7 @@ const AddClinic = () => {
 
     for (const option of selectedCategories) {
       try {
-        const res = await axios.get(`${subService_URL}/services/getServices/${option.value}`)
+        const res = await axios.get(`${subService_URL}/${getService}/${option.value}`)
         const data = res.data?.data || []
         allServices.push(...data)
       } catch (error) {

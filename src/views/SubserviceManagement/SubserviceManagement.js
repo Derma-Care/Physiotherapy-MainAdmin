@@ -10,6 +10,8 @@ import { BASE_URL, subService_URL, updateSubservices, getService } from '../../b
 import DataTable from 'react-data-table-component'
 import postSubService from '../SubserviceManagement/SUbServiceAPI'
 import { getAllSubServices, deleteSubServiceData } from '../SubserviceManagement/SUbServiceAPI'
+import { getServiceByCategoryId } from '../servicesManagement/ServiceAPI'
+
 const AddSubService = () => {
   const [category, setCategory] = useState([])
   const [serviceOptions, setServiceOptions] = useState([])
@@ -62,12 +64,12 @@ const AddSubService = () => {
 
     // Fetch services for that category
     try {
-      const res = await axios.get(`${subService_URL}/${getService}/${selectedCategoryId}`)
-      const serviceList = res.data?.data || []
-      setServiceOptions(serviceList)
+      const res = await getServiceByCategoryId(selectedCategoryId)
+
+      setServiceOptions(res)
 
       // Find the selected service by name
-      const selectedService = serviceList.find((s) => s.serviceName === row.service)
+      const selectedService = res.find((s) => s.serviceName === row.service)
 
       setNewService({
         categoryName: row.category,
@@ -246,9 +248,9 @@ const AddSubService = () => {
       }))
 
       try {
-        const res = await axios.get(`${subService_URL}/${getService}/${value}`)
-        const serviceList = res.data?.data || []
-        setServiceOptions(serviceList)
+        const res = await getServiceByCategoryId(value)
+
+        setServiceOptions(res)
       } catch (err) {
         console.error('❌ Failed to fetch services:', err)
         setServiceOptions([])
@@ -268,11 +270,18 @@ const AddSubService = () => {
     try {
       if (editMode && editSubServiceId) {
         // Send only one subservice name
+        // const payload = {
+        //   // categoryId: newService.categoryId,
+        //   // serviceId: newService.serviceId,
+        //   subServiceName: selectedSubServices,
+        // }
         const payload = {
-          categoryId: newService.categoryId,
-          serviceId: newService.serviceId,
-          subServiceName: selectedSubServices[0], // ✅ only one subservice
+          subServices: selectedSubServices.map((name) => ({
+            subServiceName: name,
+          })),
         }
+
+        console.log(editSubServiceId)
 
         const res = await axios.put(`${BASE_URL}/${updateSubservices}/${editSubServiceId}`, payload)
 
@@ -380,8 +389,8 @@ const AddSubService = () => {
 
       <CModal visible={showModal} onClose={() => setShowModal(false)} size="lg">
         <div className="p-4">
-          <h5 className="mb-4">➕ Add New SubService</h5>
-
+          {/* <h5 className="mb-4">➕ Add New SubService</h5> */}
+          <h5 className="mb-4">{editMode ? 'Edit Sub Service' : '➕ Add New SubService'}</h5>
           <CRow className="g-4">
             {/* Category Select */}
             <CCol md={6}>
@@ -423,7 +432,6 @@ const AddSubService = () => {
               </CFormSelect>
             </CCol>
 
-            {/* SubService Entry */}
             {/* SubService Entry */}
             <CCol md={12}>
               <h6>{editMode ? 'Edit Sub Service' : 'Add Sub Services'}</h6>
@@ -511,7 +519,7 @@ const AddSubService = () => {
                 setShowModal(false) // close only after success
               }}
             >
-              Save SubService
+              <h6>{editMode ? 'Update Sub Service' : 'Add SubService'}</h6>
             </CButton>
           </div>
         </div>

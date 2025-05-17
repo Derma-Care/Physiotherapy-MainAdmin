@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE, subService_URL, BASE_URL,DELETE_SERVICE_URL } from '../../baseUrl'
+import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE, subService_URL, BASE_URL,DELETE_SERVICE_URL ,getService} from '../../baseUrl'
 
 export const getAllServices = async () => {
   try {
@@ -16,6 +16,20 @@ export const getAllServices = async () => {
     throw error
   }
 }
+
+ 
+ 
+
+export const getServiceByCategoryId = async (categoryId) => {
+  try {
+    const response = await axios.get(`${subService_URL}/${getService}/${categoryId}`)
+    return response.data?.data || []
+  } catch (error) {
+    console.error('Error fetching services by category:', error)
+    return []
+  }
+}
+
 
 export const postServiceData = async (serviceData) => {
   console.log(serviceData)

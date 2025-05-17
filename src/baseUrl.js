@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.1.8'
+const ipUrl = '192.168.1.4'
 
 export const BASE_URL = `http://${ipUrl}:8081`
 export const DOCTOR_URL = `http://${ipUrl}:8080`
