@@ -1,462 +1,398 @@
 import React, { useEffect, useState } from 'react'
 import {
-  CForm,
-  CFormInput,
-  CInputGroup,
-  CInputGroupText,
   CButton,
   CModal,
+  CTable,
+  CTableHead,
+  CTableBody,
+  CTableRow,
+  CTableHeaderCell,
+  CTableDataCell,
   CModalHeader,
   CModalTitle,
   CModalBody,
   CModalFooter,
+  CFormCheck,
   CRow,
   CCol,
+  CCard,
+  CCardBody,
 } from '@coreui/react'
-import DataTable from 'react-data-table-component'
-import CIcon from '@coreui/icons-react'
-import { cilSearch } from '@coreui/icons'
+import { BASE_URL, ClinicAllData } from '../../baseUrl'
 import { AppointmentData } from './appointmentAPI'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { GetBookingByClinicId } from './appointmentAPI'
 
-const ServiceManagement = () => {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [service, setService] = useState([])
-  const [filteredData, setFilteredData] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+const appointmentManagement = () => {
   const [viewService, setViewService] = useState(null)
+  const [selectedServiceTypes, setSelectedServiceTypes] = useState([])
+  const [selectedConsultationTypes, setSelectedConsultationTypes] = useState([])
+  const [selectedHospitalId, setSelectedHospitalId] = useState([])
+  const [filteredData, setFilteredData] = useState([])
+  const [availableServiceTypes, setAvailableServiceTypes] = useState([])
+  const [availableConsultationTypes, setAvailableConsultationTypes] = useState([])
+  const consultationTypeLabels = {
+    'In-clinic': 'In-clinic',
+    Online: 'Video Consultation',
+  }
+  const [hospitals, setHospitals] = useState([])
+  const [selectedClinicId, setSelectedClinicId] = useState('') // Rename for clarity
 
-  const [startDateFilter, setStartDateFilter] = useState('')
-  const [endDateFilter, setEndDateFilter] = useState('')
+  const [bookings, setBookings] = useState([])
+  const [filterTypes, setFilterTypes] = useState([])
+  const [statusFilters, setStatusFilters] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 7
 
-  const fetchData = async () => {
-    setLoading(true)
-    setError(null)
+  const navigate = useNavigate()
 
+  const fetchAppointments = async (clinicId = '') => {
     try {
-      const Appointment = await AppointmentData()
-      console.log(Appointment.data)
-      setService(Appointment.data)
+      let response
+      if (clinicId) {
+        response = await GetBookingByClinicId(clinicId)
+      } else {
+        response = await AppointmentData()
+      }
+
+      console.log('Appointments for this Hospital:', response)
+
+      if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+        setBookings(response.data)
+      } else {
+        setBookings([]) // <-- Clear previous bookings
+        setFilteredData([]) // <-- Also clear filteredData to show "No appointments found"
+      }
     } catch (error) {
-      console.error('Error fetching data:', error)
-      setError('Failed to fetch data. Please try again later.')
-    } finally {
-      setLoading(false) 
+      console.error('Failed to fetch appointments:', error)
+      setBookings([])
+      setFilteredData([])
+    }
+  }
+
+  const fetchHospitals = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/${ClinicAllData}`)
+      console.log('fetch Hospitals', response)
+      if (response.data.success) {
+        setHospitals(response.data.data) // Assuming array of clinics
+      } else {
+        console.warn('No hospitals found')
+      }
+    } catch (error) {
+      console.error('Error fetching hospitals:', error)
     }
   }
 
   useEffect(() => {
-    fetchData()
+    fetchAppointments()
+    fetchHospitals()
   }, [])
 
+  //filtering
   useEffect(() => {
-    const handleSearch = () => {
-      const trimmedQuery = searchQuery.toLowerCase().trim();
+    let filtered = [...bookings]
+    console.log('Initial bookings:', filtered)
 
-      const filtered = service.filter((item) => {
-        const patientName = item.patientName?.toLowerCase().includes(trimmedQuery);
-        const categoryName = item.categoryName?.toLowerCase().includes(trimmedQuery);
-        const serviceName = item.servicesAdded.some((service) =>
-          service.serviceName?.toLowerCase().includes(trimmedQuery),
-        );
-        const city = item.addressDto.city?.toLowerCase().includes(trimmedQuery);
-        const street = item.addressDto.street?.toLowerCase().includes(trimmedQuery);
-        const houseNo = item.addressDto.houseNo?.toLowerCase().includes(trimmedQuery);
-        const state = item.addressDto.state?.toLowerCase().includes(trimmedQuery);
-        const pinCode = item.addressDto.postalCode?.toLowerCase().includes(trimmedQuery);
+    const normalize = (val) => val?.toLowerCase().trim()
 
-        const filterStartDate = startDateFilter ? new Date(startDateFilter) : null;
-        const filterEndDate = endDateFilter ? new Date(endDateFilter) : null;
+    // Map your filter buttons to actual data values:
+    const consultationTypeMap = {
+      'Service & Treatment': 'service & treatment',
+      'Video Consultation': 'online',
+      'In-clinic': 'in-clinic',
+    }
 
-        const isWithinDateRange = item.servicesAdded.some((service) => {
-          const serviceStartDate = new Date(service.startDate.split("-").reverse().join("-"));
-          const serviceEndDate = new Date(service.endDate.split("-").reverse().join("-"));
+    // Filter by status (use 'status', not 'bookedStatus')
+    if (statusFilters.length > 0) {
+      filtered = filtered.filter((item) =>
+        statusFilters.some((status) => normalize(status) === normalize(item.status)),
+      )
+      console.log('After status filter:', filtered)
+    }
 
-          return (
-            (!filterStartDate || serviceStartDate >= filterStartDate) &&
-            (!filterEndDate || serviceEndDate <= filterEndDate)
-          );
-        });
+    // Filter by consultation type (only one at a time)
+    if (filterTypes.length === 1) {
+      const selectedType = filterTypes[0]
+      const mappedType = consultationTypeMap[selectedType]
 
-        return (
-          (patientName ||
-            categoryName ||
-            serviceName ||
-            city ||
-            street ||
-            state ||
-            pinCode ||
-            houseNo) &&
-          isWithinDateRange
-        );
-      });
+      if (mappedType) {
+        filtered = filtered.filter((item) => normalize(item.consultationType) === mappedType)
+        console.log(`After ${selectedType} filter:`, filtered)
+      }
+    }
 
-      setFilteredData(filtered);
-    };
+    setFilteredData(filtered)
+    setCurrentPage(1)
+  }, [bookings, filterTypes, statusFilters])
 
-    handleSearch();
-  }, [searchQuery, startDateFilter, endDateFilter, service]);
+  useEffect(() => {
+    // const serviceTypes = [...new Set(bookings.map((item) => item.servicename).filter(Boolean))]
+    const consultationTypes = [
+      ...new Set(bookings.map((item) => item.consultationType).filter(Boolean)),
+    ]
+    // setAvailableServiceTypes(serviceTypes)
+    setAvailableConsultationTypes(consultationTypes)
+    console.log('Available Consultation Types:', consultationTypes)
+  }, [bookings])
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [currentPage])
 
-  const columns = [
-    {
-      name: 'Patient Name',
-      selector: (row) => row.patientName,
-      sortable: true,
-    },
-    {
-      name: 'Category Name',
-      selector: (row) => row.categoryName,
-    },
-    {
-      name: 'Service Name',
-      selector: (row) =>
-        row.servicesAdded.map((service, index) => <div key={index}>{service.serviceName}</div>),
-    },
-    {
-      name: 'Price',
-      selector: (row) =>
-        row.servicesAdded.map((service, index) => <div key={index}>{service.price} </div>),
-      width: '100px',
-    },
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  )
 
-    {
-      name: 'Start Date',
-      selector: (row) =>
-        row.servicesAdded.map((service, index) => <div key={index}>{service.startDate}</div>),
-    },
-
-    {
-      name: 'End Date',
-      selector: (row) =>
-        row.servicesAdded.map((service, index) => <div key={index}>{service.endDate}</div>),
-    },
-
-    {
-      name: 'Amount',
-      selector: (row) => row.payAmount,
-    },
-    {
-      name: 'Status',
-      selector: (row) =>
-        row.servicesAdded.map((service, index) => <div key={index}>{service.status}</div>),
-    },
-
-    {
-      name: 'Actions',
-      cell: (row) => (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '230px',
-          }}
-        >
-          <CButton
-            color="primary"
-            onClick={() => ViewService(row)}
-            style={{ marginRight: '5px', width: '80px' }}
-          >
-            View
-          </CButton>
-        </div>
-      ),
-    },
-  ]
-
+  //to view appointments
   const ViewService = (row) => {
     setViewService(row)
+  }
+  const normalize = (value) => value?.toLowerCase().trim()
+
+  //filtering for  service&treatment,in-clinic,video-consultaion
+  const toggleFilter = (type) => {
+    if (filterTypes.includes(type)) {
+      // setFilterTypes(filterTypes.filter((t) => t !== type))// multiple selections.
+      setFilterTypes([]) //one selection at a time
+    } else {
+      setFilterTypes([type]) //one selection at a time
+      // setFilterTypes([...filterTypes, type])// multiple selections.
+    }
+  }
+
+  //filtering for pending,completed ,in-progress - one selection at a time
+  const handleStatusChange = (e) => {
+    const value = e.target.value
+
+    if (statusFilters.includes(value)) {
+      setStatusFilters([]) // Deselect if the same one is clicked
+    } else {
+      setStatusFilters([value]) // Allow only one selection
+    }
   }
 
   return (
     <div style={{ overflow: 'hidden' }}>
-      <div>
-        <CForm className="d-flex justify-content-end mb-3">
-          <CInputGroup
-            className="mb-3"
-            style={{ marginRight: '20px', width: '450px', marginTop: '27px' }}
+      <div className="container mt-4">
+        <h5>Appointments</h5>
+        <div className="d-flex gap-2 mb-3">
+          <button
+            onClick={() => toggleFilter('Service & Treatment')}
+            className={`btn ${
+              filterTypes.includes('Service & Treatment') ? 'btn-dark' : 'btn-outline-dark'
+            }`}
           >
-            <CFormInput
-              type="text"
-              placeholder="Search by PatientName/Category/ServiceName/location"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ height: '40px' }}
+            Service & Treatment
+          </button>
+          <button
+            onClick={() => toggleFilter('In-clinic')}
+            className={`btn ${filterTypes.includes('In-clinic') ? 'btn-dark' : 'btn-outline-dark'}`}
+          >
+            In-Clinic
+          </button>
+          <button
+            onClick={() => toggleFilter('Video Consultation')}
+            className={`btn ${
+              filterTypes.includes('Video Consultation') ? 'btn-dark' : 'btn-outline-dark'
+            }`}
+          >
+            Video Consultation
+          </button>
+        </div>
+
+        <div
+          className="mb-3"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            gap: '1rem',
+            alignItems: 'center',
+            gridAutoRows: 'auto',
+          }}
+        >
+          {/* Left: checkboxes container */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem 1rem',
+              gridColumn: '1 / 2',
+              gridRow: '1 / 2',
+            }}
+          >
+            <CFormCheck
+              label="Pending"
+              value="Pending"
+              onChange={handleStatusChange}
+              checked={statusFilters.includes('Pending')}
             />
-            <CInputGroupText style={{ height: '40px' }}>
-              <CIcon icon={cilSearch} />
-            </CInputGroupText>
-          </CInputGroup>
-
-          <div>
-            <h6 style={{ marginLeft: '30px' }}>Start Date</h6>
-            <CInputGroup className="mb-3" style={{ marginRight: '20px', width: '200px' }}>
-              <CFormInput
-                type="date"
-                placeholder="Start Date"
-                value={startDateFilter}
-                onChange={(e) => setStartDateFilter(e.target.value)}
-                style={{ height: '40px' }}
-              />
-            </CInputGroup>
+            <CFormCheck
+              label="In-Progress"
+              value="In-Progress"
+              onChange={handleStatusChange}
+              checked={statusFilters.includes('In-Progress')}
+            />
+            <CFormCheck
+              label="Completed"
+              value="Completed"
+              onChange={handleStatusChange}
+              checked={statusFilters.includes('Completed')}
+            />
+            <CFormCheck
+              label="Confirmed"
+              value="Confirmed"
+              onChange={handleStatusChange}
+              checked={statusFilters.includes('Confirmed')}
+            />
+            <CFormCheck
+              label="Rejected"
+              value="Rejected"
+              onChange={handleStatusChange}
+              checked={statusFilters.includes('Rejected')}
+            />
           </div>
-          <div>
-            <h6 style={{ marginLeft: '30px' }}>End Date</h6>
-            <CInputGroup className="mb-3" style={{ marginRight: '20px', width: '200px' }}>
-              <CFormInput
-                type="date"
-                placeholder="End Date"
-                value={endDateFilter}
-                onChange={(e) => setEndDateFilter(e.target.value)}
-                style={{ height: '40px' }}
-              />
-            </CInputGroup>
-          </div>
-        </CForm>
-      </div>
 
-      {viewService && (
-        <CModal visible={!!viewService} onClose={() => setViewService(null)} size="md">
-          <CModalHeader>
-            <CModalTitle style={{ textAlign: 'center', width: '100%' }}>
-              Appointment Details
-            </CModalTitle>
-          </CModalHeader>
-          <CModalBody style={{margin:'10px'}}>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Appointment ID :</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.appointmentId}</CCol>
-            </CRow>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Patient Name :</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.patientName}</CCol>
-            </CRow>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Relationship :</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.relationShip}</CCol>
-            </CRow>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Patient Number :</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.patientNumber}</CCol>
-            </CRow>
-            {viewService.addressDto && (
-              <>
-                <CRow>
-                  <CCol sm={4}>
-                    <strong>House No. :</strong>
-                  </CCol>
-                  <CCol sm={8}>{viewService.addressDto.houseNo}</CCol>
-                </CRow>
-                <CRow>
-                  <CCol sm={4}>
-                    <strong>Street :</strong>
-                  </CCol>
-                  <CCol sm={8}>{viewService.addressDto.street}</CCol>
-                </CRow>
-                <CRow>
-                  <CCol sm={4}>
-                    <strong>City :</strong>
-                  </CCol>
-                  <CCol sm={8}>{viewService.addressDto.city}</CCol>
-                </CRow>
-                <CRow>
-                  <CCol sm={4}>
-                    <strong>State :</strong>
-                  </CCol>
-                  <CCol sm={8}>{viewService.addressDto.state}</CCol>
-                </CRow>
-                <CRow>
-                  <CCol sm={4}>
-                    <strong>Postal Code :</strong>
-                  </CCol>
-                  <CCol sm={8}>{viewService.addressDto.postalCode}</CCol>
-                </CRow>
-                <CRow>
-                  <CCol sm={4}>
-                    <strong>Latitude :</strong>
-                  </CCol>
-                  <CCol sm={8}>{viewService.addressDto.latitude}</CCol>
-                </CRow>
-                <CRow>
-                  <CCol sm={4}>
-                    <strong>Longitude :</strong>
-                  </CCol>
-                  <CCol sm={8}>{viewService.addressDto.longitude}</CCol>
-                </CRow>
-              </>
-            )}
-            <div style={{ marginTop: '20px' }}>
-              {viewService.servicesAdded && viewService.servicesAdded.length > 0 ? (
-                <CRow>
-                  <CCol sm={12}>
-                    <h5
-                      style={{
-                        textAlign: 'center',
-                        borderBottom: '2px solid black',
-                        paddingBottom: '10px',
-                        marginLeft: '150px',
-                        marginRight: '150px',
-                      }}
+          {/* Right: dropdown + button container */}
+          <div
+            className="right-controls"
+            style={{
+              display: 'inline-grid',
+              gridAutoFlow: 'column',
+              columnGap: '0.5rem',
+              justifyContent: 'end',
+              minWidth: '250px',
+              width: '100%',
+              gridColumn: '2 / 3',
+              gridRow: '1 / 2',
+            }}
+          >
+            <select
+              className="form-select"
+              style={{ minWidth: '180px', flexShrink: 0 }}
+              value={selectedHospitalId}
+              onChange={(e) => {
+                const selectedClinicId = e.target.value
+                setSelectedHospitalId(selectedClinicId)
+                fetchAppointments(selectedClinicId) // fetches bookings for selected hospital
+              }}
+            >
+              <option value="">Select Hospital</option>
+              {hospitals.map((hospital) => (
+                <option key={hospital.hospitalId} value={hospital.hospitalId}>
+                  {hospital.name}
+                </option>
+              ))}
+            </select>
+
+            <CButton
+              color="secondary"
+              style={{ flexShrink: 0 }}
+              onClick={() => {
+                setSelectedServiceTypes([])
+                setSelectedConsultationTypes([])
+                setFilterTypes([])
+                setStatusFilters([])
+              }}
+            >
+              Reset Filters
+            </CButton>
+          </div>
+
+          <style>{`
+      @media (max-width: 768px) {
+        .mb-3 {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto;
+        }
+        .right-controls {
+          grid-column: 1 / 2 !important;
+          grid-row: 2 / 3 !important;
+          justify-content: flex-end;
+          margin-top: 0.5rem;
+        }
+      }
+    `}</style>
+        </div>
+
+        <CTable striped hover responsive>
+          <CTableHead>
+            <CTableRow>
+              <CTableHeaderCell>S.No</CTableHeaderCell>
+              <CTableHeaderCell>H_ID</CTableHeaderCell>
+              <CTableHeaderCell>Name</CTableHeaderCell>
+              {/* <CTableHeaderCell>Service Name</CTableHeaderCell> */}
+              <CTableHeaderCell>Consultation Type</CTableHeaderCell>
+              <CTableHeaderCell>Date</CTableHeaderCell>
+              <CTableHeaderCell>Time</CTableHeaderCell>
+              <CTableHeaderCell>Status</CTableHeaderCell>
+              <CTableHeaderCell>Action</CTableHeaderCell>
+            </CTableRow>
+          </CTableHead>
+
+          <CTableBody>
+            {Array.isArray(filteredData) && filteredData.length > 0 ? (
+              paginatedData.map((item, index) => (
+                // <CTableRow key={item.id || `${item.name}-${index}`}>
+                <CTableRow key={`${item.id} -${index}`}>
+                  <CTableDataCell>{index + 1}</CTableDataCell>
+                  <CTableDataCell>{item.clinicId}</CTableDataCell>
+                  <CTableDataCell>{item.name}</CTableDataCell>
+                  {/* <CTableDataCell>{item.servicename}</CTableDataCell> */}
+                  <CTableDataCell>{item.consultationType}</CTableDataCell>
+                  <CTableDataCell>
+                    {item.sele ? `${item.sele} ` : ''}
+                    {item.serviceDate}
+                  </CTableDataCell>
+                  <CTableDataCell>{item.slot || item.servicetime}</CTableDataCell>
+                  <CTableDataCell>{item.status}</CTableDataCell>
+                  <CTableDataCell>
+                    <CButton
+                      color="primary"
+                      size="sm"
+                      onClick={() =>
+                        navigate(`/appointmentDetails/${item.bookingId}`, {
+                          state: { appointment: item },
+                        })
+                      }
                     >
-                      Added Services
-                    </h5>
+                      View
+                    </CButton>
+                  </CTableDataCell>
+                </CTableRow>
+              ))
+            ) : (
+              <CTableRow>
+                <CTableDataCell colSpan="8" className="text-center text-danger fw-bold">
+                  No appointments found.
+                </CTableDataCell>
+              </CTableRow>
+            )}
+          </CTableBody>
+        </CTable>
 
-                    {viewService.servicesAdded.map((service, index) => (
-                      <div key={index}>
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>Service ID:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.serviceId || 'N/A'}</CCol>
-                        </CRow>
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>Service Name:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.serviceName || 'N/A'}</CCol>
-                        </CRow>
-
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>Price:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.price || 'N/A'}</CCol>
-                        </CRow>
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>Start Date:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.startDate || 'N/A'}</CCol>
-                        </CRow>
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>End Date:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.endDate || 'N/A'}</CCol>
-                        </CRow>
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>numberOfDays:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.numberOfDays || 'N/A'}</CCol>
-                        </CRow>
-
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>Start Time:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.startTime || 'N/A'}</CCol>
-                        </CRow>
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>End time:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.endTime || 'N/A'}</CCol>
-                        </CRow>
-                        <CRow>
-                          <CCol sm={4}>
-                            <strong>numberOfHours:</strong>
-                          </CCol>
-                          <CCol sm={8}>{service.numberOfHours || 'N/A'}</CCol>
-                        </CRow>
-
-                        {index !== viewService.servicesAdded.length - 1 && (
-                          <hr style={{ margin: '10px 0' }} />
-                        )}
-                      </div>
-                    ))}
-                  </CCol>
-                </CRow>
-              ) : (
-                <CRow>
-                  <CCol sm={12}>
-                    <p>No services added</p>
-                  </CCol>
-                </CRow>
-              )}
-            </div>
-            <hr></hr>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Total Price :</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.totalPrice || 'N/A'}</CCol>
-            </CRow>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Total Discount :</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.totalDiscountAmount || 'N/A'}</CCol>
-            </CRow>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Total Discounted Amount:</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.totalDiscountedAmount || 'N/A'}</CCol>
-            </CRow>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Total Tax:</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.totalTax || 'N/A'}</CCol>
-            </CRow>
-            <CRow>
-              <CCol sm={4}>
-                <strong>Total Cost :</strong>
-              </CCol>
-              <CCol sm={8}>{viewService.payAmount || 'N/A'}</CCol>
-            </CRow>
-          </CModalBody>
-          <CModalFooter></CModalFooter>
-        </CModal>
-      )}
-
-      {loading ? (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '300px',
-            fontSize: '1.5rem',
-          }}
-        >
-          Loading...
+        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+          {Array.from({ length: Math.ceil(filteredData.length / itemsPerPage) }, (_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentPage(index + 1)}
+              style={{
+                margin: '0 5px',
+                padding: '5px 10px',
+                backgroundColor: currentPage === index + 1 ? '#007bff' : '#fff',
+                color: currentPage === index + 1 ? '#fff' : '#000',
+                border: '1px solid #ccc',
+                borderRadius: '5px',
+              }}
+            >
+              {index + 1}
+            </button>
+          ))}
         </div>
-      ) : error ? (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '300px',
-            fontSize: '1.5rem',
-            color: 'red',
-          }}
-        >
-          {error}
-        </div>
-      ) : filteredData.length > 0 ? (
-        <DataTable
-          columns={columns}
-          data={filteredData.map((item, index) => ({ ...item, key: item.id || index }))}
-          pagination
-          highlightOnHover
-          pointerOnHover
-        />
-      ) : (
-        <h6 style={{ textAlign: 'center', margin: '100px' }}>No Data Found</h6>
-      )}
+      </div>
     </div>
   )
 }
 
-export default ServiceManagement
+export default appointmentManagement

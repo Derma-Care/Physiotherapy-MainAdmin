@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.1.4'
+const ipUrl = '192.168.1.22'
 
 export const BASE_URL = `http://${ipUrl}:8081`
 export const DOCTOR_URL = `http://${ipUrl}:8080`
@@ -71,10 +71,10 @@ export const updateService = 'services/updateService'
 export const deleteService = 'services/deleteByServiceID'
 
 //Subservice
-export const getSubservices='admin/getAllSubServices'
-export const addSubservices='admin/addSubService'
-export const deleteSubservices='admin/deleteSubService'
-export const updateSubservices='admin/updateBySubServiceId'
+export const getSubservices = 'admin/getAllSubServices'
+export const addSubservices = 'admin/addSubService'
+export const deleteSubservices = 'admin/deleteSubService'
+export const updateSubservices = 'admin/updateBySubServiceId'
 
 // Provider Management
 
@@ -127,3 +127,10 @@ export const getData = 'admin/NotificationToAdminForProviderReassign'
 export const postData = 'admin/providerReassign'
 
 //user
+//appointments
+// export const allBooking_sevices = getAllBookedServices
+export const getAllBookedServices = 'customer/getAllBookedServices'
+
+export const DeleteBookings = 'customer/deleteService'
+export const GetBookingBy_ClinicId = 'customer/getAllBookedServicesByClinicId'
+export const GetBookingBy_DoctorId = 'customer/getBookingByDoctorId'

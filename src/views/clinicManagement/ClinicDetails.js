@@ -375,7 +375,69 @@ const ClinicDetails = () => {
                             ext = 'docx' // choose docx as default for Office ZIP
                           }
 
-                          const fileName = `hospital_doc_${index + 1}.${ext}`
+                          const fileName = `${editableClinicData.name}_Doc_${index + 1}.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div key={index} className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      // onClick={() => window.open(fileDataUrl, '_blank')}
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })
+                      ) : (
+                        <div className="text-muted">No documents available.</div>
+                      )}
+                    </CCol>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Hospital Contract Documents</CFormLabel>
+
+                      {Array.isArray(editableClinicData.contractorDocuments) &&
+                      editableClinicData.contractorDocuments.length > 0 ? (
+                        editableClinicData.contractorDocuments.map((base64Data, index) => {
+                          const prefix = base64Data.substring(0, 20)
+                          console.log(
+                            '🔍 Contract Documents:',
+                            editableClinicData.contractorDocuments,
+                          )
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx' // choose docx as default for Office ZIP
+                          }
+
+                          const fileName = `${editableClinicData.name}_Contract_Doc_${index + 1}.${ext}`
                           const fileDataUrl = `data:${mime};base64,${base64Data}`
 
                           return (
