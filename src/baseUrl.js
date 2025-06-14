@@ -1,9 +1,10 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.1.22'
+const ipUrl = '192.168.1.15'
 
 export const BASE_URL = `http://${ipUrl}:8081`
 export const DOCTOR_URL = `http://${ipUrl}:8080`
 export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
+export const Booking_service_Url = `http://${ipUrl}:8083/api`
 
 // export const BOOKING_SERVICE_URL = `http://${ipUrl}:8087/api/v1`
 // export const BASE_URLS = `http://${ipUrl}:8080/api/v1`
@@ -66,9 +67,9 @@ export const Category = 'category/getServices'
 
 export const AddService = 'services/addService'
 
-export const updateService = 'services/updateService'
+// export const updateService = 'services/updateService'
 
-export const deleteService = 'services/deleteByServiceID'
+// export const deleteService = 'services/deleteByServiceID'
 
 //Subservice
 export const getSubservices = 'admin/getAllSubServices'
@@ -134,3 +135,18 @@ export const getAllBookedServices = 'customer/getAllBookedServices'
 export const DeleteBookings = 'customer/deleteService'
 export const GetBookingBy_ClinicId = 'customer/getAllBookedServicesByClinicId'
 export const GetBookingBy_DoctorId = 'customer/getBookingByDoctorId'
+
+// Service management
+
+// export const getService = 'admin/getAllServices'
+
+export const getServiceByCategory = 'admin/getServiceById'
+
+export const updateService = 'admin/updateByServiceId'
+
+export const deleteService = 'admin/deleteService'
+
+//categoryAdvertisement
+export const getAllCategoryAdvertisement = 'admin/categoryAdvertisement/getAll'
+export const AddCategoryAdvertisement = 'admin/categoryAdvertisement/add'
+export const deleteCategoryAdvertisement = 'admin/categoryAdvertisement/deleteByCarouselId'

@@ -43,6 +43,7 @@ const CustomerManagement = () => {
   const [isAdding, setIsAdding] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [currentMobile, setCurrentMobile] = useState(null)
+  const [formattedDisplayDate, setFormattedDisplayDate] = useState('')
   const [formData, setFormData] = useState({
     fullName: '',
     mobileNumber: '',
@@ -95,9 +96,9 @@ const CustomerManagement = () => {
 
     const filtered = customerData.filter((customer) => {
       return (
-        (customer?.fullName || '').toLowerCase().includes(trimmedQuery) ||
-        (customer?.mobileNumber || '').toString().includes(trimmedQuery) ||
-        (customer?.emailId || '').toLowerCase().includes(trimmedQuery)
+        (customer?.fullName || '').toLowerCase().startsWith(trimmedQuery) ||
+        (customer?.mobileNumber || '').toString().startsWith(trimmedQuery) ||
+        (customer?.emailId || '').toLowerCase().startsWith(trimmedQuery)
       )
     })
 
@@ -137,17 +138,12 @@ const CustomerManagement = () => {
       let formattedDate = ''
       if (customer.dateOfBirth) {
         try {
-          // Check if date is already in YYYY-MM-DD format (what input type="date" expects)
-          if (/^\d{4}-\d{2}-\d{2}$/.test(customer.dateOfBirth)) {
-            formattedDate = customer.dateOfBirth
-          }
-          // Handle DD/MM/YYYY format
-          else if (customer.dateOfBirth.includes('/')) {
-            const parts = customer.dateOfBirth.split('/')
-            if (parts.length === 3) {
-              const [day, month, year] = parts
-              formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-            }
+          const dateObj = new Date(customer.dateOfBirth)
+          if (!isNaN(dateObj)) {
+            const day = String(dateObj.getDate()).padStart(2, '0')
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+            const year = dateObj.getFullYear()
+            formattedDate = `${year}-${month}-${day}` // ✅ YYYY-MM-DD
           }
         } catch (e) {
           console.warn('Failed to format date:', e)
@@ -187,34 +183,52 @@ const CustomerManagement = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault()
+
     try {
-      if (isEditing) {
-        await updateCustomerData(currentMobile, formData)
-        toast.success('Customer updated successfully!')
-      } else {
-        await addCustomer(formData)
-        toast.success('Customer added successfully!')
+      const updatedFormData = { ...formData }
+
+      // ✅ Format dateOfBirth to DD-MM-YYYY
+      if (updatedFormData.dateOfBirth) {
+        const dateObj = new Date(updatedFormData.dateOfBirth)
+        if (!isNaN(dateObj)) {
+          const day = String(dateObj.getDate()).padStart(2, '0')
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+          const year = dateObj.getFullYear()
+          updatedFormData.dateOfBirth = `${day}-${month}-${year}`
+        }
       }
 
-      setIsAdding(false)
-      setIsEditing(false)
-      setCurrentMobile(null)
-      setFormData({
-        fullName: '',
-        mobileNumber: '',
-        gender: '',
-        emailId: '',
-        dateOfBirth: '',
-        referCode: '',
-      })
-      await fetchCustomers() // Refresh data after update
+      if (isEditing) {
+        // For update
+        await updateCustomerData(updatedFormData.mobileNumber, updatedFormData)
+        toast.success('Customer updated successfully')
+      } else {
+        // For add
+        await addCustomer(updatedFormData)
+        toast.success('Customer added successfully')
+      }
+
+      // 🔁 REFRESH the data to update the UI table
+      await fetchCustomers()
+
+      // Reset form
+      handleCancel()
     } catch (error) {
-      console.error('Operation failed:', error)
-      toast.error(`Failed to ${isEditing ? 'update' : 'add'} customer: ${error.message}`)
-    } finally {
-      setLoading(false)
+      console.error('Error submitting customer:', error)
+      if (error?.response?.status === 409) {
+        toast.error('Customer already exists with this mobile number or email.')
+      } else {
+        toast.error('Something went wrong while submitting.')
+      }
     }
   }
+const alreadyExists = customerData.some(
+  (cust) => cust.mobileNumber === formData.mobileNumber
+)
+if (!isEditing && alreadyExists) {
+  toast.error('Customer already exists.')
+  return
+}
 
   const handleCancel = () => {
     setIsAdding(false)
@@ -234,6 +248,31 @@ const CustomerManagement = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   )
+  const formatDateToDDMMYYYY = (dateStr) => {
+    const date = new Date(dateStr)
+    if (!isNaN(date)) {
+      const day = String(date.getDate()).padStart(2, '0')
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const year = date.getFullYear()
+      return `${day}-${month}-${year}`
+    }
+    return ''
+  }
+  useEffect(() => {
+    if (formData.dateOfBirth) {
+      const dateObj = new Date(formData.dateOfBirth)
+      if (!isNaN(dateObj)) {
+        const day = String(dateObj.getDate()).padStart(2, '0')
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+        const year = dateObj.getFullYear()
+        setFormattedDisplayDate(`${day}-${month}-${year}`)
+      } else {
+        setFormattedDisplayDate('')
+      }
+    } else {
+      setFormattedDisplayDate('')
+    }
+  }, [formData.dateOfBirth])
 
   return (
     <>
@@ -397,6 +436,9 @@ const CustomerManagement = () => {
                   onChange={handleInputChange}
                   type="date"
                 />
+                {formattedDisplayDate && (
+                  <div className="text-muted mt-1">Selected Date: {formattedDisplayDate}</div>
+                )}
               </CCol>
             </CRow>
 

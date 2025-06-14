@@ -3,7 +3,7 @@ import React from 'react'
 import AddDoctors from './views/clinicManagement/AddDoctors'
 
 const Login = React.lazy(() => import('./views/pages/login/Login'))
-const serviceManagement = React.lazy(() => import('./views/servicesManagement/ServiceManagement'))
+const serviceManagement = React.lazy(() => import('./views/servicesManagement/serviceManagement'))
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 const CustomerViewDetails = React.lazy(
   () => import('./views/customerManagement/CustomerViewDetails'),
@@ -35,6 +35,7 @@ const AppointmentManagement = React.lazy(
 const ReassignAppointment = React.lazy(
   () => import('./views/ReassignAppointmnet/reassginAppointemnt'),
 )
+const AdsManagement = React.lazy(() => import('./views/AdsManagement/AdsManagement'))
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
@@ -74,6 +75,7 @@ const routes = [
   },
   { path: '/reassign-Appointment', name: 'Reassign Appointment', element: ReassignAppointment },
 
+  { path: '/ads-management', name: 'Ads Management', element: AdsManagement },
   { path: '/provider-management/:id', name: 'Patient View Details', element: PatientViewDetails },
 ]
 
