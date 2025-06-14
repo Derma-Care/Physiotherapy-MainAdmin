@@ -28,7 +28,7 @@ const appointmentManagement = () => {
   const [viewService, setViewService] = useState(null)
   const [selectedServiceTypes, setSelectedServiceTypes] = useState([])
   const [selectedConsultationTypes, setSelectedConsultationTypes] = useState([])
-  const [selectedHospitalId, setSelectedHospitalId] = useState([])
+  const [selectedHospitalId, setSelectedHospitalId] = useState('')
   const [filteredData, setFilteredData] = useState([])
   const [availableServiceTypes, setAvailableServiceTypes] = useState([])
   const [availableConsultationTypes, setAvailableConsultationTypes] = useState([])

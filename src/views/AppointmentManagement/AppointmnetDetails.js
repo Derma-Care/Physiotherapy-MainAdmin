@@ -41,11 +41,15 @@ const AppointmentDetails = () => {
       setIsDeleting(false)
     }
   }
+
   useEffect(() => {
+
+    console.log(appointment?.doctorId)
+
     const fetchDoctorDetails = async () => {
-      if (appointment?.status === 'confirmed' && appointment?.doctorId) {
+      if (appointment?.status.toLowerCase() === 'confirmed' || appointment?.status.toLowerCase() === 'completed' && appointment?.doctorId) {
         try {
-          const response = await getBookingBy_DoctorId(appointment.doctorId)
+          const response = await getBookingBy_DoctorId(appointment?.doctorId)
           if (response) {
             setDoctor(response)
           }
@@ -57,7 +61,9 @@ const AppointmentDetails = () => {
 
     fetchDoctorDetails()
   }, [])
-  console.log(doctor.availableTimes)
+
+  console.log(doctor?.availableDays)
+
   return (
     <div className="container mt-4">
       {/* Header Section with blue background */}
@@ -121,7 +127,7 @@ const AppointmentDetails = () => {
           <strong>Service ID:</strong> {appointment?.serviceId}
         </p>
       </div>
-      {(appointment?.status === 'confirmed' || appointment?.status === 'completed') && doctor && (
+      {(appointment?.status.toLowerCase() === 'confirmed' || appointment?.status.toLowerCase() === 'completed') && doctor && (
         <>
           <hr />
           <h6 className="fw-bold mt-4">Doctor Details</h6>

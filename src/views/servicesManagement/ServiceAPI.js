@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE, subService_URL, BASE_URL,DELETE_SERVICE_URL ,getService} from '../../baseUrl'
+import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE, subService_URL, BASE_URL,DELETE_SERVICE_URL ,getService,updateService} from '../../baseUrl'
 
 export const getAllServices = async () => {
   try {
@@ -49,7 +49,7 @@ export const updateServiceData = async (updatedService, serviceId) => {
   console.log(updatedService)
   console.log(serviceId)
   try {
-    const response = await axios.put(`${BASE_URL}/${SERVICE_URL}/${serviceId}`, updatedService, {
+    const response = await axios.put(`${BASE_URL}/${updateService}/${serviceId}`, updatedService, {
       headers: { 'Content-Type': 'application/json' },
     })
     return response.data

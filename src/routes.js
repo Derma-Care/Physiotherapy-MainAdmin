@@ -31,6 +31,9 @@ const AddDoctor = React.lazy(() => import('./views/clinicManagement/AddDoctors')
 const AppointmentManagement = React.lazy(
   () => import('./views/AppointmentManagement/appointmentManagement'),
 )
+const AppointmentDetails = React.lazy(
+  () => import('./views/AppointmentManagement/AppointmnetDetails'),
+)
 
 const ReassignAppointment = React.lazy(
   () => import('./views/ReassignAppointmnet/reassginAppointemnt'),
@@ -73,6 +76,13 @@ const routes = [
     name: 'Appointment Management',
     element: AppointmentManagement,
   },
+  {
+    path: '/appointmentDetails/:id',
+    name: 'Appointment Details',
+    element: AppointmentDetails,
+  },
+
+  // AppointmentDetails
   { path: '/reassign-Appointment', name: 'Reassign Appointment', element: ReassignAppointment },
 
   { path: '/ads-management', name: 'Ads Management', element: AdsManagement },
