@@ -1,23 +1,28 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.1.8'
+const ipUrl = '192.168.0.3'
+//const ipUrl = '13.127.106.17'
 
 export const BASE_URL = `http://${ipUrl}:8081`
-export const DOCTOR_URL = `http://${ipUrl}:8080`
-export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
+export const CLINIC_ADMIN_URL = `http://${ipUrl}:8080`
+// export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
 export const Booking_service_Url = `http://${ipUrl}:8083/api`
 
 // export const BOOKING_SERVICE_URL = `http://${ipUrl}:8087/api/v1`
 // export const BASE_URLS = `http://${ipUrl}:8080/api/v1`
 // export const CLINIC_URL = `http://${ipUrl}:8081`
 export const SERVICE_URL = `admin/updateByServiceId`
-export const DELETE_SERVICE_URL = `services/deleteService`
-export const subService_URL = `http://${ipUrl}:8800/api/v1`
 
-export const GET_ALL_SERVICES = 'services/getAllServices'
-export const ADD_SERVICE = 'services/addService'
+//sub-service
+export const subService_URL = `http://${ipUrl}:8081/admin`
+export const ADD_SERVICE = 'addService'
+export const GET_ALL_SERVICES = 'getAllServices'
+export const DELETE_SERVICE_URL = `deleteService`
+export const updateService = 'updateByServiceId'
+
+export const getService = 'getServiceById'
+export const Category = 'category/getServices'
 
 // login
-//dss
 export const endPoint = 'admin/adminLogin'
 
 // Category Management
@@ -60,15 +65,8 @@ export const getBasicDetails = 'admin/getBasicDetails'
 // export const deleteAppointments ='customers/deleteService'
 
 // Service management
-
-export const getService = 'services/getServices'
-
-export const Category = 'category/getServices'
-
-export const AddService = 'services/addService'
-
+// export const AddService = 'services/addService'
 // export const updateService = 'services/updateService'
-
 // export const deleteService = 'services/deleteByServiceID'
 
 //Subservice
@@ -118,32 +116,23 @@ export const updateVerification = 'admin/verfiyProvider'
 export const getAppointments = 'admin/appointments'
 
 // Appointment Management
-
-export const getAllBookingDetails = 'admin/getAllBookingDetails'
-
+// export const getAllBookingDetails = 'admin/getAllBookingDetails'
 // Reassign Appointment
-
 export const getData = 'admin/NotificationToAdminForProviderReassign'
 
 export const postData = 'admin/providerReassign'
 
-//user
-//appointments
 // export const allBooking_sevices = getAllBookedServices
-export const getAllBookedServices = 'customer/getAllBookedServices'
-
-export const DeleteBookings = 'customer/deleteService'
-export const GetBookingBy_ClinicId = 'customer/getAllBookedServicesByClinicId'
-export const GetBookingBy_DoctorId = 'customer/getBookingByDoctorId'
+// export const GetBookingBy_ClinicId = 'customer/getAllBookedServicesByClinicId'
+// export const GetBookingBy_DoctorId = 'admin/getBookingByDoctorId'
+//appointments
+export const GetBy_DoctorId = 'clinic-admin/doctor'
+export const getAllBookedServices = 'admin/getAllBookedServices'
+export const DeleteBookings = 'admin/deleteServiceByBookedId'
 
 // Service management
-
 // export const getService = 'admin/getAllServices'
-
 export const getServiceByCategory = 'admin/getServiceById'
-
-export const updateService = 'admin/updateByServiceId'
-
 export const deleteService = 'admin/deleteService'
 
 //categoryAdvertisement

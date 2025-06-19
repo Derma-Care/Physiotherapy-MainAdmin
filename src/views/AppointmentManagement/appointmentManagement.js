@@ -22,7 +22,7 @@ import { BASE_URL, ClinicAllData } from '../../baseUrl'
 import { AppointmentData } from './appointmentAPI'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { GetBookingByClinicId } from './appointmentAPI'
+import { getBookingBy_DoctorId } from './appointmentAPI'
 
 const appointmentManagement = () => {
   const [viewService, setViewService] = useState(null)
@@ -47,11 +47,11 @@ const appointmentManagement = () => {
 
   const navigate = useNavigate()
 
-  const fetchAppointments = async (clinicId = '') => {
+  const fetchAppointments = async (doctorId = '') => {
     try {
       let response
-      if (clinicId) {
-        response = await GetBookingByClinicId(clinicId)
+      if (doctorId) {
+        response = await getBookingBy_DoctorId(doctorId)
       } else {
         response = await AppointmentData()
       }

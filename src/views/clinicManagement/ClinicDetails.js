@@ -23,7 +23,7 @@ import {
 } from '@coreui/react'
 import { DoctorAllData } from '../../baseUrl'
 
-import { DOCTOR_URL } from '../../baseUrl'
+import { CLINIC_ADMIN_URL } from '../../baseUrl'
 import classNames from 'classnames'
 import axios from 'axios'
 import { BASE_URL, UpdateClinic, DeleteClinic } from '../../baseUrl'
@@ -60,7 +60,7 @@ const ClinicDetails = () => {
   }
   const fetchAllDoctors = async () => {
     try {
-      const response = await axios.get(`${DOCTOR_URL}${DoctorAllData}/${hospitalId}`)
+      const response = await axios.get(`${CLINIC_ADMIN_URL}${DoctorAllData}/${hospitalId}`)
       console.log('Doctors data:', response.data)
       setAllDoctors(response.data.data)
     } catch (error) {

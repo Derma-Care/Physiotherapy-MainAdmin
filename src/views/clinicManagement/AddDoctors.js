@@ -13,7 +13,7 @@ import {
   CRow,
   CCol,
 } from '@coreui/react'
-import { DOCTOR_URL, AddDoctor } from '../../baseUrl'
+import { CLINIC_ADMIN_URL, AddDoctor } from '../../baseUrl'
 import { toast } from 'react-toastify'
 
 const AddDoctors = () => {
@@ -152,7 +152,7 @@ const AddDoctors = () => {
     }
 
     try {
-      const response = await axios.post(`${DOCTOR_URL}/${AddDoctor}`, doctorData)
+      const response = await axios.post(`${CLINIC_ADMIN_URL}/${AddDoctor}`, doctorData)
       console.log('succes')
       toast.success('Doctor added successfully!')
       navigate('/clinic-management', {

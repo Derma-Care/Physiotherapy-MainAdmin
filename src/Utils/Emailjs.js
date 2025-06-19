@@ -19,7 +19,7 @@ const sendDermaCareOnboardingEmail = ({ name, email, password, userID }) => {
       console.log('✅ Email sent!', response.status, response.text)
     })
     .catch((error) => {
-      console.error('❌ Email send failed:', error)
+      console.error('Email send failed:', error)
     })
 }
 

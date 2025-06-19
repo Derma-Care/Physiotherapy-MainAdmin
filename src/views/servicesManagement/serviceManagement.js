@@ -36,8 +36,9 @@ const ServiceManagement = () => {
   const [viewService, setViewService] = useState(null)
   const [editServiceMode, setEditServiceMode] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
-  const [serviceIdToDelete, setServiceIdToDelete] = useState(null)
-
+  const [
+    serviceIdToDelete, setServiceIdToDelete] = useState(null)
+const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
   const [errors, setErrors] = useState({
     serviceName: '',
     categoryId: '',
@@ -239,11 +240,19 @@ const ServiceManagement = () => {
 
   const handleUpdateService = async (id) => {
     try {
+      let imageBase64 = updatedService.ServiceImage
+
+      // Convert file to base64 if a new image file is selected
+      if (updatedService.ServiceImage && updatedService.ServiceImage instanceof File) {
+        imageBase64 = await toBase64(updatedService.ServiceImage)
+      }
+
       const payload = {
         serviceId: updatedService.ServiceId,
         serviceName: updatedService.ServiceName,
         categoryId: updatedService.categoryId,
-        serviceImage: updatedService.ServiceImage, // base64 string
+        description: updatedService.description,
+        serviceImage: imageBase64, // base64 string
       }
 
       console.log('Payload:', payload)
@@ -257,14 +266,21 @@ const ServiceManagement = () => {
       toast.error('Failed to update service')
     }
   }
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = (error) => reject(error)
+    })
 
   // const handleDeleteService = (serviceId) => {
   //   setServiceIdToDelete(serviceId)
   //   setIsModalVisible(true)
   // }
 
-  const handleConfirmDelete = async (serviceIdToDelete) => {
-    const confirm = window.confirm('Are you sure you want to delete this service?')
+  const handleConfirmDelete = async () => {
+    // const confirm = window.confirm('Are you sure you want to delete this service?')
     if (!confirm) return
     console.log(serviceIdToDelete)
     try {
@@ -394,18 +410,18 @@ const ServiceManagement = () => {
           <CButton
             color="link"
             className="text-danger p-0"
-            onClick={() => handleConfirmDelete(row.serviceId)}
+            onClick={() => handleServiceDelete(row.serviceId)}
             style={{ width: '80px' }}
           >
             Delete
           </CButton>
 
-          {/* <ConfirmationModal
+          <ConfirmationModal
             isVisible={isModalVisible}
             message="Are you sure you want to delete this service?"
             onConfirm={handleConfirmDelete}
-            onCancel={() => setIsModalVisible(false)}
-          /> */}
+           onCancel={handleCancelDelete}
+          />
         </div>
       ),
       width: '150px',
@@ -413,6 +429,51 @@ const ServiceManagement = () => {
     },
   ]
 
+    const ConfirmationModal = ({ isVisible, message, onConfirm, onCancel }) => {
+      return (
+        <CModal
+          visible={isVisible}
+          onClose={onCancel}
+          style={{
+            maxWidth: '500px',
+            height: 'auto',
+            marginTop: '10%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginLeft: '500px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+            }}
+          >
+            <CHeader style={{ marginBottom: '10px' }}>!Alert</CHeader>
+            <CModalBody>{message}</CModalBody>
+            <CModalFooter>
+              <CButton color="secondary" onClick={onCancel}>
+                Cancel
+              </CButton>
+              <CButton color="danger" onClick={onConfirm}>
+                Confirm
+              </CButton>
+            </CModalFooter>
+          </div>
+        </CModal>
+      )
+    }
+ const handleServiceDelete = (serviceId) => {
+    setServiceIdToDelete(serviceId)
+    setIsModalVisible(true)
+  }
+
+     const handleCancelDelete = () => {
+    setIsModalVisible(false)
+  }
   return (
     <div className="container-fluid p-4">
       <ToastContainer />
@@ -551,6 +612,12 @@ const ServiceManagement = () => {
             </CCol>
             <CCol sm={8}>{viewService?.serviceName}</CCol>
           </CRow>
+          <CRow className="mb-3">
+            <CCol sm={4}>
+              <strong>Description:</strong>
+            </CCol>
+            <CCol sm={8}>{viewService?.description}</CCol>
+          </CRow>
           <CRow>
             <CCol sm={4}>
               <strong>Service Image:</strong>
@@ -569,7 +636,7 @@ const ServiceManagement = () => {
       </CModal>
 
       {/* Delete Confirmation Modal */}
-      <CModal visible={isModalVisible} onClose={() => setIsModalVisible(false)}>
+      {/* <CModal visible={isModalVisible} onClose={() => setIsModalVisible(false)}>
         <CModalHeader>
           <CModalTitle>Confirm Delete</CModalTitle>
         </CModalHeader>
@@ -582,7 +649,7 @@ const ServiceManagement = () => {
             Delete
           </CButton>
         </CModalFooter>
-      </CModal>
+      </CModal> */}
 
       <CModal visible={editServiceMode} onClose={() => setEditServiceMode(false)}>
         <CModalHeader>
@@ -595,6 +662,13 @@ const ServiceManagement = () => {
               value={updatedService.ServiceName}
               onChange={(e) =>
                 setUpdatedService({ ...updatedService, ServiceName: e.target.value })
+              }
+            />
+            <CFormInput
+              label="Description"
+              value={updatedService.description}
+              onChange={(e) =>
+                setUpdatedService({ ...updatedService, description: e.target.value })
               }
             />
             <CFormSelect
@@ -614,17 +688,39 @@ const ServiceManagement = () => {
                 </option>
               ))}
             </CFormSelect>
+            <h6>
+              Service Image <span style={{ color: 'red' }}>*</span>
+            </h6>
+
+            {/* Image file input for new selection */}
             <CFormInput
               type="file"
-              label="Service Image"
               accept="image/*"
               onChange={(e) =>
                 setUpdatedService({
                   ...updatedService,
                   ServiceImage: e.target.files[0],
+                  existingImageName: e.target.files[0]?.name || updatedService.existingImageName,
                 })
               }
             />
+            
+            {updatedService?.ServiceImage ? (
+              // Show preview for base64 or direct URL
+              <img
+                src={
+                  typeof updatedService.ServiceImage === 'string'
+                    ? updatedService.ServiceImage.startsWith('data:image')
+                      ? updatedService.ServiceImage
+                      : `data:image/png;base64,${updatedService.ServiceImage}`
+                    : URL.createObjectURL(updatedService.ServiceImage)
+                }
+                alt="Service"
+                style={{ width: '200px', height: 'auto', marginTop: '10px' }}
+              />
+            ) : (
+              <span style={{ display: 'block', marginTop: '10px' }}>No image available</span>
+            )}
           </CForm>
         </CModalBody>
         <CModalFooter>

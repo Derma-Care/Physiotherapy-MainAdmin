@@ -47,7 +47,8 @@ const AppointmentDetails = () => {
     console.log(appointment?.doctorId)
 
     const fetchDoctorDetails = async () => {
-      if (appointment?.status.toLowerCase() === 'confirmed' || appointment?.status.toLowerCase() === 'completed' && appointment?.doctorId) {
+     if ((appointment?.status.toLowerCase() === 'confirmed' || appointment?.status.toLowerCase() === 'completed') && appointment?.doctorId) 
+ {
         try {
           const response = await getBookingBy_DoctorId(appointment?.doctorId)
           if (response) {
@@ -127,7 +128,7 @@ const AppointmentDetails = () => {
           <strong>Service ID:</strong> {appointment?.serviceId}
         </p>
       </div>
-      {(appointment?.status.toLowerCase() === 'confirmed' || appointment?.status.toLowerCase() === 'completed') && doctor && (
+       {(appointment?.status.toLowerCase() === 'confirmed' || appointment?.status.toLowerCase() === 'completed') && doctor && (
         <>
           <hr />
           <h6 className="fw-bold mt-4">Doctor Details</h6>

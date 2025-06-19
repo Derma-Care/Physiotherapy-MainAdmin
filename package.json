@@ -4,11 +4,6 @@
   "description": "SureCare ",
   "homepage": ".",
   "private": true,
-  "proxy": {
-    "/api/customer": "http://192.168.1.2:8083",
-    "/api/service1": "http://192.168.1.2:8081",
-    "/api/service2": "http://192.168.1.2:8082"
-  },
   "scripts": {
     "build": "vite build",
     "lint": "eslint \"src/**/*.js\"",
@@ -28,11 +23,12 @@
     "@mui/material": "^6.1.2",
     "@popperjs/core": "^2.11.8",
     "axios": "^1.7.7",
-    "bootstrap": "^5.3.3",
+    "bootstrap": "^5.3.6",
     "chart.js": "^4.4.4",
     "classnames": "^2.5.1",
     "core-js": "^3.38.1",
     "date-fns": "^4.1.0",
+    "emailjs-com": "^3.2.0",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-bootstrap": "^2.10.5",

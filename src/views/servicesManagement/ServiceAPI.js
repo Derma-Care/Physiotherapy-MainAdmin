@@ -1,5 +1,14 @@
 import axios from 'axios'
-import { SERVICE_URL, GET_ALL_SERVICES, ADD_SERVICE, subService_URL, BASE_URL,DELETE_SERVICE_URL ,getService,updateService} from '../../baseUrl'
+import {
+  SERVICE_URL,
+  GET_ALL_SERVICES,
+  ADD_SERVICE,
+  subService_URL,
+  BASE_URL,
+  DELETE_SERVICE_URL,
+  getService,
+  updateService,
+} from '../../baseUrl'
 
 export const getAllServices = async () => {
   try {
@@ -17,19 +26,35 @@ export const getAllServices = async () => {
   }
 }
 
- 
- 
+// export const getServiceByCategoryId = async (categoryId) => {
+//   try {
+//     const response = await axios.get(`${subService_URL}/${getService}/${categoryId}`)
+//     return response.data?.data || []
+//   } catch (error) {
+//     console.error('Error fetching services by category:', error)
+//     return []
+//   }
+// }
+
 
 export const getServiceByCategoryId = async (categoryId) => {
   try {
-    const response = await axios.get(`${subService_URL}/${getService}/${categoryId}`)
-    return response.data?.data || []
-  } catch (error) {
-    console.error('Error fetching services by category:', error)
-    return []
-  }
-}
+    const response = await axios.get(`${subService_URL}/${getService}/${categoryId}`, {
+      validateStatus: (status) => status >= 200 && status <= 302, // Accept 302 as a valid response
+    });
 
+    // If the server redirects, follow the 'Location' header
+    if (response.status === 302 && response.headers.location) {
+      const redirectedResponse = await axios.get(response.headers.location);
+      return redirectedResponse.data?.data || [];
+    }
+
+    return response.data?.data || [];
+  } catch (error) {
+    console.error('Error fetching services by category:', error);
+    return [];
+  }
+};
 
 export const postServiceData = async (serviceData) => {
   console.log(serviceData)
@@ -49,9 +74,13 @@ export const updateServiceData = async (updatedService, serviceId) => {
   console.log(updatedService)
   console.log(serviceId)
   try {
-    const response = await axios.put(`${BASE_URL}/${updateService}/${serviceId}`, updatedService, {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    const response = await axios.put(
+      `${subService_URL}/${updateService}/${serviceId}`,
+      updatedService,
+      {
+        headers: { 'Content-Type': 'application/json' },
+      },
+    )
     return response.data
   } catch (error) {
     console.error('Error updating service:', error)

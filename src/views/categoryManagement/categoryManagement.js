@@ -96,7 +96,7 @@ const CategoryManagement = () => {
       }
 
       const filtered = category.filter((category) => {
-        const categoryMatch = category.categoryName?.toLowerCase().includes(trimmedQuery)
+        const categoryMatch = category.categoryName?.toLowerCase().startsWith(trimmedQuery)
         return categoryMatch
       })
 

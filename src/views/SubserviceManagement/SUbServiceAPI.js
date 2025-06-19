@@ -6,7 +6,7 @@ const postSubService = async (payload) => {
     const response = await axios.post(`${BASE_URL}/${addSubservices}`, payload)
     if (response.data.success) {
       console.log('✅ Sub-services added successfully:', response.data)
-      alert('Sub-services added successfully!')
+      // alert('Sub-services added successfully!')
       return response // ✅ add this
     } else {
       console.warn('⚠️ Failed to add sub-services:', response.data)

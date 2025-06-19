@@ -91,24 +91,14 @@ const _nav = [
   //   icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
 
   // },
-  {
-    component: CNavItem,
-    name: 'User/Roles',
-    to: '/users-roles',
-    icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
-  },
+ 
   {
     component: CNavItem,
     name: 'Reports',
     to: '/reports',
     icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Incident Management',
-    to: '/incident-management',
-    icon: <CIcon icon={cilShieldAlt} customClassName="nav-icon" />,
-  },
+  
 ]
 
 export default _nav
