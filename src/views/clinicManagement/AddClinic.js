@@ -71,30 +71,6 @@ const AddClinic = () => {
     facebookHandle: '',
   })
 
-  // const handleCategoryChange = async (selectedOptions) => {
-  //   const selectedCategories = selectedOptions || []
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     hospitalcategory: selectedCategories,
-  //   }))
-
-  //   const allServices = []
-
-  //   for (const option of selectedCategories) {
-  //     try {
-  //       const res = await axios.get(`${subService_URL}/${getService}/${option.value}`)
-  //       const data = res.data?.data || []
-  //       allServices.push(...data)
-  //     } catch (error) {
-  //       console.error(`Failed to fetch services for category ${option.label}:`, error)
-  //     }
-  //   }
-
-  //   const uniqueServices = Array.from(new Map(allServices.map((s) => [s.serviceId, s])).values())
-
-  //   setServiceOptions(uniqueServices)
-  // }
-
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -283,6 +259,7 @@ const AddClinic = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    console.log(name, value)
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -294,28 +271,6 @@ const AddClinic = () => {
       }))
     }
   }
-  // const handleFileChange = async (e) => {
-  //   const { name, files } = e.target
-
-  //   const stripBase64Prefix = (base64) => base64.split(',')[1]
-
-  //   try {
-  //     const base64Files = await Promise.all(
-  //       Array.from(files).map((file) => convertToBase64(file).then(stripBase64Prefix)),
-  //     )
-
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       [name]: files.length === 1 ? base64Files[0] : base64Files,
-  //     }))
-  //   } catch (error) {
-  //     console.error('File conversion error:', error)
-  //     setErrors((prev) => ({
-  //       ...prev,
-  //       [name]: 'File conversion failed',
-  //     }))
-  //   }
-  // }
 
   const handleFileChange = async (e) => {
     const { name, files } = e.target
@@ -804,8 +759,8 @@ const AddClinic = () => {
                 )}
               </CCol>
             </CRow>
-            <CRow>
-              <CCol md={6}>
+            <CRow className="mb-3">
+              <CCol md={6} className="mb-2">
                 <CTooltip content="Issued by Registrar of Companies or local municipal body">
                   <CFormLabel>Clinical Establishment Registration Certificate</CFormLabel>
                 </CTooltip>
@@ -840,7 +795,7 @@ const AddClinic = () => {
                 )}
               </CCol>
             </CRow>
-            <CRow>
+            <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel>Clinic Type</CFormLabel>
                 <CFormSelect
@@ -905,7 +860,7 @@ const AddClinic = () => {
             </CRow>
 
             {selectedOption === 'Yes' && (
-              <CRow>
+              <CRow className="mb-3">
                 <CCol md={6}>
                   <CTooltip content="Issued by State Drug Control Department">
                     <CFormLabel>Drug License Certificate</CFormLabel>
@@ -942,7 +897,7 @@ const AddClinic = () => {
                 </CCol>
               </CRow>
             )}
-            <CRow>
+            <CRow className="mb-3">
               <CCol md={6}>
                 <CTooltip content="Issued by Local Municipality">
                   <CFormLabel>Trade License / Shop & Establishment License</CFormLabel>
@@ -1018,8 +973,8 @@ const AddClinic = () => {
                   type="text"
                   id="instagram"
                   placeholder="@clinic_handle"
-                  name="instagramHandle "
-                  // value={formData.instagramHandle}
+                  name="instagramHandle"
+                  value={formData.instagramHandle}
                   onChange={handleInputChange}
                 />
               </CCol>
@@ -1029,8 +984,8 @@ const AddClinic = () => {
                   type="text"
                   id="facebook"
                   placeholder="facebook.com/clinic"
-                  name="facebookHandle  "
-                  // value={formData.facebookHandle}
+                  name="facebookHandle"
+                  value={formData.facebookHandle}
                   onChange={handleInputChange}
                 />
               </CCol>
@@ -1040,13 +995,14 @@ const AddClinic = () => {
                   type="text"
                   id="twitter"
                   placeholder="@clinic_tweet"
-                  name="twitterHandle  "
+                  name="twitterHandle"
                   value={formData.twitterHandle}
                   onChange={handleInputChange}
                 />
               </CCol>
             </CRow>
-            <CRow>
+
+            <CRow className="mb-3">
               <CCol md={6}>
                 <CFormLabel>Clinic has a valid pharmacist</CFormLabel>
                 <CFormSelect

@@ -45,6 +45,18 @@ const ClinicDetails = () => {
   const [allDoctors, setAllDoctors] = useState([])
   const [isEditingAdditional, setIsEditingAdditional] = useState(false)
   const tabList = ['Basic Details', 'Additional Details', 'Doctors', 'Appointments']
+  const documentFields = [
+    ['Drug License Certificate', 'drugLicenseCertificate'],
+    ['Drug License Form Type', 'drugLicenseFormType'],
+    ['Pharmacist Certificate', 'pharmacistCertificate'],
+    ['Clinical Establishment Certificate', 'clinicalEstablishmentCertificate'],
+    ['Business Registration Certificate', 'businessRegistrationCertificate'],
+    ['Biomedical Waste Management Auth', 'biomedicalWasteManagementAuth'],
+    ['Trade License', 'tradeLicense'],
+    ['Fire Safety Certificate', 'fireSafetyCertificate'],
+    ['Professional Indemnity Insurance', 'professionalIndemnityInsurance'],
+    ['Others', 'others'],
+  ]
 
   const fetchClinicDetails = async () => {
     setLoading(true)
@@ -256,7 +268,11 @@ const ClinicDetails = () => {
                     {isEditing ? 'Save' : 'Edit'}
                   </CButton>
 
-                  <CButton color="danger" onClick={() => setShowDeleteModal(true)}>
+                  <CButton
+                    color="danger"
+                    style={{ color: 'white' }}
+                    onClick={() => setShowDeleteModal(true)}
+                  >
                     Delete Clinic
                   </CButton>
                 </CForm>
@@ -353,6 +369,8 @@ const ClinicDetails = () => {
                         }
                       />
                     </CCol>
+                  </CRow>
+                  <CRow>
                     <CCol md={6} className="mt-3">
                       <CFormLabel>Hospital Documents</CFormLabel>
 
@@ -475,6 +493,598 @@ const ClinicDetails = () => {
                     </CCol>
                   </CRow>
 
+                  <CRow>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Business Registration Certificate</CFormLabel>
+
+                      {editableClinicData.businessRegistrationCertificate ? (
+                        (() => {
+                          const base64Data = editableClinicData.businessRegistrationCertificate
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_BusinessRegistration.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">
+                          No business registration certificate available.
+                        </div>
+                      )}
+                    </CCol>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Biomedical Waste Management Auth</CFormLabel>
+
+                      {editableClinicData.biomedicalWasteManagementAuth ? (
+                        (() => {
+                          const base64Data = editableClinicData.biomedicalWasteManagementAuth
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_BiomedicalWasteAuth.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">
+                          No biomedical waste management auth available.
+                        </div>
+                      )}
+                    </CCol>
+                  </CRow>
+
+                  <CRow>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Trade License</CFormLabel>
+
+                      {editableClinicData.tradeLicense ? (
+                        (() => {
+                          const base64Data = editableClinicData.tradeLicense
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_TradeLicense.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">No trade license available.</div>
+                      )}
+                    </CCol>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Fire Safety Certificate</CFormLabel>
+
+                      {editableClinicData.fireSafetyCertificate ? (
+                        (() => {
+                          const base64Data = editableClinicData.fireSafetyCertificate
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_FireSafety.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">No fire safety certificate available.</div>
+                      )}
+                    </CCol>
+                  </CRow>
+
+                  <CRow>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Professional Indemnity Insurance</CFormLabel>
+
+                      {editableClinicData.professionalIndemnityInsurance ? (
+                        (() => {
+                          const base64Data = editableClinicData.professionalIndemnityInsurance
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_IndemnityInsurance.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">
+                          No professional indemnity insurance available.
+                        </div>
+                      )}
+                    </CCol>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Other Documents</CFormLabel>
+
+                      {editableClinicData.others ? (
+                        (() => {
+                          const base64Data = editableClinicData.others
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_OtherDocument.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">No other documents available.</div>
+                      )}
+                    </CCol>
+                  </CRow>
+
+                  <CRow>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Drug License Certificate</CFormLabel>
+
+                      {editableClinicData.drugLicenseCertificate ? (
+                        (() => {
+                          const base64Data = editableClinicData.drugLicenseCertificate
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_DrugLicense.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">No drug license certificate available.</div>
+                      )}
+                    </CCol>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Drug License Form Type</CFormLabel>
+
+                      {editableClinicData.drugLicenseFormType ? (
+                        (() => {
+                          const base64Data = editableClinicData.drugLicenseFormType
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_DrugLicenseForm.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">No drug license form type available.</div>
+                      )}
+                    </CCol>
+                  </CRow>
+
+                  <CRow>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Pharmacist Certificate</CFormLabel>
+
+                      {editableClinicData.pharmacistCertificate ? (
+                        (() => {
+                          const base64Data = editableClinicData.pharmacistCertificate
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_PharmacistCertificate.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">No pharmacist certificate available.</div>
+                      )}
+                    </CCol>
+                    <CCol md={6} className="mt-3">
+                      <CFormLabel>Clinical Establishment Certificate</CFormLabel>
+
+                      {editableClinicData.clinicalEstablishmentCertificate ? (
+                        (() => {
+                          const base64Data = editableClinicData.clinicalEstablishmentCertificate
+                          const prefix = base64Data.substring(0, 20)
+
+                          let mime = 'application/octet-stream'
+                          let ext = 'bin'
+                          let isPreviewable = false
+
+                          if (prefix.startsWith('JVBERi0')) {
+                            mime = 'application/pdf'
+                            ext = 'pdf'
+                            isPreviewable = true
+                          } else if (prefix.startsWith('UEsDB')) {
+                            mime =
+                              'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ext = 'docx'
+                          }
+
+                          const fileName = `${editableClinicData.name || 'Clinic'}_ClinicalCertificate.${ext}`
+                          const fileDataUrl = `data:${mime};base64,${base64Data}`
+
+                          return (
+                            <div className="mb-3 border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted">{fileName}</span>
+                                <div className="d-flex gap-2">
+                                  {isPreviewable && (
+                                    <CButton
+                                      size="sm"
+                                      color="info"
+                                      variant="outline"
+                                      onClick={() => openPdfPreview(base64Data)}
+                                    >
+                                      Preview
+                                    </CButton>
+                                  )}
+                                  <CButton
+                                    size="sm"
+                                    color="primary"
+                                    variant="outline"
+                                    onClick={() => downloadBase64File(fileDataUrl, fileName)}
+                                  >
+                                    Download
+                                  </CButton>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()
+                      ) : (
+                        <div className="text-muted">
+                          No clinical establishment certificate available.
+                        </div>
+                      )}
+                    </CCol>
+                  </CRow>
                   <CButton
                     color="primary"
                     className="me-2"
@@ -569,7 +1179,7 @@ const ClinicDetails = () => {
                 <CButton color="secondary" onClick={() => setShowDeleteModal(false)}>
                   Cancel
                 </CButton>
-                <CButton color="danger" onClick={handleDeleteClinic}>
+                <CButton color="danger" style={{ color: 'white' }} onClick={handleDeleteClinic}>
                   Confirm
                 </CButton>
               </CModalFooter>

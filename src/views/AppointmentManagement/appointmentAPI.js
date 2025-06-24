@@ -16,7 +16,7 @@ import { CListGroup } from '@coreui/react'
 export const AppointmentData = async () => {
   console.log('appointdata calling')
   try {
-    const response = await axios.get(`${CLINIC_ADMIN_URL}/${getAllBookedServices}`)
+    const response = await axios.get(`${BASE_URL}/${getAllBookedServices}`)
     console.log(response.data)
 
     return response.data

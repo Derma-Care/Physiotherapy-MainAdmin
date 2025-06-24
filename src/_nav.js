@@ -37,7 +37,13 @@ const _nav = [
   {
     component: CNavItem,
     to: '/ads-management',
-    name: 'Ads Management',
+    name: 'Category Ads Management',
+    icon: <CIcon icon={cilSpeaker} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    to: '/ads-service-management',
+    name: 'Service Ads Management',
     icon: <CIcon icon={cilSpeaker} customClassName="nav-icon" />,
   },
   {
@@ -59,7 +65,7 @@ const _nav = [
     to: '/service-management',
     icon: <CIcon icon={cilApps} customClassName="nav-icon" />,
   },
-   {
+  {
     component: CNavItem,
     name: 'Sub Service Management',
     to: '/sub-service-management',
@@ -91,14 +97,13 @@ const _nav = [
   //   icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
 
   // },
- 
+
   {
     component: CNavItem,
     name: 'Reports',
     to: '/reports',
     icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
   },
-  
 ]
 
 export default _nav

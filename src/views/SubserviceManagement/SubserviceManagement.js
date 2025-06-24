@@ -22,6 +22,7 @@ import DataTable from 'react-data-table-component'
 import postSubService from '../SubserviceManagement/SUbServiceAPI'
 import { getAllSubServices, deleteSubServiceData } from '../SubserviceManagement/SUbServiceAPI'
 import { getServiceByCategoryId } from '../servicesManagement/ServiceAPI'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 const AddSubService = () => {
   const [category, setCategory] = useState([])
@@ -140,7 +141,9 @@ const AddSubService = () => {
       console.log('🧪 Delete Response:', res)
 
       if (res?.data?.success === true) {
-        toast.success('Subservice deleted successfully!', { position: 'top-right' })
+        toast.success(`${res.data.message || 'Subservice deleted successfully!'}`, {
+          position: 'top-right',
+        })
         await fetchSubServices()
       } else {
         toast.error('Failed to delete subservice.', { position: 'top-right' })
@@ -381,18 +384,21 @@ const AddSubService = () => {
       toast.error('Error submitting subservices')
     }
   }
+  console.log(subServices)
 
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredSubServices(subServices)
     } else {
       const lowerSearch = searchQuery.toLowerCase()
+      console.log(lowerSearch)
       const filtered = subServices.filter(
         (item) =>
-          item.name.toLowerCase().includes(lowerSearch) ||
-          item.category.toLowerCase().includes(lowerSearch) ||
-          item.service.toLowerCase().includes(lowerSearch),
+          item.category?.toLowerCase()?.includes(lowerSearch) ||
+          item.name?.toLowerCase()?.includes(lowerSearch) ||
+          item.service?.toLowerCase()?.includes(lowerSearch),
       )
+      console.log(filtered)
       setFilteredSubServices(filtered)
     }
   }, [searchQuery, subServices])
@@ -625,20 +631,26 @@ const AddSubService = () => {
       </CModal>
 
       {showDeleteModal && (
-        <CModal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
-          <CModalHeader>
-            <CModalTitle>Confirm Deletion</CModalTitle>
-          </CModalHeader>
-          <CModalBody>Are you sure you want to delete this subservice?</CModalBody>
-          <CModalFooter>
-            <CButton color="danger" onClick={handleConfirmDelete}>
-              Confirm
-            </CButton>
-            <CButton color="secondary" onClick={() => setShowDeleteModal(false)}>
-              Cancel
-            </CButton>
-          </CModalFooter>
-        </CModal>
+        <ConfirmationModal
+          isVisible={showDeleteModal}
+          message="Are you sure you want to delete this service?"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
+        // <CModal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+        //   <CModalHeader>
+        //     <CModalTitle>Confirm Deletion</CModalTitle>
+        //   </CModalHeader>
+        //   <CModalBody>Are you sure you want to delete this subservice?</CModalBody>
+        //   <CModalFooter>
+        //     <CButton color="danger" onClick={handleConfirmDelete}>
+        //       Confirm
+        //     </CButton>
+        //     <CButton color="secondary" onClick={() => setShowDeleteModal(false)}>
+        //       Cancel
+        //     </CButton>
+        //   </CModalFooter>
+        // </CModal>
       )}
     </>
   )

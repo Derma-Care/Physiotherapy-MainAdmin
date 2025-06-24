@@ -24,6 +24,7 @@ import { getAllServices, postServiceData, updateServiceData, deleteServiceData }
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
 import '../../Utils/CreateTheme'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 const ServiceManagement = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [service, setService] = useState([])
@@ -36,9 +37,8 @@ const ServiceManagement = () => {
   const [viewService, setViewService] = useState(null)
   const [editServiceMode, setEditServiceMode] = useState(false)
   const [isModalVisible, setIsModalVisible] = useState(false)
-  const [
-    serviceIdToDelete, setServiceIdToDelete] = useState(null)
-const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
+  const [serviceIdToDelete, setServiceIdToDelete] = useState(null)
+  const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
   const [errors, setErrors] = useState({
     serviceName: '',
     categoryId: '',
@@ -105,8 +105,8 @@ const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
       const filtered = service.filter((services) => {
         const serviceNameMatch = services.serviceName.toLowerCase().startsWith(trimmedQuery)
         const categoryMatch = services.categoryName?.toLowerCase().startsWith(trimmedQuery)
-        const descriptionMatch = services.description?.toLowerCase().startsWith(trimmedQuery)
-        return serviceNameMatch || categoryMatch || descriptionMatch
+
+        return serviceNameMatch || categoryMatch
       })
       setFilteredData(filtered)
     }
@@ -284,8 +284,8 @@ const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
     if (!confirm) return
     console.log(serviceIdToDelete)
     try {
-      await deleteServiceData(serviceIdToDelete)
-      toast.success('Service deleted successfully!')
+      const data = await deleteServiceData(serviceIdToDelete)
+      toast.success(`${data.data || 'Service deleted successfully!'}`)
       setIsModalVisible(false)
       await fetchData()
     } catch (error) {
@@ -420,7 +420,7 @@ const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
             isVisible={isModalVisible}
             message="Are you sure you want to delete this service?"
             onConfirm={handleConfirmDelete}
-           onCancel={handleCancelDelete}
+            onCancel={handleCancelDelete}
           />
         </div>
       ),
@@ -429,49 +429,12 @@ const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
     },
   ]
 
-    const ConfirmationModal = ({ isVisible, message, onConfirm, onCancel }) => {
-      return (
-        <CModal
-          visible={isVisible}
-          onClose={onCancel}
-          style={{
-            maxWidth: '500px',
-            height: 'auto',
-            marginTop: '10%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginLeft: '500px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-            }}
-          >
-            <CHeader style={{ marginBottom: '10px' }}>!Alert</CHeader>
-            <CModalBody>{message}</CModalBody>
-            <CModalFooter>
-              <CButton color="secondary" onClick={onCancel}>
-                Cancel
-              </CButton>
-              <CButton color="danger" onClick={onConfirm}>
-                Confirm
-              </CButton>
-            </CModalFooter>
-          </div>
-        </CModal>
-      )
-    }
- const handleServiceDelete = (serviceId) => {
+  const handleServiceDelete = (serviceId) => {
     setServiceIdToDelete(serviceId)
     setIsModalVisible(true)
   }
 
-     const handleCancelDelete = () => {
+  const handleCancelDelete = () => {
     setIsModalVisible(false)
   }
   return (
@@ -479,9 +442,9 @@ const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
       <ToastContainer />
 
       <CForm className="d-flex justify-content-between mb-3">
-        <CInputGroup style={{ width: '300px' }}>
+        <CInputGroup style={{ width: '50%' }}>
           <CFormInput
-            placeholder="Search by Service Name"
+            placeholder="Search by Service Name and Category Name...."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -704,7 +667,7 @@ const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
                 })
               }
             />
-            
+
             {updatedService?.ServiceImage ? (
               // Show preview for base64 or direct URL
               <img

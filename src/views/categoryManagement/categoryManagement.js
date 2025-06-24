@@ -28,6 +28,7 @@ import {
   updateCategoryData,
   deleteCategoryData,
 } from './CategoryAPI'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 const CategoryManagement = () => {
   const [searchQuery, setSearchQuery] = useState('')
@@ -123,7 +124,7 @@ const CategoryManagement = () => {
       selector: (row, index) => index + 1,
       sortable: true,
       width: '10%',
-    
+
       headerStyle: { textAlign: 'center' },
     },
     {
@@ -209,44 +210,6 @@ const CategoryManagement = () => {
       headerStyle: { textAlign: 'center' },
     },
   ]
-
-  const ConfirmationModal = ({ isVisible, message, onConfirm, onCancel }) => {
-    return (
-      <CModal
-        visible={isVisible}
-        onClose={onCancel}
-        style={{
-          maxWidth: '500px',
-          height: 'auto',
-          marginTop: '10%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginLeft: '500px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            textAlign: 'center',
-          }}
-        >
-          <CHeader style={{ marginBottom: '10px' }}>!Alert</CHeader>
-          <CModalBody>{message}</CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" onClick={onCancel}>
-              Cancel
-            </CButton>
-            <CButton color="danger" onClick={onConfirm}>
-              Confirm
-            </CButton>
-          </CModalFooter>
-        </div>
-      </CModal>
-    )
-  }
 
   const handleFileChange = (e) => {
     const file = e.target.files[0]
@@ -398,9 +361,9 @@ const CategoryManagement = () => {
   const handleConfirmDelete = async () => {
     console.log(categoryIdToDelete)
     try {
-      await deleteCategoryData(categoryIdToDelete)
+      const data = await deleteCategoryData(categoryIdToDelete)
       setIsModalVisible(false)
-      toast.success('Category deleted successfully!', { position: 'top-right' })
+      toast.success(`${data.data}`, { position: 'top-right' })
       fetchData()
     } catch (error) {
       alert('Failed to delete category.')
