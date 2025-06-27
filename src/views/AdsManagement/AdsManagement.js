@@ -19,6 +19,7 @@ import {
 } from '@coreui/react'
 import { toast } from 'react-toastify'
 import { Get_AllAdvData, Add_AdvData, delete_AdvData } from './AdsManagementAPI'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 const CategoryAdvertisement = () => {
   const [advData, setAdvData] = useState([])
@@ -26,6 +27,8 @@ const CategoryAdvertisement = () => {
   const [mediaUrlOrImage, setMediaUrlOrImage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [carouselIdToDelete, setCarouselIdToDelete] = useState(null)
 
   // Load all advertisement data
   const fetchData = async () => {
@@ -42,14 +45,25 @@ const CategoryAdvertisement = () => {
   }, [])
 
   const handleDelete = async (carouselId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return
+    // if (!window.confirm('Are you sure you want to delete this item?')) return
+    if (!confirm) return
+    console.log(carouselIdToDelete)
     try {
-      await delete_AdvData(carouselId)
-      toast.success('Advertisement deleted successfully!')
-      fetchData()
+      const data = await delete_AdvData(carouselIdToDelete)
+      toast.success(`${data.data || 'Service deleted successfully!'}`)
+      setIsModalVisible(false)
+      await fetchData()
     } catch (err) {
       toast.error('Failed to delete advertisement.')
     }
+  }
+  const handleCarouselDelete = (carouselId) => {
+    setCarouselIdToDelete(carouselId)
+    setIsModalVisible(true)
+  }
+
+  const handleCancelDelete = () => {
+    setIsModalVisible(false)
   }
 
   const handleAdd = async (e) => {
@@ -140,10 +154,16 @@ const CategoryAdvertisement = () => {
                         color="danger"
                         style={{ color: 'white' }}
                         size="sm"
-                        onClick={() => handleDelete(item.carouselId)}
+                        onClick={() => handleCarouselDelete(item.carouselId)}
                       >
                         Delete
                       </CButton>
+                      <ConfirmationModal
+                        isVisible={isModalVisible}
+                        message="Are you sure you want to delete this service?"
+                        onConfirm={handleDelete}
+                        onCancel={handleCancelDelete}
+                      />
                     </CTableDataCell>
                   </CTableRow>
                 ))

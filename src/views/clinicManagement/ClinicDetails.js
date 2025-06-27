@@ -296,20 +296,21 @@ const ClinicDetails = () => {
                         }
                       />
                     </CCol>
+                   
                     <CCol md={6}>
-                      <CFormLabel>Clinic Registration No</CFormLabel>
+                      <CFormLabel>City</CFormLabel>
                       <CFormInput
                         type="text"
-                        value={editableClinicData.hospitalRegistrations || ''}
+                        value={editableClinicData.city || ''}
                         disabled={!isEditingAdditional}
                         onChange={(e) =>
                           setEditableClinicData({
                             ...editableClinicData,
-                            hospitalRegistrations: e.target.value,
+                            city: e.target.value,
                           })
                         }
                       />
-                    </CCol>
+                    </CCol> 
                   </CRow>
 
                   <CRow className="mb-3">

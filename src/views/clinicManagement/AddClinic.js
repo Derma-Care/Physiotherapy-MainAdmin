@@ -42,30 +42,30 @@ const AddClinic = () => {
     // hospitalRegistrations: '',
     openingTime: '',
     closingTime: '',
-    hospitalLogo: '',
+    hospitalLogo: null,
     emailAddress: '',
     website: '',
     licenseNumber: '',
-    IssuingAuthority: '',
+    issuingAuthority: '',
     recommended: false,
-    hospitalDoucuments: [],
+    hospitalDocuments: [],
     // hospitalcategory: [],
     hospitalContract: [],
 
-    clinicalEstablishmentCertificate: '',
-    businessRegistrationCertificate: '',
+    clinicalEstablishmentCertificate: null,
+    businessRegistrationCertificate: null,
     clinicType: '',
     medicinesSoldOnSite: '',
-    drugLicense: '',
-    drugLicenseFormType: '',
+    drugLicenseCertificate: null,
+    drugLicenseFormType: null,
     hasPharmacist: '',
-    pharmacistCertificate: '',
-    biomedicalWasteManagementAuth: '',
-    tradeLicense: '',
-    fireSafetyCertificate: '',
-    professionalIndemnityInsurance: '',
-    gstRegistrationCertificate: '',
-    others: '',
+    pharmacistCertificate: null,
+    biomedicalWasteManagementAuth: null,
+    tradeLicense: null,
+    fireSafetyCertificate: null,
+    professionalIndemnityInsurance: null,
+    gstRegistrationCertificate: null,
+    others: null,
     instagramHandle: '',
     twitterHandle: '',
     facebookHandle: '',
@@ -86,7 +86,7 @@ const AddClinic = () => {
     fetchCategories()
   }, [])
 
-  const websiteRegex = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/
+  const websiteRegex = /^(https?:\/\/)?(www\.)?[\w\-]+\.\w{2,}(\/.*)?$/
 
   const preventNumberInput = (e) => {
     const isNumber = /[0-9]/.test(e.key)
@@ -130,17 +130,12 @@ const AddClinic = () => {
       onChange={handleInputChange}
       onBlur={(e) => {
         const value = e.target.value
+        // Inside validateForm:
         const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
-        if (!value.trim()) {
-          setErrors((prev) => ({
-            ...prev,
-            emailAddress: 'Email is required',
-          }))
-        } else if (!emailRegex.test(value)) {
-          setErrors((prev) => ({
-            ...prev,
-            emailAddress: 'Please enter a valid email (example@domain.com)',
-          }))
+        if (!formData.emailAddress.trim()) {
+          newErrors.emailAddress = 'Email is required'
+        } else if (!emailRegex.test(formData.emailAddress.trim())) {
+          newErrors.emailAddress = 'Please enter a valid email (example@domain.com)'
         } else {
           setErrors((prev) => ({
             ...prev,
@@ -182,8 +177,8 @@ const AddClinic = () => {
     }
 
     // Issuing Authority
-    if (!formData.IssuingAuthority.trim()) {
-      newErrors.IssuingAuthority = 'Issuing Authority is required'
+    if (!formData.issuingAuthority.trim()) {
+      newErrors.issuingAuthority = 'Issuing Authority is required'
     }
 
     // Hospital Logo
@@ -192,8 +187,8 @@ const AddClinic = () => {
     }
 
     // Hospital Documents
-    if (formData.hospitalDoucuments.length === 0) {
-      newErrors.hospitalDoucuments = 'Please upload at least one document'
+    if (!formData.hospitalDocuments.length === 0) {
+      newErrors.hospitalDocuments = 'Please upload at least one document'
     }
     if (!formData.clinicalEstablishmentCertificate) {
       newErrors.clinicalEstablishmentCertificate = 'Please upload at least one document'
@@ -201,49 +196,50 @@ const AddClinic = () => {
     if (!formData.businessRegistrationCertificate) {
       newErrors.businessRegistrationCertificate = 'Please upload at least one document'
     }
-    if (formData.drugLicense) {
-      newErrors.drugLicense = 'Please upload at least one document'
+    if (!formData.drugLicenseCertificate) {
+      newErrors.drugLicenseCertificate = 'Please upload at least one document'
     }
-    if (formData.drugLicenseFormType) {
+    if (!formData.drugLicenseFormType) {
       newErrors.drugLicenseFormType = 'Please upload at least one document'
     }
-    if (formData.pharmacistCertificate) {
+    if (!formData.pharmacistCertificate) {
       newErrors.pharmacistCertificate = 'Please upload at least one document'
     }
-    if (formData.biomedicalWasteManagementAuth) {
+    if (!formData.biomedicalWasteManagementAuth) {
       newErrors.biomedicalWasteManagementAuth = 'Please upload at least one document'
     }
-    if (formData.tradeLicense) {
+    if (!formData.tradeLicense) {
       newErrors.tradeLicense = 'Please upload at least one document'
     }
-    if (formData.fireSafetyCertificate) {
+    if (!formData.fireSafetyCertificate) {
       newErrors.fireSafetyCertificate = 'Please upload at least one document'
     }
-    if (formData.professionalIndemnityInsurance) {
+    if (!formData.professionalIndemnityInsurance) {
       newErrors.professionalIndemnityInsurance = 'Please upload at least one document'
     }
-    if (formData.gstRegistrationCertificate) {
+    if (!formData.gstRegistrationCertificate) {
       newErrors.gstRegistrationCertificate = 'Please upload at least one document'
     }
-    if (formData.others) {
+    if (!formData.others) {
       newErrors.others = 'Please upload at least one document'
     }
 
     // Website (optional)
+    // Website (optional)
     if (!formData.website.trim()) {
-      errors.website = 'Website is required.'
+      newErrors.website = 'Website is required.'
     } else if (
       !formData.website.trim().startsWith('http') &&
       !formData.website.trim().startsWith('https') &&
       !formData.website.trim().startsWith('www')
     ) {
-      errors.website = 'Never a valid URL. Must start with http://, https://, or www.'
+      newErrors.website = 'Must start with http://, https://, or www.'
     } else if (!websiteRegex.test(formData.website.trim())) {
-      errors.website = 'Enter a valid website URL.'
-    } else {
-      errors.website = ''
+      newErrors.website = 'Enter a valid website URL.'
     }
+    // ✅ No `else { newErrors.website = '' }`
 
+    console.log('Validation errors:', newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length == 0
   }
@@ -256,135 +252,66 @@ const AddClinic = () => {
       reader.onerror = (error) => reject(error)
     })
   }
+  const downloadFile = (base64, filename, mime = 'application/pdf') => {
+    const link = document.createElement('a')
+    link.href = `data:${mime};base64,${base64}`
+    link.download = filename
+    link.click()
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    console.log(name, value)
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }))
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }))
-    }
+    // Clear the error once the field is updated
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [name]: '',
+    }))
   }
 
   const handleFileChange = async (e) => {
     const { name, files } = e.target
-    console.log(name)
-    console.log(files)
+
+    const stripBase64Prefix = (base64) => base64.split(',')[1]
+
+    const convertAndSetFile = async (singleFileField) => {
+      const base64File = await convertToBase64(files[0])
+      setFormData((prev) => ({
+        ...prev,
+        [singleFileField]: stripBase64Prefix(base64File),
+      }))
+    }
+
+    const convertAndSetMultipleFiles = async (multiFileField) => {
+      const base64Files = await Promise.all(
+        Array.from(files).map((file) => convertToBase64(file).then(stripBase64Prefix)),
+      )
+      setFormData((prev) => ({
+        ...prev,
+        [multiFileField]: base64Files,
+      }))
+    }
+
     try {
-      const stripBase64Prefix = (base64) => {
-        return base64.split(',')[1] // Removes "data:image/png;base64," part
+      const multiFileFields = ['hospitalDocuments', 'hospitalContract', 'hasPharmacist']
+      if (multiFileFields.includes(name)) {
+        await convertAndSetMultipleFiles(name)
+      } else {
+        await convertAndSetFile(name)
       }
 
-      if (name === 'hospitalLogo') {
-        const base64 = await convertToBase64(files[0])
-        setFormData((prev) => ({
-          ...prev,
-          hospitalLogo: stripBase64Prefix(base64),
-        }))
-      } else if (name === 'hospitalDoucuments') {
-        const base64Files = await Promise.all(
-          Array.from(files).map((file) => convertToBase64(file).then(stripBase64Prefix)),
-        )
-        setFormData((prev) => ({
-          ...prev,
-          hospitalDoucuments: base64Files,
-        }))
-      } else if (name === 'hospitalContract') {
-        const base64Files = await Promise.all(
-          Array.from(files).map((file) => convertToBase64(file).then(stripBase64Prefix)),
-        )
-        setFormData((prev) => ({
-          ...prev,
-          hospitalContract: base64Files,
-        }))
-        console.log('sdsfdsfdsfdsff', name, ':', 'clinicalEstablishmentCertificate')
-      } else if (name === 'clinicalEstablishmentCertificate') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          clinicalEstablishmentCertificate: base64File,
-        }))
-        console.log('sdsfdsfdsfdsff', base64File)
-      } else if (name === 'businessRegistrationCertificate') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-
-        setFormData((prev) => ({
-          ...prev,
-          businessRegistrationCertificate: base64File,
-        }))
-      } else if (name === 'drugLicenseCertificate') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          drugLicenseCertificate: base64File,
-        }))
-      } else if (name === 'drugLicenseFormType') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          drugLicenseFormType: base64File,
-        }))
-      } else if (name === 'hasPharmacist') {
-        const base64Files = await Promise.all(
-          Array.from(files).map((file) => convertToBase64(file).then(stripBase64Prefix)),
-        )
-        setFormData((prev) => ({
-          ...prev,
-          hasPharmacist: base64Files,
-        }))
-      } else if (name === 'pharmacistCertificate') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          pharmacistCertificate: base64File,
-        }))
-      } else if (name === 'biomedicalWasteManagementAuth') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          biomedicalWasteManagementAuth: base64File,
-        }))
-      } else if (name === 'tradeLicense') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          tradeLicense: base64File,
-        }))
-      } else if (name === 'fireSafetyCertificate') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          fireSafetyCertificate: base64File,
-        }))
-      } else if (name === 'professionalIndemnityInsurance') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          professionalIndemnityInsurance: base64File,
-        }))
-      } else if (name === 'gstRegistrationCertificate') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          gstRegistrationCertificate: base64File,
-        }))
-      } else if (name === 'others') {
-        const base64File = await convertToBase64(files[0]).then(stripBase64Prefix)
-        setFormData((prev) => ({
-          ...prev,
-          others: base64File,
-        }))
-      }
+      // Clear file error once uploaded successfully
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [name]: '',
+      }))
     } catch (error) {
       console.error('File conversion error:', error)
-      setErrors((prev) => ({
-        ...prev,
+      setErrors((prevErrors) => ({
+        ...prevErrors,
         [name]: 'File conversion failed',
       }))
     }
@@ -413,51 +340,45 @@ const AddClinic = () => {
   }
 
   const handleSubmit = async (e) => {
-    console.log('Handle submit triggered')
-
     e.preventDefault()
-    console.log('Handle submit triggered')
-    // if (!validateForm()) {
-    //   return
-    // }
+
+    console.log('Validating form...')
+    const isValid = validateForm()
+    console.log('Validation result:', isValid)
+    if (!isValid) {
+      console.log('Form validation failed. Aborting submit.')
+      return
+    }
 
     const clinicData = {
       name: formData.name,
       address: formData.address,
       city: formData.city,
       contactNumber: formData.contactNumber,
-      // hospitalRegistrations: formData.hospitalRegistrations,
       openingTime: formData.openingTime,
       closingTime: formData.closingTime,
       hospitalLogo: formData.hospitalLogo,
       emailAddress: formData.emailAddress,
       website: formData.website,
       licenseNumber: formData.licenseNumber,
-      issuingAuthority: formData.IssuingAuthority,
-
-      // hospitalService: [],
-      // hospitalCategory: formData.hospitalcategory.map((cat) => ({
-      //   categoryId: cat.value, // Using 'value' from selected option
-      //   categoryName: cat.label, // Using 'label' from selected option
-      // })),
-      hospitalDocuments: formData.hospitalDoucuments,
+      issuingAuthority: formData.issuingAuthority, // corrected
+      hospitalDocuments: formData.hospitalDocuments || [], // corrected key
       recommended: formData.recommended,
-      contractorDocuments: formData.hospitalContract,
-      clinicalEstablishmentCertificate: formData.clinicalEstablishmentCertificate,
-
-      businessRegistrationCertificate: formData.businessRegistrationCertificate,
+      contractorDocuments: formData.hospitalContract || [],
+      clinicalEstablishmentCertificate: formData.clinicalEstablishmentCertificate || '',
+      businessRegistrationCertificate: formData.businessRegistrationCertificate || '',
       clinicType: clinicTypeOption,
       medicinesSoldOnSite: selectedOption,
-      drugLicenseCertificate: formData.drugLicenseCertificate,
-      drugLicenseFormType: formData.drugLicenseFormType,
-      hasPharmacist: selectedPharmacistOption,
-      pharmacistCertificate: formData.pharmacistCertificate,
-      biomedicalWasteManagementAuth: formData.biomedicalWasteManagementAuth,
-      tradeLicense: formData.tradeLicense,
-      fireSafetyCertificate: formData.fireSafetyCertificate,
-      professionalIndemnityInsurance: formData.professionalIndemnityInsurance,
-      gstRegistrationCertificate: formData.gstRegistrationCertificate,
-      others: formData.others,
+      drugLicenseCertificate: formData.drugLicenseCertificate || '',
+      drugLicenseFormType: formData.drugLicenseFormType || '',
+      hasPharmacist: selectedPharmacistOption || '',
+      pharmacistCertificate: formData.pharmacistCertificate || '',
+      biomedicalWasteManagementAuth: formData.biomedicalWasteManagementAuth || '',
+      tradeLicense: formData.tradeLicense || '',
+      fireSafetyCertificate: formData.fireSafetyCertificate || '',
+      professionalIndemnityInsurance: formData.professionalIndemnityInsurance || '',
+      gstRegistrationCertificate: formData.gstRegistrationCertificate || '',
+      others: formData.others || '',
       instagramHandle: formData.instagramHandle,
       twitterHandle: formData.twitterHandle,
       facebookHandle: formData.facebookHandle,
@@ -637,14 +558,14 @@ const AddClinic = () => {
                 </CFormLabel>
                 <CFormInput
                   type="text"
-                  name="IssuingAuthority"
-                  value={formData.IssuingAuthority}
+                  name="issuingAuthority"
+                  value={formData.issuingAuthority}
                   onChange={handleInputChange}
                   onKeyDown={preventNumberInput}
-                  invalid={!!errors.IssuingAuthority}
+                  invalid={!!errors.issuingAuthority}
                 />
-                {errors.IssuingAuthority && (
-                  <CFormFeedback invalid>{errors.IssuingAuthority}</CFormFeedback>
+                {errors.issuingAuthority && (
+                  <CFormFeedback invalid>{errors.issuingAuthority}</CFormFeedback>
                 )}
               </CCol>
               {/* <CCol md={4}>
@@ -680,7 +601,7 @@ const AddClinic = () => {
               <CCol md={6}>
                 <CFormLabel>Recommendation Status</CFormLabel>
                 <CFormSelect
-                  name="isRecommended"
+                  name="recommended"
                   value={formData.recommended}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -748,14 +669,14 @@ const AddClinic = () => {
                 </CFormLabel>
                 <CFormInput
                   type="file"
-                  name="hospitalDoucuments"
+                  name="hospitalDocuments"
                   onChange={handleFileChange}
                   multiple
                   accept=".pdf,.doc,.docx"
-                  invalid={!!errors.hospitalDoucuments}
+                  invalid={!!errors.hospitalDocuments}
                 />
-                {errors.hospitalDoucuments && (
-                  <CFormFeedback invalid>{errors.hospitalDoucuments}</CFormFeedback>
+                {errors.hospitalDocuments && (
+                  <CFormFeedback invalid>{errors.hospitalDocuments}</CFormFeedback>
                 )}
               </CCol>
             </CRow>
@@ -867,11 +788,9 @@ const AddClinic = () => {
                   </CTooltip>
                   <CFormInput
                     type="file"
-                    id="drugLicense"
+                    id="drugLicenseCertificate"
                     name="drugLicenseCertificate"
                     onChange={handleFileChange}
-                    // multiple
-                    accept=".pdf,.doc,.docx"
                     invalid={!!errors.drugLicenseCertificate}
                   />
                   {errors.drugLicenseCertificate && (

@@ -1,5 +1,5 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.1.27'
+const ipUrl = '192.168.1.5'
 //const ipUrl = '13.127.106.17'
 
 export const BASE_URL = `http://${ipUrl}:8081`
@@ -139,3 +139,11 @@ export const deleteService = 'admin/deleteService'
 export const getAllCategoryAdvertisement = 'admin/categoryAdvertisement/getAll'
 export const AddCategoryAdvertisement = 'admin/categoryAdvertisement/add'
 export const deleteCategoryAdvertisement = 'admin/categoryAdvertisement/deleteByCarouselId'
+
+
+//ads service
+
+//serviceAdvertisement
+export const getAllServiceAdvertisement = 'admin/ServiceAdvertisement/getAll'
+export const AddServiceAdvertisement = 'admin/ServiceAdvertisement/add'
+export const deleteServiceAdvertisement = 'admin/ServiceAdvertisement/deleteByCarouselId'
