@@ -98,10 +98,10 @@ const appointmentManagement = () => {
     const normalize = (val) => val?.toLowerCase().trim()
 
     // Map your filter buttons to actual data values:
-    const consultationTypeMap = {
-      'Service & Treatment': 'service & treatment',
-      'Video Consultation': 'online',
-      'In-clinic': 'in-clinic',
+     const consultationTypeMap = {
+      'Service & Treatment': 'services & treatments',
+      'Video Consultation': 'online consultation',
+      'In-clinic': 'in-clinic consultation',
     }
 
     // Filter by status (use 'status', not 'bookedStatus')

@@ -31,7 +31,8 @@ import {
   cilList,
   cilTag,
   cilBell,
-  cilWalletva,
+  // cilWalletva,
+  cilWallet,
   cilChartLine,
 } from '@coreui/icons'
 
