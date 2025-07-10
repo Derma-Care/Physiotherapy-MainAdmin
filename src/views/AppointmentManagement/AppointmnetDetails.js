@@ -50,8 +50,8 @@ const AppointmentDetails = () => {
       ) {
         try {
           const res = await getBookingBy_DoctorId(appointment.doctorId)
-          console.log(res.data.data)
-          setDoctor(res.data.data)
+          console.log(res)
+          setDoctor(res)
         } catch (error) {
           console.error('Failed to fetch doctor details:', error)
         }
@@ -85,7 +85,7 @@ const AppointmentDetails = () => {
   }
 
   console.log(doctor?.availableDays)
-
+    console.log(doctor)
   return (
     <div className="container mt-4">
       {/* Header Section with blue background */}
@@ -190,6 +190,8 @@ const AppointmentDetails = () => {
           </div>
         </div>
       </div>
+
+  
 
       {(appointment?.status.toLowerCase() === 'confirmed' ||
         appointment?.status.toLowerCase() === 'completed') &&
