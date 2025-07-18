@@ -84,7 +84,7 @@ const AddClinic = () => {
     fireSafetyCertificate: null,
     professionalIndemnityInsurance: null,
     gstRegistrationCertificate: null,
-    others: [],
+    others: null,
     instagramHandle: '',
     twitterHandle: '',
     facebookHandle: '',
@@ -271,9 +271,7 @@ const AddClinic = () => {
     if (!formData.gstRegistrationCertificate) {
       newErrors.gstRegistrationCertificate = 'Please upload at least one document'
     }
-    if (!formData.others) {
-      newErrors.others = 'Please upload at least one document'
-    }
+
     if (!clinicTypeOption || clinicTypeOption.trim() === '') {
       newErrors.clinicType = 'Please select a clinic Type.'
     }
@@ -468,7 +466,10 @@ const AddClinic = () => {
         formData.gstRegistrationCertificate,
       )
       // If `others` is an array
-      const othersBase64 = await convertMultipleIfExists(formData.others)
+      const othersBase64 =
+        formData.others && formData.others.length > 0
+          ? await convertMultipleIfExists(formData.others)
+          : ''
 
       const formatToAMPM = (time24) => {
         const [hourStr, minuteStr] = time24.split(':')
@@ -825,7 +826,7 @@ const AddClinic = () => {
                   type="file"
                   name="hospitalDocuments"
                   multiple
-                  ref={fileInputRefs.hospitalDocuments}
+                  // ref={fileInputRefs.hospitalDocuments}
                   accept=".pdf,.doc,.docx,.jpeg,.png"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || [])
@@ -1190,29 +1191,30 @@ const AddClinic = () => {
                 <CTooltip content="NABH Accreditation / Aesthetic Procedure Training Certificate">
                   <CFormLabel>
                     Others (NABH / Aesthetic Training)
-                    <span className="text-danger">*</span>
+                    {/* Optional field */}
                   </CFormLabel>
                 </CTooltip>
 
                 <CFormInput
                   type="file"
                   name="others"
-                  multiple
                   ref={fileInputRef}
                   onChange={(e) => {
-                    const selectedFiles = Array.from(e.target.files || [])
+                    const selectedFile = e.target.files?.[0] || null
+
                     setFormData((prev) => ({
                       ...prev,
-                      others: [...(prev.others || []), ...selectedFiles],
+                      others: selectedFile, // ✅ store a single file object
                     }))
-                    if (selectedFiles.length) {
+
+                    if (selectedFile) {
                       setErrors((prev) => ({
                         ...prev,
                         others: '',
                       }))
                     }
 
-                    // Reset the input so same file can be selected again if removed
+                    // Reset input so same file can be selected again if removed
                     if (fileInputRefs.others.current) {
                       fileInputRefs.others.current.value = ''
                     }
@@ -1223,41 +1225,28 @@ const AddClinic = () => {
 
                 {errors.others && <CFormFeedback invalid>{errors.others}</CFormFeedback>}
 
-                {/* Show count and remove buttons */}
-                {formData.others?.length > 0 && (
+                {/* ✅ Show file name only if a single file is stored */}
+                {formData.others && (
                   <div className="mt-2">
-                    <small className="text-primary">
-                      {formData.others.length} file{formData.others.length > 1 ? 's' : ''} selected
-                    </small>
-                    {formData.others.map((file, index) => (
-                      <div
-                        key={index}
-                        className="d-flex align-items-center justify-content-between mb-1"
-                      >
-                        <small>{file.name}</small>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-danger"
-                          onClick={() => {
-                            const updatedFiles = [...formData.others]
-                            updatedFiles.splice(index, 1)
-                            setFormData((prev) => ({ ...prev, others: updatedFiles }))
+                    <small className="text-primary">{formData.others.name}</small>
+                    <div className="d-flex align-items-center justify-content-between mb-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, others: null }))
 
-                            // Reset file input to allow re-selecting the same file
-                            if (fileInputRef.current) {
-                              fileInputRef.current.value = ''
-                            }
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = ''
+                          }
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 )}
               </CCol>
-
-              {errors.others && <CFormFeedback invalid>{errors.others}</CFormFeedback>}
             </CRow>
 
             <CRow className="mb-3">
