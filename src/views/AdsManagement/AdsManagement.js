@@ -178,7 +178,7 @@ const CategoryAdvertisement = () => {
         </CCard>
 
         {/* Modal Form */}
-        <CModal visible={visible} onClose={() => setVisible(false)}>
+        <CModal visible={visible} onClose={() => setVisible(false)} backdrop="static">
           <CModalHeader>
             <CModalTitle>Add Advertisement</CModalTitle>
           </CModalHeader>
