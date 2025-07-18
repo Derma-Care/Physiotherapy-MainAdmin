@@ -52,7 +52,7 @@ const CategoryAdvertisement = () => {
     console.log(carouselIdToDelete)
     try {
       const data = await delete_AdvData(carouselIdToDelete)
-      toast.success(`${data.data || 'Service deleted successfully!'}`)
+      toast.success(`${data || 'Advertisement deleted successfully!'}`)
       setIsModalVisible(false)
       await fetchData()
     } catch (err) {

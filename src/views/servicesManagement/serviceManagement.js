@@ -39,6 +39,7 @@ const ServiceManagement = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [serviceIdToDelete, setServiceIdToDelete] = useState(null)
   const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
+  const [isCategoryDisabled, setIsCategoryDisabled] = useState(false)
   const [errors, setErrors] = useState({
     serviceName: '',
     categoryId: '',
@@ -203,11 +204,9 @@ const ServiceManagement = () => {
     }
 
     try {
-      console.log('Submitting service to API:', newService)
-
-      await postServiceData(newService)
-      toast.success('Service added successfully!')
-
+      const response = await postServiceData(newService)
+      // ✅ Only runs if backend returns 2xx
+      toast.success(response.data.message || 'Service added successfully!')
       setModalVisible(false)
       setNewService({
         serviceName: '',
@@ -216,11 +215,14 @@ const ServiceManagement = () => {
         description: '',
         serviceImage: null,
       })
-
       await fetchData()
     } catch (error) {
+      // ✅ Runs for 409 (or other errors)
       console.error('Failed to add service:', error)
-      toast.error('Failed to add service')
+
+      const msg = error?.response?.data?.message || error?.data?.message || 'Failed to add service'
+
+      toast.error(msg) // Will show "Service already exists in the same category"
     }
   }
   const [serviceToEdit, setServiceToEdit] = useState(null)
@@ -365,7 +367,24 @@ const ServiceManagement = () => {
       selector: (row) => row.description,
       sortable: true,
       width: '25%',
-      cell: (row) => <div style={{ textAlign: 'start', fontSize: '16px' }}>{row.description}</div>,
+      cell: (row) => (
+        <div
+          style={{
+            textAlign: 'start',
+            fontSize: '16px',
+            display: '-webkit-box',
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            WebkitLineClamp: 2, // 👈 limits to 2 lines
+            lineHeight: '1.4em',
+            maxHeight: '2.8em', // line-height × 2
+          }}
+          title={row.description} // optional: show full text on hover
+        >
+          {row.description}
+        </div>
+      ),
       headerStyle: { textAlign: 'center' },
     },
     {
@@ -468,7 +487,7 @@ const ServiceManagement = () => {
       />
 
       {/* Add Service Modal */}
-      <CModal visible={modalVisible} onClose={() => setModalVisible(false)}>
+      <CModal visible={modalVisible} onClose={() => setModalVisible(false)} backdrop="static">
         <CModalHeader>
           <CModalTitle>Add New Service</CModalTitle>
         </CModalHeader>
