@@ -295,12 +295,15 @@ const AddClinic = () => {
 
     console.log('Validation errors:', newErrors)
 
-    Object.entries(newErrors).forEach(([field, message]) => {
-      toast.error(`${field}: ${message}`, { position: 'top-right' })
-    })
-
+    // validate fields and set errors
     setErrors(newErrors)
-    return Object.keys(newErrors).length == 0
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error('Please fill all required fields', { position: 'top-right' })
+      return false // stop form submit
+    }
+
+    return true // all good
   }
 
   const downloadFile = (base64, filename, mime = 'application/pdf') => {
@@ -419,9 +422,22 @@ const AddClinic = () => {
       reader.onerror = (error) => reject(error)
     })
   }
+  const [existingDoctors, setExistingDoctors] = useState([])
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/${ClinicAllData}`)
+        const clinicList = Array.isArray(response.data) // your actual API
+        // const data = await response.json()
+        console.log('Fetched doctor data:', response.data) // <-- CHECK THIS STRUCTURE
+        setExistingDoctors(response.data.data)
+      } catch (err) {
+        console.error('Failed to load existing doctor data', err)
+      }
+    }
 
-
-
+    fetchDoctors()
+  }, [])
   const handleSubmit = async (e) => {
     e.preventDefault()
 
