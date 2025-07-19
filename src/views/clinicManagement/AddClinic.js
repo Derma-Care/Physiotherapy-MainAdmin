@@ -448,23 +448,25 @@ const AddClinic = () => {
     const { emailAddress, contactNumber } = formData
 
     // Check for duplicate email and mobile
-    if (!Array.isArray(existingDoctors)) {
-      console.error('Doctor data not loaded properly.')
-      return
-    }
+    const safeExistingDoctors = Array.isArray(existingDoctors) ? existingDoctors : []
+
     console.log(emailAddress)
     console.log(contactNumber)
 
-    const isEmailDuplicate = existingDoctors.some(
+    const isEmailDuplicate = safeExistingDoctors.some(
       (doc) => doc.emailAddress?.toLowerCase() === emailAddress,
     )
-    const isMobileDuplicate = existingDoctors.some((doc) => doc.contactNumber === contactNumber)
+    const isMobileDuplicate = safeExistingDoctors.some((doc) => doc.contactNumber === contactNumber)
 
     if (isEmailDuplicate || isMobileDuplicate) {
       setIsSubmitting(false)
       const newErrors = {}
-      if (isEmailDuplicate) newErrors.emailAddress = 'Email already exists'
+      if (isEmailDuplicate) {
+        toast.error('Email already exists')
+        newErrors.emailAddress = 'Email already exists'
+      }
       if (isMobileDuplicate) newErrors.contactNumber = 'Mobile number already exists'
+      toast.error('Mobile number already exists')
       setErrors((prev) => ({ ...prev, ...newErrors }))
       return
     }
@@ -559,9 +561,13 @@ const AddClinic = () => {
       // API Submission
       const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
       const savedClinicData = response.data
+      console.log(response)
       console.log(response.message)
+      console.log(savedClinicData.message)
       if (savedClinicData.success) {
-        toast.success(response.message, { position: 'top-right' })
+        toast.success(savedClinicData.message || 'Clinic Added Successfully', {
+          position: 'top-right',
+        })
         setIsSubmitting(false) // ⬅️ Start loading
 
         sendDermaCareOnboardingEmail({
