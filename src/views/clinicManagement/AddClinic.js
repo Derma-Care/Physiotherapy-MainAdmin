@@ -17,7 +17,7 @@ import {
   CTooltip,
   CFormCheck,
 } from '@coreui/react'
-import { BASE_URL, subService_URL, getService } from '../../baseUrl'
+import { BASE_URL, subService_URL, getService, ClinicAllData } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
 import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
@@ -420,12 +420,39 @@ const AddClinic = () => {
     })
   }
 
+
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     const isValid = validateForm()
     if (!isValid) return
     setIsSubmitting(true) // ⬅️ Start loading
+
+    const { emailAddress, contactNumber } = formData
+
+    // Check for duplicate email and mobile
+    if (!Array.isArray(existingDoctors)) {
+      console.error('Doctor data not loaded properly.')
+      return
+    }
+    console.log(emailAddress)
+    console.log(contactNumber)
+
+    const isEmailDuplicate = existingDoctors.some(
+      (doc) => doc.emailAddress?.toLowerCase() === emailAddress,
+    )
+    const isMobileDuplicate = existingDoctors.some((doc) => doc.contactNumber === contactNumber)
+
+    if (isEmailDuplicate || isMobileDuplicate) {
+      setIsSubmitting(false)
+      const newErrors = {}
+      if (isEmailDuplicate) newErrors.emailAddress = 'Email already exists'
+      if (isMobileDuplicate) newErrors.contactNumber = 'Mobile number already exists'
+      setErrors((prev) => ({ ...prev, ...newErrors }))
+      return
+    }
+
     try {
       const convertIfExists = async (file) => (file ? await convertFileToBase64(file) : '')
       const convertMultipleIfExists = async (files) =>
@@ -519,6 +546,7 @@ const AddClinic = () => {
       console.log(response.message)
       if (savedClinicData.success) {
         toast.success(response.message, { position: 'top-right' })
+        setIsSubmitting(false) // ⬅️ Start loading
 
         sendDermaCareOnboardingEmail({
           name: formData.name,
