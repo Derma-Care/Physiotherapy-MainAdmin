@@ -36,7 +36,9 @@ const ClinicDetails = () => {
   const navigate = useNavigate()
   const [formErrors, setFormErrors] = useState({})
   const [clinicData, setClinicData] = useState(null)
-  const [editableClinicData, setEditableClinicData] = useState({})
+  const [editableClinicData, setEditableClinicData] = useState({
+      consultationExpiration: '',
+  })
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -45,6 +47,7 @@ const ClinicDetails = () => {
   const [showDoctorModal, setShowDoctorModal] = useState(false)
   const [allDoctors, setAllDoctors] = useState([])
   const [isEditingAdditional, setIsEditingAdditional] = useState(false)
+  
   const tabList = ['Basic Details', 'Additional Details', 'Doctors', 'Appointments']
   const documentFields = [
     ['Drug License Certificate', 'drugLicenseCertificate'],
@@ -101,12 +104,17 @@ const ClinicDetails = () => {
 
   const fetchClinicDetails = async () => {
     setLoading(true)
-    try {
-      const response = await axios.get(`${BASE_URL}/admin/getClinicById/${hospitalId}`)
-      console.log('Clinic Response:', response.data)
-      setClinicData(response.data.data)
-      setEditableClinicData(response.data.data)
-    } catch (error) {
+   try {
+    const response = await axios.get(`${BASE_URL}/admin/getClinicById/${hospitalId}`)
+    const fetchedData = response.data.data
+    const localExpiration = localStorage.getItem(`clinic-${hospitalId}-consultation-expiration`)
+    if (localExpiration) {
+      fetchedData.consultationExpiration = localExpiration
+    }
+
+    setClinicData(fetchedData)
+    setEditableClinicData(fetchedData)
+  }  catch (error) {
       console.error('Error fetching clinic details:', error)
     }
     setLoading(false)
@@ -1211,12 +1219,48 @@ const ClinicDetails = () => {
                       )}
                     </CCol>
                   </CRow>
+                <CRow>
+  <CCol md={6} className="mt-3">
+    <CFormLabel>Consultation Expiration (in days)</CFormLabel>
+    <CFormInput
+      type="number"
+      min={1}
+      placeholder="Enter number of days"
+      value={editableClinicData.consultationExpiration || ''}
+      disabled={!isEditingAdditional}
+      onChange={(e) => {
+        const value = e.target.value
+        const isValid = /^\d+$/.test(value)
+        if (!isValid) {
+          setFormErrors((prev) => ({
+            ...prev,
+            consultationExpiration: 'Only positive numbers allowed',
+          }))
+        } else {
+          setFormErrors((prev) => ({ ...prev, consultationExpiration: '' }))
+        }
+        setEditableClinicData((prev) => ({
+          ...prev,
+          consultationExpiration: value,
+        }))
+      }}
+    />
+    {formErrors.consultationExpiration && (
+      <div className="text-danger">{formErrors.consultationExpiration}</div>
+    )}
+  </CCol>
+</CRow>
+
                   <CButton
                     color="primary"
                     className="me-2"
                     onClick={async () => {
                       if (isEditingAdditional) {
                         try {
+                           localStorage.setItem(
+        `clinic-${hospitalId}-consultation-expiration`,
+        editableClinicData.consultationExpiration,
+      )
                           await updateClinicData(hospitalId, editableClinicData)
                           await fetchClinicDetails()
                           setIsEditingAdditional(false)

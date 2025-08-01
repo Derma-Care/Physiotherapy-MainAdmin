@@ -85,6 +85,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     professionalIndemnityInsurance: null,
     gstRegistrationCertificate: null,
     others: null,
+    consultationExpiration: '',
     instagramHandle: '',
     twitterHandle: '',
     facebookHandle: '',
@@ -183,7 +184,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       newErrors.emailAddress = 'Email must contain "@" and "." in a valid format'
     }
     // Contact Number
-    const phoneRegex = /^[5-9]\d{9}$/ // This regex checks if the number starts with 5-9 and is followed by 9 digits
+    const phoneRegex = /^[5-9][0-9]{9}$/ // This regex checks if the number starts with 5-9 and is followed by 9 digits
 
     if (!formData.contactNumber) {
       newErrors.contactNumber = 'Contact number is required'
@@ -226,6 +227,14 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       }
     }
 
+    //consultation Expiration
+    if (!formData.consultationExpiration) {
+  newErrors.consultationExpiration = 'Consultation days are required'
+} else if (isNaN(formData.consultationExpiration) || formData.consultationExpiration <= 0) {
+  newErrors.consultationExpiration = 'Enter a valid number greater than 0'
+}
+
+
     // License Number
     if (!formData.licenseNumber.trim()) {
       newErrors.licenseNumber = 'License number is required'
@@ -260,9 +269,14 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     if (!formData.drugLicenseFormType && selectedOption === 'Yes') {
       newErrors.drugLicenseFormType = 'Please upload at least one document'
     }
-    if (!formData.pharmacistCertificate && selectedOption === 'Yes') {
-      newErrors.pharmacistCertificate = 'Please upload at least one document'
-    }
+  if (
+  selectedOption === 'Yes' &&
+  selectedPharmacistOption === 'Yes' &&
+  !formData.pharmacistCertificate
+) {
+  newErrors.pharmacistCertificate = 'Please upload at least one document'
+}
+
     if (!formData.biomedicalWasteManagementAuth) {
       newErrors.biomedicalWasteManagementAuth = 'Please upload at least one document'
     }
@@ -285,12 +299,10 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     if (!selectedOption || selectedOption.trim() === '') {
       newErrors.medicinesSoldOnSite = 'Please select  atleast one option'
     }
-    if (
-      !selectedPharmacistOption ||
-      (selectedPharmacistOption.trim() === '' && selectedPharmacistOption == 'Yes')
-    ) {
-      newErrors.hasPharmacist = 'Please select  atleast one option'
-    }
+    if (!selectedPharmacistOption || selectedPharmacistOption.trim() === '') {
+  newErrors.hasPharmacist = 'Please select whether clinic has a valid pharmacist.'
+}
+
 
     if (!formData.website.trim()) {
       newErrors.website = 'Website is required.'
@@ -445,6 +457,28 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
     fetchDoctors()
   }, [])
+  useEffect(() => {
+  const storedConsultation = localStorage.getItem('consultationExpiration')
+  if (storedConsultation) {
+    const onlyNumber = storedConsultation.replace(/\D/g, '')
+    setFormData((prev) => ({
+      ...prev,
+      consultationExpiration: onlyNumber,
+    }))
+  }
+}, [])
+// ✅ Save to localStorage for frontend-only preview/debug
+const formattedConsultationDays = `${formData.consultationExpiration} days`
+const previewData = {
+  ...formData,
+  consultationExpiration: formattedConsultationDays,
+}
+localStorage.setItem('clinicFormPreview', JSON.stringify(previewData))
+console.log('👁️ Clinic Form Preview (Frontend only):', previewData)
+
+const previewFromLocalStorage = JSON.parse(localStorage.getItem('clinicFormPreview'))
+console.log('📦 Loaded from localStorage for preview:', previewFromLocalStorage)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -479,6 +513,18 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       setErrors((prev) => ({ ...prev, ...newErrors }))
       return
     }
+// ✅ Save to localStorage as "4 days"
+// ✅ Save clinic formData to localStorage for preview
+const formattedConsultationDays = `${formData.consultationExpiration} days`
+const previewData = {
+  ...formData,
+  consultationExpiration: formattedConsultationDays,
+}
+localStorage.setItem('clinicFormPreview', JSON.stringify(previewData))
+console.log('👁️ Clinic Form Preview (Frontend only):', previewData)
+
+const previewFromLocalStorage = JSON.parse(localStorage.getItem('clinicFormPreview'))
+console.log('📦 Loaded from localStorage for preview:', previewFromLocalStorage)
 
     try {
       const convertIfExists = async (file) => (file ? await convertFileToBase64(file) : '')
@@ -565,7 +611,11 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         twitterHandle: formData.twitterHandle,
         facebookHandle: formData.facebookHandle,
         recommended: !!formData.recommended,
-      }
+        consultationExpiration: `${formData.consultationExpiration} days`, // ✅ Send with 'days' suffix for now
+
+// 🔄 For future backend use (numeric only):
+// consultationValidate: Number(formData.consultationValidate), // ⛔️ backend expects number
+    }
 
       // API Submission
       const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
@@ -1307,9 +1357,27 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                 )}
               </CCol>
             </CRow>
+<CRow>
+<CCol md={6}>
+  <CFormLabel>
+    Consultation Expiration (in days) <span className="text-danger">*</span>
+  </CFormLabel>
+  <CFormInput
+    type="number"
+    name="consultationExpiration"
+    value={formData.consultationExpiration}
+    onChange={handleInputChange}
+    min="1"
+    placeholder="Enter next visit consultation count"
+    invalid={!!errors.consultationExpiration}
+  />
+  {errors.consultationExpiration && (
+    <CFormFeedback invalid>{errors.consultationExpiratione}</CFormFeedback>
+  )}
+</CCol>
 
-            <CRow className="mb-3">
-              <CCol md={4}>
+
+  <CCol md={6}>
                 <CFormLabel>Instagram</CFormLabel>
                 <CFormInput
                   type="text"
@@ -1320,7 +1388,11 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                   onChange={handleInputChange}
                 />
               </CCol>
-              <CCol md={4}>
+
+</CRow>
+            <CRow className="mb-3">
+              
+              <CCol md={6}>
                 <CFormLabel>Facebook</CFormLabel>
                 <CFormInput
                   type="text"
@@ -1331,7 +1403,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                   onChange={handleInputChange}
                 />
               </CCol>
-              <CCol md={4}>
+              <CCol md={6}>
                 <CFormLabel>Twitter</CFormLabel>
                 <CFormInput
                   type="text"
