@@ -22,7 +22,7 @@ import {
   CModalBody,
   CModalFooter,
 } from '@coreui/react'
-import { BASE_URL, subService_URL, getService, ClinicAllData } from '../../baseUrl'
+import { BASE_URL, subService_URL, getService, ClinicAllData, getAllQuestions, postAllQuestionsAndAnswers } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
 import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
@@ -31,31 +31,33 @@ import 'react-toastify/dist/ReactToastify.css'
 import FileInputWithRemove from './FileInputWithRemove'
 import { getClinicTimings } from './AddClinicAPI'
 // 🛠️ Add this array at the top of your component
-const nabhQuestions = [
-  "Are patient rights displayed prominently in the clinic?",
-  "Is informed consent taken for all procedures?",
-  "Is there a documented infection control policy?",
-  "Are hand hygiene practices followed by staff?",
-  "Is biomedical waste segregated and disposed of properly?",
-  "Are emergency exits clearly marked and accessible?",
-  "Is fire safety training conducted for staff?",
-  "Are patient records maintained and kept confidential?",
-  "Is staff trained in CPR and Basic Life Support?",
-  "Is there a system for handling patient complaints?",
-  "Are medicines stored as per guidelines with temperature monitoring?",
-  "Is there a valid pharmacist present in the clinic?",
-  "Are all medical equipment calibrated and maintained?",
-  "Are staff health checks done periodically?",
-  "Is there a documented disaster management plan?",
-  "Are safety drills conducted regularly?",
-  "Is there a system for continuous quality improvement (CQI)?",
-  "Are internal audits carried out and documented?",
-  "Are patients informed about estimated treatment costs?",
-  "Is data backup done regularly for patient records?",
-];
+// const nabhQuestions = [
+//   "Are patient rights displayed prominently in the clinic?",
+//   "Is informed consent taken for all procedures?",
+//   "Is there a documented infection control policy?",
+//   "Are hand hygiene practices followed by staff?",
+//   "Is biomedical waste segregated and disposed of properly?",
+//   "Are emergency exits clearly marked and accessible?",
+//   "Is fire safety training conducted for staff?",
+//   "Are patient records maintained and kept confidential?",
+//   "Is staff trained in CPR and Basic Life Support?",
+//   "Is there a system for handling patient complaints?",
+//   "Are medicines stored as per guidelines with temperature monitoring?",
+//   "Is there a valid pharmacist present in the clinic?",
+//   "Are all medical equipment calibrated and maintained?",
+//   "Are staff health checks done periodically?",
+//   "Is there a documented disaster management plan?",
+//   "Are safety drills conducted regularly?",
+//   "Is there a system for continuous quality improvement (CQI)?",
+//   "Are internal audits carried out and documented?",
+//   "Are patients informed about estimated treatment costs?",
+//   "Is data backup done regularly for patient records?",
+// ];
 
 const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const navigate = useNavigate()
+  const savedQuestionId = localStorage.getItem("savedQuestionId"); 
+
   const [errors, setErrors] = useState({})
   const [backendErrors, setBackendErrors] = ''
   const [categories, setCategories] = useState([])
@@ -67,9 +69,11 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [timings, setTimings] = useState([])
   const [loadingTimings, setLoadingTimings] = useState(false)
-  const [showNabhModal, setShowNabhModal] = useState(false);
-  const [nabhScore, setNabhScore]=useState(null);
-const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
+const [nabhQuestions, setNabhQuestions] = useState([]);
+const [nabhAnswers, setNabhAnswers] = useState([]);
+const [showNabhModal, setShowNabhModal] = useState(false);
+const [nabhScore, setNabhScore] = useState(null);
+const [nabhSubmitted, setNabhSubmitted]=useState(false);
   // const [initialData,setInitialData ]=useState()
   const fileInputRefs = {
     others: useRef(null),
@@ -102,7 +106,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     hospitalDocuments: null,
     // hospitalcategory: [],
     hospitalContract: null,
-
+    freeFollowUps:'',
     clinicalEstablishmentCertificate: null,
     businessRegistrationCertificate: null,
     clinicType: '',
@@ -126,7 +130,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
   longitude: "",
   walkthrough: "",
   branch: "",
-  nabhScore:10,
+  nabhScore:nabhScore,
 
   })
   useEffect(() => {
@@ -173,6 +177,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     if (isNumber) {
       e.preventDefault()
     }
+
   }
   const handleWebsiteBlur = () => {
     const website = formData.website.trim()
@@ -193,27 +198,16 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
       setErrors((prev) => ({ ...prev, website: '' }))
     }
   }
-  const handleNabhSubmit =async() => {
-    try{
-      const response=await fetch("/api/nabh/score",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({answers:nabhAnswers}),
-      })
-      const data=await response.json();
-      setNabhScore(data.score);
-      setShowNabhModal(false);
-    }catch(error){
-      console.error("Error submitting NABH answers", error)
-    }
-};
+ 
   const websiteRegex = /^(https?:\/\/)[\w\-]+(\.[\w\-]+)+[/#?]?.*$/
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+
+
   const validateForm = () => {
     const newErrors = {}
 
     // Hospital Name
-    if (!formData.name.trim()) {
+    if (!formData.name?.trim()) {
       newErrors.name = 'Clinic name is required'
     } else if (!/^[a-zA-Z\s]{2,50}$/.test(formData.name)) {
       newErrors.name = 'Clinic name must contain only letters'
@@ -225,13 +219,13 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     }
 
     // City validation
-    if (!formData.city.trim()) {
+    if (!formData.city?.trim()) {
       newErrors.city = 'City is required'
     } else if (!/^[a-zA-Z\s]{2,30}$/.test(formData.city)) {
       newErrors.city = 'City name must contain only letters'
     }
-    // Email validation
-    if (!formData.emailAddress.trim()) {
+    // Email validation-
+    if (!formData.emailAddress?.trim()) {
       newErrors.emailAddress = 'Email is required'
     } else if (!emailRegex.test(formData.emailAddress.trim())) {
       newErrors.emailAddress = 'Email must contain "@" and "." in a valid format'
@@ -239,7 +233,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     // Contact Number
     const phoneRegex = /^[5-9][0-9]{9}$/ // This regex checks if the number starts with 5-9 and is followed by 9 digits
 
-    if (!formData.contactNumber) {
+    if (!formData.contactNumber?.trim()) {
       newErrors.contactNumber = 'Contact number is required'
     } else {
       const contactNumber = formData.contactNumber.trim()
@@ -363,7 +357,46 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     if (!formData.subscription || formData.subscription.trim() === '') {
       newErrors.subscription = 'Please select a subscription type'
     }
+// Latitude validation
+// Latitude
+if (!formData.latitude) {
+  newErrors.latitude = "Latitude is required";
+} else {
+  const lat = parseFloat(formData.latitude);
+  if (isNaN(lat) || lat < -90 || lat > 90) {
+    newErrors.latitude = "Latitude must be between -90 and 90";
+  } else {
+    delete newErrors.latitude; // ✅ clear error if valid
+  }
+}
 
+// Longitude
+if (!formData.longitude) {
+  newErrors.longitude = "Longitude is required";
+} else {
+  const lng = parseFloat(formData.longitude);
+  if (isNaN(lng) || lng < -180 || lng > 180) {
+    newErrors.longitude = "Longitude must be between -180 and 180";
+  } else {
+    delete newErrors.longitude; // ✅ clear error if valid
+  }
+}
+
+
+
+  if (!formData.walkthrough?.trim()) {
+    newErrors.walkthrough = "Walkthrough URL is required"
+  }
+
+  if (!formData.branch?.trim()) {
+    newErrors.branch = "Branch name is required"
+  }
+
+  if (!formData.freeFollowUps) {
+    newErrors.freeFollowUps = "Free Follow Ups is required"
+  } else if (isNaN(formData.freeFollowUps) || formData.freeFollowUps < 1) {
+    newErrors.freeFollowUps = "Free Follow Ups must be a positive number"
+  }
     // No `else { newErrors.website = '' }`
 
     console.log('Validation errors:', newErrors)
@@ -521,6 +554,66 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
       }))
     }
   }, [])
+
+useEffect(() => {
+  const fetchQuestions = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/${getAllQuestions}`, {
+        params: { id: savedQuestionId }
+      });
+
+      console.log("Fetched data:", response.data);
+
+      if (response.data.success && response.data.data) {
+        const qaList = response.data.data.questionsAndAnswers || [];
+
+        // Extract questions
+        setNabhQuestions(qaList.map((item) => item.question));
+
+        // Extract existing answers (boolean values)
+        setNabhAnswers(qaList.map((item) => item.answer));
+      }
+    } catch (err) {
+      console.error("Error fetching NABH questions:", err);
+    }
+  };
+
+  fetchQuestions();
+}, [savedQuestionId]);
+
+
+
+const handleNabhSubmit = async () => {
+  try {
+    const payload = {
+      questionsAndAnswers: nabhQuestions.map((q, index) => ({
+        question: q,
+        answer: nabhAnswers[index] === true,
+      })),
+    };
+
+    const response = await axios.post(
+      `${BASE_URL}/${postAllQuestionsAndAnswers}`,
+      payload
+    );
+
+    if (response.data.success) {
+      const score = response.data.data?.score ?? 0;
+
+      setNabhScore(score);       
+      setFormData(prev => ({    
+        ...prev,
+        nabhScore: score,
+      }));
+      setNabhSubmitted(true);   
+      setShowNabhModal(false);
+    }
+  } catch (error) {
+    console.error("Error saving NABH answers:", error);
+  }
+};
+
+
   // ✅ Save to localStorage for frontend-only preview/debug
   const formattedConsultationDays = `${formData.consultationExpiration} days`
   const previewData = {
@@ -538,7 +631,10 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     setIsSubmitting(true)
 
     const isValid = validateForm()
-    if (!isValid) return
+    if (!isValid) {
+      setIsSubmitting(false)
+      return
+    }
 
     setIsSubmitting(true) // ⬅️ Start loading
 
@@ -661,6 +757,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
         professionalIndemnityInsurance: professionalIndemnityInsuranceBase64,
         gstRegistrationCertificate: gstRegistrationCertificateBase64,
         others: othersBase64,
+        freeFollowUps:formData.freeFollowUps,
         instagramHandle: formData.instagramHandle,
         twitterHandle: formData.twitterHandle,
         facebookHandle: formData.facebookHandle,
@@ -672,7 +769,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
         latitude:formData.latitude,
         longitude:formData.longitude,
         walkthrough:formData.walkthrough,
-        nabhScore:formData.nabhScore,
+        nabhScore: formData.nabhScore,
         branch:formData.branch,
       }
 
@@ -728,14 +825,27 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
                   <span className="text-danger">*</span>
                 </CFormLabel>
                 <CFormInput
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  onKeyDown={preventNumberInput}
-                  invalid={!!errors.name}
-                />
-                {errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
+  type="text"
+  name="name"
+  value={formData.name || ""}
+  onChange={(e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));  // <-- save the value
+
+    // validate dynamically
+    const error =
+      !value.trim()
+        ? "Clinic name is required"
+        : !/^[a-zA-Z\s]{2,50}$/.test(value)
+        ? "Clinic name must contain only letters (2–50 chars)"
+        : "";
+
+    setErrors((prev) => ({ ...prev, [name]: error || undefined }));
+  }}
+  onKeyDown={preventNumberInput}
+  invalid={!!errors.name}
+/>
+{errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
               </CCol>
               <CCol md={6}>
                 <CFormLabel>
@@ -744,8 +854,19 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
                 <CFormInput
                   type="email"
                   name="emailAddress"
-                  value={formData.emailAddress}
-                  onChange={handleInputChange}
+                  value={formData.emailAddress || ""}
+                  onChange={(e)=>{
+                    const {name, value}=e.target;
+                    setFormData((prev)=>({...prev, [name]:value}))
+                    const emailRegex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    let error="";
+                    if(!value.trim){
+                      error="Email is required"
+                    }else if(!emailRegex.test(value.trim())){
+                      error='Email must contain "@" and "." in a valid format';
+                    }
+                    setErrors((prev)=>({...prev, [name]:error || undefined}));
+                  }}
                   invalid={!!errors.emailAddress}
                   // feedbackInvalid={errors.emailAddress}
                 />
@@ -1347,7 +1468,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
                 <CFormInput
                   type="file"
                   name="others"
-                  inputRef={fileInputRefs.others}
+                  inputref9={fileInputRefs.others}
                   onChange={(e) => {
                     const selectedFiles = Array.from(e.target.files || [])
 
@@ -1411,38 +1532,82 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
             <CRow>
               <CCol md={6}>
                <CRow>
-                <CCol md={6}>
-                   <CFormLabel>
-                  Consultation Expiration (in days) <span className="text-danger">*</span>
-                </CFormLabel>
-                <CFormInput
-                  type="number"
-                  name="consultationExpiration"
-                  value={formData.consultationExpiration}
-                  onChange={handleInputChange}
-                  min="1"
-                  placeholder="Enter next visit consultation count"
-                  invalid={!!errors.consultationExpiration}
-                />
-                {errors.consultationExpiration && (
-                  <CFormFeedback invalid>{errors.consultationExpiratione}</CFormFeedback>
-                )}
-                </CCol>
+               
+<CCol md={6}>
+  <CFormLabel>
+    Consultation Expiration (in days) <span className="text-danger">*</span>
+  </CFormLabel>
+  <CFormInput
+  type="text"
+  name="consultationExpiration"
+  value={formData.consultationExpiration}
+  onChange={(e) => {
+    let value = e.target.value.replace(/\D/g, ""); // allow only digits
+    if (value.length > 2) value = value.slice(0, 2); // limit to 2 digits
+
+    setFormData((prev) => ({
+      ...prev,
+      consultationExpiration: value,
+    }));
+
+    // Clear error if valid
+    if (value) {
+      setErrors((prev) => ({
+        ...prev,
+        consultationExpiration: "",
+      }));
+    } else {
+      // Add error again if empty
+      setErrors((prev) => ({
+        ...prev,
+        consultationExpiration: "Consultation Expiration is required",
+      }));
+    }
+  }}
+  onBlur={(e) => {
+    let value = e.target.value;
+    if (value.length === 1) {
+      value = value.padStart(2, "0"); // add leading zero
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      consultationExpiration: value,
+    }));
+
+    // Double check on blur (so if user tabs away empty field, error comes back)
+    if (!value) {
+      setErrors((prev) => ({
+        ...prev,
+        consultationExpiration: "Consultation Expiration is required",
+      }));
+    }
+  }}
+  placeholder="Enter consultation days (01-99)"
+  invalid={!!errors.consultationExpiration}
+/>
+  {errors.consultationExpiration && (
+    <CFormFeedback invalid>{errors.consultationExpiration}</CFormFeedback>
+  )}
+</CCol>
+
+
+
                 <CCol md={6}>
                    <CFormLabel>
                   No. of Free Follow Ups <span className="text-danger">*</span>
                 </CFormLabel>
                 <CFormInput
                   type="number"
-                  name="consultationExpiration"
-                  value={formData.consultationExpiration}
+                  name="freeFollowUps"
+                  value={formData.freeFollowUps}
                   onChange={handleInputChange}
                   min="1"
                   placeholder="Enter next visit consultation count"
-                  invalid={!!errors.consultationExpiration}
+                  invalid={!!errors.freeFollowUps}
                 />
-                {errors.consultationExpiration && (
-                  <CFormFeedback invalid>{errors.consultationExpiratione}</CFormFeedback>
+                {errors.freeFollowUps && (
+                  <CFormFeedback invalid>{errors.freeFollowUps}</CFormFeedback>
                 )}
                 </CCol>
                </CRow>
@@ -1461,6 +1626,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
                   <option value="">Select Subscription</option>
                   <option value="Free">Free</option>
                   <option value="Basic">Basic</option>
+                  <option value="Standard">Standard</option>
                   <option value="Premium">Premium</option>
                 </CFormSelect>
                 {errors.subscription && <div className="text-danger">{errors.subscription}</div>}
@@ -1564,16 +1730,39 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
       Clinic Latitude <span className="text-danger">*</span>
     </CFormLabel>
     <CFormInput
-      type="number"
-      step="any"
-      placeholder="Enter latitude"
-      value={formData.latitude || ""}
-      onChange={(e) =>
-        setFormData((prev) => ({ ...prev, latitude: e.target.value }))
+  type="number"
+  step="any"
+  placeholder="Enter latitude"
+  value={formData.latitude || ""}
+  onChange={(e) => {
+    const { value } = e.target;
+    setFormData((prev) => ({ ...prev, latitude: value }));
+
+    // validate immediately
+    const lat = parseFloat(value);
+    let error = "";
+    if (!value) {
+      error = "Latitude is required";
+    } else if (isNaN(lat) || lat < -90 || lat > 90) {
+      error = "Latitude must be between -90 and 90";
+    }
+
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      if (error) {
+        newErrors.latitude = error;
+      } else {
+        delete newErrors.latitude; // ✅ remove error when valid
       }
-      invalid={!!errors.latitude}
-    />
-    {errors.latitude && <CFormFeedback invalid>{errors.latitude}</CFormFeedback>}
+      return newErrors;
+    });
+  }}
+  invalid={!!errors.latitude}
+/>
+{errors.latitude && (
+  <CFormFeedback invalid>{errors.latitude}</CFormFeedback>
+)}
+
   </CCol>
 
   <CCol md={6}>
@@ -1581,18 +1770,42 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
       Clinic Longitude <span className="text-danger">*</span>
     </CFormLabel>
     <CFormInput
-      type="number"
-      step="any"
-      placeholder="Enter longitude"
-      value={formData.longitude || ""}
-      onChange={(e) =>
-        setFormData((prev) => ({ ...prev, longitude: e.target.value }))
+  type="number"
+  step="any"
+  placeholder="Enter longitude"
+  value={formData.longitude || ""}
+  onChange={(e) => {
+    const { value } = e.target;
+    setFormData((prev) => ({ ...prev, longitude: value }));
+
+    // validate immediately
+    const lng = parseFloat(value);
+    let error = "";
+    if (!value) {
+      error = "Longitude is required";
+    } else if (isNaN(lng) || lng < -180 || lng > 180) {
+      error = "Longitude must be between -180 and 180";
+    }
+
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      if (error) {
+        newErrors.longitude = error;
+      } else {
+        delete newErrors.longitude; // ✅ remove error when valid
       }
-      invalid={!!errors.longitude}
-    />
-    {errors.longitude && <CFormFeedback invalid>{errors.longitude}</CFormFeedback>}
+      return newErrors;
+    });
+  }}
+  invalid={!!errors.longitude}
+/>
+{errors.longitude && (
+  <CFormFeedback invalid>{errors.longitude}</CFormFeedback>
+)}
+
   </CCol>
 </CRow>
+
 
 {/* ✅ Walkthrough URL */}
 <CRow className="mb-3">
@@ -1600,18 +1813,42 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     <CFormLabel>
       Walkthrough URL <span className="text-danger">*</span>
     </CFormLabel>
-    <CFormInput
-      type="url"
-      placeholder="https://example.com/walkthrough"
-      value={formData.walkthrough || ""}
-      onChange={(e) =>
-        setFormData((prev) => ({ ...prev, walkthrough: e.target.value }))
+ <CFormInput
+  type="url"
+  placeholder="https://example.com/walkthrough"
+  value={formData.walkthrough || ""}
+  onChange={(e) => {
+    const { value } = e.target;
+    setFormData((prev) => ({ ...prev, walkthrough: value }));
+
+    // ✅ validate URL
+    let error = "";
+    if (!value.trim()) {
+      error = "Walkthrough URL is required";
+    } else {
+      try {
+        new URL(value); // throws if invalid
+      } catch {
+        error = "Enter a valid URL (e.g. https://example.com)";
       }
-      invalid={!!errors.walkthrough}
-    />
-    {errors.walkthrough && (
-      <CFormFeedback invalid>{errors.walkthrough}</CFormFeedback>
-    )}
+    }
+
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      if (error) {
+        newErrors.walkthrough = error;
+      } else {
+        delete newErrors.walkthrough; // ✅ clear error when valid
+      }
+      return newErrors;
+    });
+  }}
+  invalid={!!errors.walkthrough}
+/>
+{errors.walkthrough && (
+  <CFormFeedback invalid>{errors.walkthrough}</CFormFeedback>
+)}
+
   </CCol>
   {/* ✅ Branch Input */}
 
@@ -1623,9 +1860,18 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
       type="text"
       placeholder="Enter branch name"
       value={formData.branch || ""}
-      onChange={(e) =>
-        setFormData((prev) => ({ ...prev, branch: e.target.value }))
-      }
+      onChange={(e) =>{
+       const value = e.target.value;
+
+    setFormData((prev) => ({ ...prev, branch: value }));
+        if(!value){
+        setErrors((prev)=>({...prev, branch:"Branch name is required"}))
+        }
+        else{
+        setErrors((prev)=>({...prev, branch:""}))
+        }
+        }}
+
       invalid={!!errors.branch}
     />
     {errors.branch && <CFormFeedback invalid>{errors.branch}</CFormFeedback>}
@@ -1642,7 +1888,8 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     )}
     <CButton
       color="primary"
-      onClick={() => setShowNabhModal(true)}
+      onClick={() => !nabhSubmitted && setShowNabhModal(true)}
+      disabled={nabhSubmitted}
     >
        Open NABH Questionnaire
     </CButton>
@@ -1665,31 +1912,32 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
 
         {/* Radio buttons below the question */}
         <CCol md={12} className="d-flex mt-2">
-          <CFormCheck
-            type="radio"
-            name={`nabh-${index}`}
-            id={`nabh-${index}-yes`}
-            label="Yes"
-            checked={nabhAnswers[index] === "Yes"}
-            onChange={() => {
-              const updated = [...nabhAnswers];
-              updated[index] = "Yes";
-              setNabhAnswers(updated);
-            }}
-            className="me-4"
-          />
-          <CFormCheck
-            type="radio"
-            name={`nabh-${index}`}
-            id={`nabh-${index}-no`}
-            label="No"
-            checked={nabhAnswers[index] === "No"}
-            onChange={() => {
-              const updated = [...nabhAnswers];
-              updated[index] = "No";
-              setNabhAnswers(updated);
-            }}
-          />
+      <CFormCheck
+  type="radio"
+  name={`nabh-${index}`}
+  id={`nabh-${index}-yes`}
+  label="Yes"
+  checked={nabhAnswers[index] === true}
+  onChange={() => {
+    const updated = [...nabhAnswers];
+    updated[index] = true;
+    setNabhAnswers(updated);
+  }}
+  className="me-4"
+/>
+<CFormCheck
+  type="radio"
+  name={`nabh-${index}`}
+  id={`nabh-${index}-no`}
+  label="No"
+  checked={nabhAnswers[index] === false}
+  onChange={() => {
+    const updated = [...nabhAnswers];
+    updated[index] = false;
+    setNabhAnswers(updated);
+  }}
+/>
+
         </CCol>
       </CRow>
     ))}
@@ -1703,11 +1951,7 @@ const [nabhAnswers, setNabhAnswers] = useState(Array(20).fill(""));
     </CButton>
   </CModalFooter>
 </CModal>
-
-
-
-
-
+ 
             {errors.submit && <div className="alert alert-danger">{errors.submit}</div>}
 
             <div className="d-flex justify-content-end gap-2 mt-4">

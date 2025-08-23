@@ -92,7 +92,27 @@ const ClinicDetails = () => {
     if (!editableClinicData.consultationExpiration) {
       errors.consultationExpiration = 'Consultation Expiration is required'
     }
+  if (!editableClinicData.latitude) {
+    errors.latitude = "Latitude is required"
+  }
 
+  if (!editableClinicData.longitude) {
+    errors.longitude = "Longitude is required"
+  }
+
+  if (!editableClinicData.walkthrough?.trim()) {
+    errors.walkthrough = "Walkthrough URL is required"
+  }
+
+  if (!editableClinicData.branch?.trim()) {
+    errors.branch = "Branch name is required"
+  }
+
+  if (!editableClinicData.freeFollowUps) {
+    errors.freeFollowUps = "Free Follow Ups is required"
+  } else if (isNaN(editableClinicData.freeFollowUps) || editableClinicData.freeFollowUps < 1) {
+    errors.freeFollowUps = "Free Follow Ups must be a positive number"
+  }
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -533,35 +553,52 @@ const ClinicDetails = () => {
                     </CCol>
                   </CRow>
                   <CRow>
-                    <CCol md={6} className="mt-3">
-                      <CFormLabel>Consultation Expiration (in days)</CFormLabel>
-                      <CFormInput
-                        type="number"
-                        min={1}
-                        placeholder="Enter number of days"
-                        value={editableClinicData.consultationExpiration || ''}
-                        disabled={!isEditingAdditional}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          const isValid = /^\d+$/.test(value)
-                          if (!isValid) {
-                            setFormErrors((prev) => ({
-                              ...prev,
-                              consultationExpiration: 'Only positive numbers allowed',
-                            }))
-                          } else {
-                            setFormErrors((prev) => ({ ...prev, consultationExpiration: '' }))
-                          }
-                          setEditableClinicData((prev) => ({
-                            ...prev,
-                            consultationExpiration: value,
-                          }))
-                        }}
-                      />
-                      {formErrors.consultationExpiration && (
-                        <div className="text-danger">{formErrors.consultationExpiration}</div>
-                      )}
-                    </CCol>
+                  <CCol md={3}>
+  <CFormLabel>Consultation Expiration (in days)</CFormLabel>
+  <CFormInput
+    type="text"
+    placeholder="Enter number of days"
+    value={editableClinicData.consultationExpiration || ''}
+    disabled={!isEditingAdditional}
+    onChange={(e) =>
+      setEditableClinicData((prev) => ({
+        ...prev,
+        consultationExpiration: e.target.value, // ✅ just a string
+      }))
+    }
+  />
+</CCol>
+
+
+                    <CCol md={3}>
+  <CFormLabel>Free Follow-Ups (count)</CFormLabel>
+  <CFormInput
+    type="number"
+    min={0}
+    placeholder="Enter number of follow-ups"
+    value={editableClinicData.freeFollowUps || ''}
+    disabled={!isEditingAdditional}
+    onChange={(e) => {
+      const value = e.target.value
+      const isValid = /^\d+$/.test(value) // only digits
+      if (!isValid) {
+        setFormErrors((prev) => ({
+          ...prev,
+          freeFollowUps: 'Only positive numbers allowed',
+        }))
+      } else {
+        setFormErrors((prev) => ({ ...prev, freeFollowUps: '' }))
+      }
+      setEditableClinicData((prev) => ({
+        ...prev,
+        freeFollowUps: value,
+      }))
+    }}
+  />
+  {formErrors.freeFollowUps && (
+    <div className="text-danger">{formErrors.freeFollowUps}</div>
+  )}
+</CCol>
                     <CCol md={6}>
                       <CFormLabel>
                         Subscription<span className="text-danger">*</span>
@@ -579,6 +616,7 @@ const ClinicDetails = () => {
                       >
                         <option value="">Select Subscription</option> 
                         <option value="Basic">Basic</option>
+                        <option value="Free">Free</option>
                         <option value="Standard">Standard</option>
                         <option value="Premium">Premium</option>
                       </CFormSelect>
@@ -1298,10 +1336,108 @@ const ClinicDetails = () => {
                       )}
                     </CCol>
                   </CRow>
+    <CRow className="mt-3">
+                <CCol md={6}>
+                  <CFormLabel>Latitude</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    step="any"
+                    value={editableClinicData.latitude ?? ''}
+                    disabled={!isEditingAdditional}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numValue = value === '' ? null : parseFloat(value);
+                      setEditableClinicData((prev) => ({
+                        ...prev,
+                        latitude: numValue,
+                      }));
+                    }}
+                  />
+                </CCol>
+
+                <CCol md={6}>
+                  <CFormLabel>Longitude</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    step="any"
+                    value={editableClinicData.longitude ?? ''}
+                    disabled={!isEditingAdditional}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numValue = value === '' ? null : parseFloat(value);
+                      setEditableClinicData((prev) => ({
+                        ...prev,
+                        longitude: numValue,
+                      }));
+                    }}
+                  />
+                </CCol>
+              </CRow>
+
+              <CRow className="mt-3">
+                <CCol md={6}>
+                  <CFormLabel>Walkthrough</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    value={editableClinicData.walkthrough ?? ''}
+                    disabled={!isEditingAdditional}
+                    onChange={(e) =>
+                      setEditableClinicData((prev) => ({
+                        ...prev,
+                        walkthrough: e.target.value,
+                      }))
+                    }
+                  />
+                  {!isEditingAdditional && editableClinicData.walkthrough && (
+                    <a
+                      href={editableClinicData.walkthrough}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary d-block mt-2"
+                    >
+                      Open Walkthrough
+                    </a>
+                  )}
+                </CCol>
+
+                <CCol md={6}>
+                  <CFormLabel>NABH Score</CFormLabel>
+                  <CFormInput
+                    type="number"
+                    value={editableClinicData.nabhScore ?? ''}
+                    disabled={!isEditingAdditional}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const intValue = value === '' ? null : parseInt(value, 10);
+                      setEditableClinicData((prev) => ({
+                        ...prev,
+                        nabhScore: intValue,
+                      }));
+                    }}
+                  />
+                </CCol>
+              </CRow>
+
+              <CRow className="mt-3">
+                <CCol md={6}>
+                  <CFormLabel>Branch</CFormLabel>
+                  <CFormInput
+                    type="text"
+                    value={editableClinicData.branch ?? ''}
+                    disabled={!isEditingAdditional}
+                    onChange={(e) =>
+                      setEditableClinicData((prev) => ({
+                        ...prev,
+                        branch: e.target.value,
+                      }))
+                    }
+                  />
+                </CCol>
+              </CRow>
 
                   <CButton
                     color="primary"
-                    className="me-2"
+                    className="me-2 mt-3"
                     onClick={async () => {
                       if (isEditingAdditional) {
                         try {
@@ -1326,7 +1462,7 @@ const ClinicDetails = () => {
               </CTabPane>
 
               {/* Tab 3: Doctors */}
-              <CTabPane visible={activeTab === 2}>
+              <CTabPane visible={activeTab === 2}>              
                 <table className="table">
                   <thead>
                     <tr>
@@ -1353,7 +1489,7 @@ const ClinicDetails = () => {
                           <td>{doc.status || 'Active'}</td>
                           <td>
                             <CButton
-                              className="btn btn-primary"
+                              className="btn btn-primary me-2"
                               size="sm"
                               onClick={() => {
                                 setSelectedDoctor(doc)
