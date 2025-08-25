@@ -496,7 +496,7 @@ const handleAddCategory = async () => {
             <h6>
               Category Image <span style={{ color: 'red' }}>*</span>
             </h6>
-            <CFormInput type="file" onChange={handleFileChange} />
+            <CFormInput type="file" onChange={handleFileChange} accept="image/*"/>
             {errors.categoryImage && (
               <CFormText className="text-danger">{errors.categoryImage}</CFormText>
             )}
