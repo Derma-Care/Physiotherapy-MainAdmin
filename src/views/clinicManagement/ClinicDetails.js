@@ -21,6 +21,7 @@ import {
   CModalHeader,
   CModalTitle,
   CFormSelect,
+  CFormFeedback   
 } from '@coreui/react'
 import { DoctorAllData } from '../../baseUrl'
 import { getClinicTimings } from './AddClinicAPI'
@@ -1351,8 +1352,29 @@ const ClinicDetails = () => {
                         ...prev,
                         latitude: numValue,
                       }));
+
+                      let error=''
+                      if(!value){
+                        error="Latitude is required"
+                      }else if (isNaN(numValue) || numValue<-90||numValue>90){
+                        error="Latitude must be between -90 and 90";
+                      }
+                      setFormErrors((prev)=>{
+                        const newErrors={...prev};
+                        if(error){
+                          newErrors.latitude=error;
+                        }else{
+                          delete newErrors.latitude;
+                        }
+                        return newErrors;
+                      })
                     }}
+                    invalid={!!formErrors.latitude}
+                    // {formErrors.latitude && <CFormFeedback invalid>{form</CFormFeedback>}
                   />
+                  {formErrors.latitude &&(
+                    <CFormFeedback invalid>{formErrors.latitude}</CFormFeedback>
+                  )}
                 </CCol>
 
                 <CCol md={6}>
@@ -1369,43 +1391,90 @@ const ClinicDetails = () => {
                         ...prev,
                         longitude: numValue,
                       }));
+                      let error='';
+                      if(!value){
+                        error="Longitude is required"
+                      }else if(isNaN(numValue) || numValue<-180 || numValue>180){
+                        error="Longitude must between -180 and 180";
+                      }
+                      setFormErrors((prev)=>{
+                        const newErrors={...prev};
+                        if(error){
+                          newErrors.longitude=error;
+                        }else{
+                          delete newErrors.longitude;
+                        }
+                        return newErrors;
+                      })
                     }}
+                    invalid={!!formErrors.longitude}
                   />
+                  {formErrors.longitude &&(
+                    <CFormFeedback invalid>{formErrors.longitude}</CFormFeedback>
+                  )}
                 </CCol>
               </CRow>
 
-              <CRow className="mt-3">
-                <CCol md={6}>
-                  <CFormLabel>Walkthrough</CFormLabel>
-                  <CFormInput
-                    type="text"
-                    value={editableClinicData.walkthrough ?? ''}
-                    disabled={!isEditingAdditional}
-                    onChange={(e) =>
-                      setEditableClinicData((prev) => ({
-                        ...prev,
-                        walkthrough: e.target.value,
-                      }))
-                    }
-                  />
-                  {!isEditingAdditional && editableClinicData.walkthrough && (
-                    <a
-                      href={editableClinicData.walkthrough}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary d-block mt-2"
-                    >
-                      Open Walkthrough
-                    </a>
-                  )}
-                </CCol>
+             <CRow className="mt-3">
+  <CCol md={6}>
+    <CFormLabel>Walkthrough</CFormLabel>
+    <CFormInput
+      type="text"
+      value={editableClinicData.walkthrough ?? ''}
+      disabled={!isEditingAdditional}
+      onChange={(e) => {
+        const value = e.target.value;
+
+        setEditableClinicData((prev) => ({
+          ...prev,
+          walkthrough: value,
+        }));
+
+        // ✅ Validation
+        let error = '';
+        if (!value.trim()) {
+          error = 'Walkthrough URL is required';
+        } else if (
+          !/^https?:\/\/[^\s]+$/.test(value) // basic URL check
+        ) {
+          error = 'Please enter a valid URL (must start with http:// or https://)';
+        }
+
+        setFormErrors((prev) => {
+          const newErrors = { ...prev };
+          if (error) {
+            newErrors.walkthrough = error;
+          } else {
+            delete newErrors.walkthrough;
+          }
+          return newErrors;
+        });
+      }}
+      invalid={!!formErrors.walkthrough}
+    />
+    {formErrors.walkthrough && (
+      <CFormFeedback invalid>{formErrors.walkthrough}</CFormFeedback>
+    )}
+
+    {!isEditingAdditional && editableClinicData.walkthrough && !formErrors.walkthrough && (
+      <a
+        href={editableClinicData.walkthrough}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary d-block mt-2"
+      >
+        Open Walkthrough
+      </a>
+    )}
+  </CCol>
+
 
                 <CCol md={6}>
                   <CFormLabel>NABH Score</CFormLabel>
                   <CFormInput
                     type="number"
                     value={editableClinicData.nabhScore ?? ''}
-                    disabled={!isEditingAdditional}
+                    disabled
                     onChange={(e) => {
                       const value = e.target.value;
                       const intValue = value === '' ? null : parseInt(value, 10);
@@ -1425,13 +1494,31 @@ const ClinicDetails = () => {
                     type="text"
                     value={editableClinicData.branch ?? ''}
                     disabled={!isEditingAdditional}
-                    onChange={(e) =>
+                    onChange={(e) =>{ 
+                      const value=e.target.value;
                       setEditableClinicData((prev) => ({
                         ...prev,
-                        branch: e.target.value,
+                        branch: value,
                       }))
-                    }
+                      let error='';
+                      if(!value.trim()){
+                        error="Branch Name is required"
+                      }
+                     setFormErrors((prev) => {
+                      const newErrors = { ...prev };
+                      if (error) {
+                        newErrors.branch = error;
+                      } else {
+                        delete newErrors.branch;
+                      }
+                      return newErrors;   // ✅ must return
+                    });
+                    }}
+                    invalid={!!formErrors.branch}
                   />
+                  {formErrors.branch &&(
+                    <CFormFeedback invalid>{formErrors.branch}</CFormFeedback>
+                  )}
                 </CCol>
               </CRow>
 

@@ -651,12 +651,15 @@ const CustomerManagement = () => {
                 {formErrors.gender && <div className="text-danger small">{formErrors.gender}</div>}
               </CCol>
               <CCol md={6}>
-                <CFormLabel>Refer Code</CFormLabel>
+                <CFormLabel>Referral Code</CFormLabel>
                 <CFormInput
                   name="referCode"
                   value={formData.referCode}
                   onChange={handleInputChange}
                 />
+                {formErrors.referCode &&(
+                  <div className="text-danger">{formErrors.referCode}</div>
+                )}
               </CCol>
             </CRow>
 
