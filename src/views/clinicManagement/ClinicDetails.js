@@ -21,10 +21,14 @@ import {
   CModalHeader,
   CModalTitle,
   CFormSelect,
-  CFormFeedback   
+  CFormFeedback,
 } from '@coreui/react'
 import { DoctorAllData } from '../../baseUrl'
 import { getClinicTimings } from './AddClinicAPI'
+import CIcon from '@coreui/icons-react'
+import { cilUser } from '@coreui/icons'  
+import AddBranchForm from './AddBranchForm'
+import ProcedureManagementDoctor from './ProcedureManagementDoctor'
 
 import { CLINIC_ADMIN_URL } from '../../baseUrl'
 import classNames from 'classnames'
@@ -32,6 +36,7 @@ import axios from 'axios'
 import { BASE_URL, UpdateClinic, DeleteClinic } from '../../baseUrl'
 import capitalizeWords from '../../Utils/capitalizeWords'
 import { toast } from 'react-toastify'
+import AddDoctors from '../Doctors/AddDoctors'
 
 const ClinicDetails = () => {
   const { hospitalId } = useParams()
@@ -51,8 +56,9 @@ const ClinicDetails = () => {
   const [showDoctorModal, setShowDoctorModal] = useState(false)
   const [allDoctors, setAllDoctors] = useState([])
   const [isEditingAdditional, setIsEditingAdditional] = useState(false)
-
-  const tabList = ['Basic Details', 'Additional Details', 'Doctors', 'Appointments']
+  const [modalVisible, setModalVisible] = useState(false)
+  const [showBranchForm, setShowBranchForm]=useState(false)
+  const tabList = ['Basic Details', 'Additional Details', 'Branches', 'Doctors', 'Appointments', 'Procedures']
   const documentFields = [
     ['Drug License Certificate', 'drugLicenseCertificate'],
     ['Drug License Form Type', 'drugLicenseFormType'],
@@ -226,7 +232,7 @@ const ClinicDetails = () => {
   return (
     <CCard className="mt-4">
       <CCardHeader>
-        <div className="d-flex justify-content-between align-items-center">
+        <div className="d-flex justify-content-between align-items-center mb-3">
           <CButton color="secondary" onClick={() => navigate(-1)}>
             Back
           </CButton>
@@ -234,8 +240,28 @@ const ClinicDetails = () => {
           {/* <CButton color="primary me-5" onClick={() => navigate('/add-doctor')}>
             Add Doctor
           </CButton> */}
+          {activeTab===3 &&(
+<div className="d-flex justify-content-end w-100 mb-3">
+                  <button
+                    className="btn btn-info text-white d-flex align-items-center gap-2 shadow-sm rounded-pill px-4 py-2"
+                    onClick={() => {
+                      setFormErrors({})
+                      setModalVisible(true)
+                    }}
+                    style={{
+                      background: 'linear-gradient(90deg, #0072CE 0%, #00AEEF 100%)',
+                      border: 'none',
+                      fontWeight: '600',
+                      fontSize: '16px',
+                    }}
+                  >
+                    <CIcon icon={cilUser} size="lg" />
+                    <span>Add Doctor</span>
+                  </button>
+                </div>
+          )}
+                <AddDoctors modalVisible={modalVisible} setModalVisible={setModalVisible} clinicId={hospitalId} />
 
-          <div></div>
         </div>
       </CCardHeader>
 
@@ -403,6 +429,8 @@ const ClinicDetails = () => {
                   >
                     Delete Clinic
                   </CButton>
+                  {/* <CButton color="primary" style={{color:'white', float:'right'}} onClick={()=>setShowBranchForm(true)}>Add Branches</CButton> */}
+                  {/* <AddBranchForm visible={showBranchForm} onClose={()=>setShowBranchForm(false)} /> */}
                 </CForm>
               </CTabPane>
 
@@ -1548,8 +1576,12 @@ const ClinicDetails = () => {
                 </CForm>
               </CTabPane>
 
+
+<CTabPane visible={activeTab=== 2}>
+  <AddBranchForm clinicId={hospitalId}/>
+</CTabPane>
               {/* Tab 3: Doctors */}
-              <CTabPane visible={activeTab === 2}>              
+              <CTabPane visible={activeTab === 3}>              
                 <table className="table">
                   <thead>
                     <tr>
@@ -1600,7 +1632,7 @@ const ClinicDetails = () => {
               </CTabPane>
 
               {/* Tab 4: Appointments */}
-              <CTabPane visible={activeTab === 3}>
+              <CTabPane visible={activeTab === 4}>
                 {['Past', 'Active', 'Upcoming'].map((group) => (
                   <div key={group} className="mb-4">
                     <h5>{group} Appointments</h5>
@@ -1616,6 +1648,9 @@ const ClinicDetails = () => {
                   </div>
                 ))}
               </CTabPane>
+              <CTabPane visible={activeTab === 5}>
+  <ProcedureManagementDoctor clinicId={hospitalId}/>
+</CTabPane>
             </CTabContent>
 
             <CModal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)}>

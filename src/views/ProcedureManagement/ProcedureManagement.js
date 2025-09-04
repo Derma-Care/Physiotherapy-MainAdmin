@@ -19,12 +19,10 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { BASE_URL, subService_URL, updateSubservices, getService } from '../../baseUrl'
 import DataTable from 'react-data-table-component'
-import { postSubService } from '../SubserviceManagement/SUbServiceAPI'
-import { getAllSubServices, deleteSubServiceData } from '../SubserviceManagement/SUbServiceAPI'
+import { postSubService, getAllSubServices, deleteSubServiceData } from './ProcedureAPI'
 import { getServiceByCategoryId } from '../servicesManagement/ServiceAPI'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
-
-const AddSubService = () => {
+const ProcedureManagement = () => {
   const [category, setCategory] = useState([])
   const [serviceOptions, setServiceOptions] = useState([])
   const [subServiceOptions, setSubServiceOptions] = useState([])
@@ -155,29 +153,28 @@ const AddSubService = () => {
     console.log('Selected SubService:', selectedSubServices)
   }
 
-  const handleConfirmDelete = async (serviceId) => {
-    // const confirmed = window.confirm('Are you sure you want to delete this subservice?')
-    if (!deleteServiceId) return
+ const handleConfirmDelete = async (serviceId) => {
+  if (!deleteServiceId) return
 
-    try {
-      const res = await deleteSubServiceData(deleteServiceId)
-      console.log('🧪 Delete Response:', res)
+  try {
+    const res = await deleteSubServiceData(deleteServiceId)
+ // ✅ pass categoryId if needed
+    console.log('🧪 Delete Response:', res)
 
-      if (res?.data?.success === true) {
-        toast.success(`${res.data.message || 'Subservice deleted successfully!'}`, {
-          position: 'top-right',
-        })
-        await fetchSubServices()
-      } else {
-        toast.error('Failed to delete subservice.', { position: 'top-right' })
-      }
-    } catch (error) {
-      console.error('❌ Delete error:', error)
+    if (res?.success) {
+      toast.success(res.message || 'Subservice deleted successfully!', { position: 'top-right' })
+      await fetchSubServices(newService.categoryId) // ✅ refresh table
+    } else {
       toast.error('Failed to delete subservice.', { position: 'top-right' })
     }
-    setShowDeleteModal(false) // Close the modal after deletion
-    setDeleteServiceId(null)
+  } catch (error) {
+    console.error('❌ Delete error:', error)
+    toast.error('Failed to delete subservice.', { position: 'top-right' })
   }
+
+  setShowDeleteModal(false)
+  setDeleteServiceId(null)
+}
 
   const columns = [
     {
@@ -196,7 +193,7 @@ const AddSubService = () => {
             textOverflow: 'ellipsis',
           }}
         >
-          SubService
+          Procedure
         </div>
       ),
       selector: (row) => row.name,
@@ -501,7 +498,7 @@ const AddSubService = () => {
       </CRow>
 
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h4>SubService Management</h4>
+        <h4>Procedure Management</h4>
         <CButton
           color="primary"
           onClick={() => {
@@ -518,7 +515,7 @@ const AddSubService = () => {
             setShowModal(true)
           }}
         >
-          + Add New SubService
+          + Add New Procedure
         </CButton>
       </div>
       {/* Modal Form */}
@@ -744,4 +741,4 @@ const AddSubService = () => {
   )
 }
 
-export default AddSubService
+export default ProcedureManagement

@@ -384,14 +384,16 @@ if (!formData.longitude) {
 
 
 
-  if (!formData.walkthrough?.trim()) {
-    newErrors.walkthrough = "Walkthrough URL is required"
-  }
+  // if (!formData.walkthrough?.trim()) {
+  //   newErrors.walkthrough = "Walkthrough URL is required"
+  // }
 
   if (!formData.branch?.trim()) {
     newErrors.branch = "Branch name is required"
   }
-
+  if (!formData.nabhScore || !String(formData.nabhScore).trim()) {
+  newErrors.nabhScore = "NABH Score is required";
+}
   if (!formData.freeFollowUps) {
     newErrors.freeFollowUps = "Free Follow Ups is required"
   } else if (isNaN(formData.freeFollowUps) || formData.freeFollowUps < 1) {
@@ -607,6 +609,8 @@ const handleNabhSubmit = async () => {
       }));
       setNabhSubmitted(true);   
       setShowNabhModal(false);
+      setErrors(prev => ({ ...prev, nabhScore: '' }));
+
     }
   } catch (error) {
     console.error("Error saving NABH answers:", error);
@@ -628,13 +632,10 @@ const handleNabhSubmit = async () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsSubmitting(true)
+    // setIsSubmitting(true)
 
     const isValid = validateForm()
-    if (!isValid) {
-      setIsSubmitting(false)
-      return
-    }
+    if (!isValid) return
 
     setIsSubmitting(true) // ⬅️ Start loading
 
@@ -1531,7 +1532,7 @@ const handleNabhSubmit = async () => {
             </CRow>
             <CRow>
               <CCol md={6}>
-               <CRow>
+               <CRow >
                
 <CCol md={6}>
   <CFormLabel>
@@ -1811,7 +1812,7 @@ const handleNabhSubmit = async () => {
 <CRow className="mb-3">
   <CCol md={6}>
     <CFormLabel>
-      Walkthrough URL <span className="text-danger">*</span>
+      Virtual Clinic Tour <span className="text-danger">*</span>
     </CFormLabel>
  <CFormInput
   type="url"
@@ -1823,15 +1824,15 @@ const handleNabhSubmit = async () => {
 
     // ✅ validate URL
     let error = "";
-    if (!value.trim()) {
-      error = "Walkthrough URL is required";
-    } else {
+    // if (!value.trim()) {
+    //   error = "Walkthrough URL is required";
+    // } else {
       try {
         new URL(value); // throws if invalid
       } catch {
         error = "Enter a valid URL (e.g. https://example.com)";
       }
-    }
+    // }
 
     setErrors((prev) => {
       const newErrors = { ...prev };
@@ -1879,22 +1880,27 @@ const handleNabhSubmit = async () => {
 
 </CRow>
 
-{/* ✅ NABH Score - Opens Modal */}
-<CRow className="mb-3">
-  <CCol md={12} className='d-flex align-items-center'>
-    <CFormLabel className="me-3">NABH Score </CFormLabel>
-    {nabhScore!==null && (
-      <span className="me-3 fw-bold text-success">{nabhScore}%</span>
-    )}
-    <CButton
-      color="primary"
-      onClick={() => !nabhSubmitted && setShowNabhModal(true)}
-      disabled={nabhSubmitted}
-    >
-       Open NABH Questionnaire
-    </CButton>
-  </CCol>
-</CRow>
+  {/* ✅ NABH Score - Opens Modal */}
+  <CRow className="mb-3">
+    <CCol md={12} className='d-flex align-items-center'>
+      <CFormLabel className="me-3">NABH Score </CFormLabel>
+      {nabhScore!==null && (
+        <span className="me-3 fw-bold text-success">{nabhScore}</span>
+      )}
+      <CButton
+        color="primary"
+        onClick={() => !nabhSubmitted && setShowNabhModal(true)}
+        disabled={nabhSubmitted}
+      >
+        Open NABH Questionnaire
+      </CButton>
+      </CCol>
+    {errors.nabhScore && (
+      <CCol md={12}>
+        <div className="text-danger mt-1">{errors.nabhScore}</div>
+      </CCol>
+    )}  
+  </CRow>
 
 <CModal visible={showNabhModal} onClose={() => setShowNabhModal(false)} size="lg">
   <CModalHeader>

@@ -1,8 +1,12 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = '192.168.1.6'
+const ipUrl = '192.168.1.18'
 //const ipUrl = '13.127.106.17'
 export const BASE_URL = `http://${ipUrl}:8081`
 export const CLINIC_ADMIN_URL = `http://${ipUrl}:8080`
+export const MainAdmin_URL = `${BASE_URL}/admin`
+export const Procedure_URL=`http://${ipUrl}:8081`
+// export let wifiUrl = '192.168.1.7'
+
 // export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
 export const Booking_service_Url = `http://${ipUrl}:8083/api`
 
@@ -20,7 +24,7 @@ export const updateService = 'updateByServiceId'
 
 export const getService = 'getServiceById'
 export const Category = 'category/getServices'
-
+ 
 // login
 export const endPoint = 'admin/adminLogin'
 
@@ -148,3 +152,52 @@ export const deleteCategoryAdvertisement = 'admin/categoryAdvertisement/deleteBy
 export const getAllServiceAdvertisement = 'admin/ServiceAdvertisement/getAll'
 export const AddServiceAdvertisement = 'admin/ServiceAdvertisement/add'
 export const deleteServiceAdvertisement = 'admin/ServiceAdvertisement/deleteByCarouselId'
+
+
+export const doctorAvailableUrl = 'doctorId'
+export const getAllDoctors = `doctors`
+
+export const getDoctorByClinicId = 'doctors/hospitalById'
+
+//opt  SUb Service
+export const subservice = 'getSubServicesByServiceId'
+export const getSubServicesbyserviceId = 'serviceId'
+export const getadminSubServicesbyserviceId = `admin/getSubServicesByServiceId`
+export const getSubServiceDetailsBySubServiceId = `admin/getSubServiceDetailsBySubServiceId`
+export const getservice = 'admin/getServiceById'
+
+export const addDoctorUrl=`admin/addDoctor`
+
+export const AddSubService = 'admin/addSubService'
+
+export const getService_ByClinicId = 'admin/getSubServiceByHospitalId'
+
+export const service = 'admin/getAllSubServices'
+
+export const deleteSubService='admin/deleteSubService'
+
+//Branch CRUD
+
+export const createBranch='admin/createBranch'
+
+export const deleteBranch='admin/deleteBranch'
+
+export const getBranchById='admin/getBranchById'
+
+export const getAllBranches='admin/getAllBranches'
+
+export const updateBranches='admin/updateBranch'
+
+//Procedure CRUD
+
+//Procedure_URL
+
+export const addProcedureDetails='admin/addSubService'
+
+export const deleteProcedureDetails='admin/deleteSubService'
+
+export const updateProcedureDetails='admin/updateSubService'
+
+
+
+export const getSubService='admin/getSubService'

@@ -252,8 +252,8 @@ const appointmentManagement = () => {
               checked={statusFilters.includes('Pending')}
             /> */}
             <CFormCheck
-              label="In-Progress"
-              value="In-Progress"
+              label="Active"
+              value="Active"
               onChange={handleStatusChange}
               checked={statusFilters.includes('In-Progress')}
             />
