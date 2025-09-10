@@ -230,11 +230,11 @@ const handleWebsiteBlur = () => {
       newErrors.city = 'City name must contain only letters'
     }
     // Email validation-
- if (!formData.email?.trim()) {
+ if (!formData.emailAddress?.trim()) {
   newErrors.emailAddress = 'Email is required';
-} else if (email.includes(' ')) {
+} else if (formData.emailAddress.includes(' ')) {
   newErrors.emailAddress = 'Email cannot contain spaces';
-} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailAddress)) {
   newErrors.emailAddress = 'Email must contain "@" and "." in a valid format';
 }
 
@@ -426,12 +426,12 @@ const handleWebsiteBlur = () => {
     return true // all good
   }
 
-  const downloadFile = (base64, filename, mime = 'application/pdf') => {
-    const link = document.createElement('a')
-    link.href = `data:${mime};base64,${base64}`
-    link.download = filename
-    link.click()
-  }
+  // const downloadFile = (base64, filename, mime = 'application/pdf') => {
+  //   const link = document.createElement('a')
+  //   link.href = `data:${mime};base64,${base64}`
+  //   link.download = filename
+  //   link.click()
+  // }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -449,56 +449,55 @@ const handleWebsiteBlur = () => {
 const handleHospitalLogoChange = async (e) => {
   const file = e.target.files?.[0];
 
-  // Clear previous error if no file selected
   if (!file) {
-    setErrors((prev) => ({ ...prev, hospitalLogo: '' }));
+    setErrors((prev) => ({ ...prev, hospitalLogo: "" }));
     setFormData((prev) => ({ ...prev, hospitalLogo: null }));
     return;
   }
 
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-  const allowedExtensions = ['jpeg', 'jpg', 'png'];
-  const fileExtension = file.name.split('.').pop().toLowerCase();
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+  const allowedExtensions = ["jpeg", "jpg", "png"];
+  const fileExtension = file.name.split(".").pop().toLowerCase();
 
-  // Validate type AND extension
   if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension)) {
     setErrors((prev) => ({
       ...prev,
-      hospitalLogo: 'Invalid file type (only JPEG, JPG, PNG allowed)',
+      hospitalLogo: "Invalid file type (only JPEG, JPG, PNG allowed)",
     }));
     setFormData((prev) => ({ ...prev, hospitalLogo: null }));
     return;
   }
 
-  // Strict file size validation (<100 KB)
   const MAX_SIZE = 100 * 1024; // 100 KB
   if (file.size >= MAX_SIZE) {
     setErrors((prev) => ({
       ...prev,
-      hospitalLogo: `File must be < 100 KB `,
+      hospitalLogo: `File must be < 100 KB`,
     }));
     setFormData((prev) => ({ ...prev, hospitalLogo: null }));
     return;
   }
 
-  // If file is valid, read as Base64 and clear any error
   try {
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.readAsDataURL(file); // gives "data:image/png;base64,..."
+      reader.onload = () => {
+        const result = reader.result;
+        const pureBase64 = result.split(",")[1]; // ✅ remove "data:image/...;base64,"
+        resolve(pureBase64);
+      };
       reader.onerror = (err) => reject(err);
     });
 
     setFormData((prev) => ({
       ...prev,
-      hospitalLogo: { fileName: file.name, base64 },
+      hospitalLogo: base64, // ✅ only base64 string
     }));
 
-    // Clear previous errors
-    setErrors((prev) => ({ ...prev, hospitalLogo: '' }));
+    setErrors((prev) => ({ ...prev, hospitalLogo: "" }));
   } catch (err) {
-    setErrors((prev) => ({ ...prev, hospitalLogo: 'Failed to read file' }));
+    setErrors((prev) => ({ ...prev, hospitalLogo: "Failed to read file" }));
     setFormData((prev) => ({ ...prev, hospitalLogo: null }));
   }
 };
@@ -506,52 +505,50 @@ const handleHospitalLogoChange = async (e) => {
 
 
 
+  const handleFileChange = async (e) => {
+    const { name, files } = e.target;
+    if (!files || !files[0]) return;
 
-const handleFileChange = async (e) => {
-  const { name, files } = e.target;
-  if (!files || !files[0]) return;
+    const file = files[0];
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'application/zip',
+    ];
+    const allowedExtensions = ['pdf','doc','docx','jpeg','jpg','png','zip'];
+    const fileExtension = file.name.split('.').pop().toLowerCase();
 
-  const file = files[0];
-  const allowedTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'application/zip',
-  ];
-  const allowedExtensions = ['pdf','doc','docx','jpeg','jpg','png','zip'];
-  const fileExtension = file.name.split('.').pop().toLowerCase();
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+      setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }));
+      return;
+    }
 
-  if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-    setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }));
-    return;
-  }
+    if (file.size > 102400) {
+      setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }));
+      return;
+    }
 
-  if (file.size > 102400) {
-    setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }));
-    return;
-  }
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = (err) => reject(err);
+      });
 
-  try {
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = (err) => reject(err);
-    });
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: { fileName: file.name, base64 },
-    }));
-
-    setErrors((prev) => ({ ...prev, [name]: '' }));
-  } catch (err) {
-    setErrors((prev) => ({ ...prev, [name]: 'Failed to read file' }));
-  }
-};
+     setFormData((prev) => ({
+  ...prev,
+  [name]: base64,   // ✅ only raw base64 string
+}));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    } catch (err) {
+      setErrors((prev) => ({ ...prev, [name]: 'Failed to read file' }));
+    }
+  };
 
 // ✅ Clear handler (X button click)
 const handleClearFile = (name, inputRef) => {
@@ -574,42 +571,42 @@ const handleClearFile = (name, inputRef) => {
   //   return file                            // already Base64 string
   // }
 
-  const convertMultipleIfExists = async (files) => {
-    if (!Array.isArray(files) || files.length === 0) return [];
-    return await Promise.all(
-      files.map(async (file) => {
-        if (!allowedTypes.includes(file.type)) {
-          throw new Error(`Invalid file type: ${file.name}`);
-        }
-        if (file.size > 102400) {
-          throw new Error(`File must be < 100 KB: ${file.name}`);
-        }
-        return await convertFileToBase64(file);
-      })
-    );
+  // const convertMultipleIfExists = async (files) => {
+  //   if (!Array.isArray(files) || files.length === 0) return [];
+  //   return await Promise.all(
+  //     files.map(async (file) => {
+  //       if (!allowedTypes.includes(file.type)) {
+  //         throw new Error(`Invalid file type: ${file.name}`);
+  //       }
+  //       if (file.size > 102400) {
+  //         throw new Error(`File must be < 100 KB: ${file.name}`);
+  //       }
+  //       return await convertFileToBase64(file);
+  //     })
+  //   );
 
 
-    const selectedFiles = Array.from(files)
+  //   const selectedFiles = Array.from(files)
 
-    // Validate files
-    for (let file of selectedFiles) {
-      if (!allowedTypes.includes(file.type)) {
-        setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }))
-        return
-      }
-      if (file.size > 102400) { // 100 KB
-        setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }))
-        return
-      }
-    }
+  //   // Validate files
+  //   for (let file of selectedFiles) {
+  //     if (!allowedTypes.includes(file.type)) {
+  //       setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }))
+  //       return
+  //     }
+  //     if (file.size > 102400) { // 100 KB
+  //       setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }))
+  //       return
+  //     }
+  //   }
 
-    // Save files
-    const value = multiple ? selectedFiles : selectedFiles[0]
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  //   // Save files
+  //   const value = multiple ? selectedFiles : selectedFiles[0]
+  //   setFormData((prev) => ({ ...prev, [name]: value }))
 
-    // Clear errors
-    setErrors((prev) => ({ ...prev, [name]: '' }))
-  }
+  //   // Clear errors
+  //   setErrors((prev) => ({ ...prev, [name]: '' }))
+  // }
   const handleProfessionalIndemnityFiles = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -668,44 +665,44 @@ const handleClearFile = (name, inputRef) => {
 
 
 
-  const handleMultipleFilesChange = async (e) => {
-    const { name, files } = e.target
-    if (!files || files.length === 0) return
+  // const handleMultipleFilesChange = async (e) => {
+  //   const { name, files } = e.target
+  //   if (!files || files.length === 0) return
 
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'application/zip',
-    ]
+  //   const allowedTypes = [
+  //     'application/pdf',
+  //     'application/msword',
+  //     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  //     'image/jpeg',
+  //     'image/jpg',
+  //     'image/png',
+  //     'application/zip',
+  //   ]
 
-    const base64Files = []
+  //   const base64Files = []
 
-    for (const file of files) {
-      if (!allowedTypes.includes(file.type)) {
-        setErrors(prev => ({ ...prev, [name]: 'Invalid file type in selection' }))
-        return
-      }
-      if (file.size > 102400) {
-        setErrors(prev => ({ ...prev, [name]: 'Each file must be < 100 KB' }))
-        return
-      }
+  //   for (const file of files) {
+  //     if (!allowedTypes.includes(file.type)) {
+  //       setErrors(prev => ({ ...prev, [name]: 'Invalid file type in selection' }))
+  //       return
+  //     }
+  //     if (file.size > 102400) {
+  //       setErrors(prev => ({ ...prev, [name]: 'Each file must be < 100 KB' }))
+  //       return
+  //     }
 
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.readAsDataURL(file)
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = (err) => reject(err)
-      })
-      base64Files.push(base64)
-    }
+  //     const base64 = await new Promise((resolve, reject) => {
+  //       const reader = new FileReader()
+  //       reader.readAsDataURL(file)
+  //       reader.onload = () => resolve(reader.result)
+  //       reader.onerror = (err) => reject(err)
+  //     })
+  //     base64Files.push(base64)
+  //   }
 
-    setFormData(prev => ({ ...prev, [name]: base64Files }))
-    setErrors(prev => ({ ...prev, [name]: '' }))
-  }
+  //   setFormData(prev => ({ ...prev, [name]: base64Files }))
+  //   setErrors(prev => ({ ...prev, [name]: '' }))
+  // }
 
   const handleAppendFiles = async (e, fieldName, maxFiles = 6) => {
     const selectedFiles = Array.from(e.target.files || [])
@@ -743,8 +740,7 @@ const handleClearFile = (name, inputRef) => {
           reader.onload = () => {
             // Strip the prefix: "data:application/pdf;base64,"
             const rawBase64 = reader.result.split(',')[1]
-            resolve(rawBase64)
-          }
+resolve({ name: file.name, base64: rawBase64 })          }
           reader.onerror = err => reject(err)
         })
       )
@@ -947,7 +943,7 @@ const EmailBlur = () => {
 
     const { emailAddress, contactNumber } = formData
 
-    // Check for duplicate email and mobile
+    // Check for duplicate Hand mobile
     const safeExistingDoctors = Array.isArray(existingDoctors) ? existingDoctors : []
 
     console.log(emailAddress)
@@ -989,12 +985,14 @@ const EmailBlur = () => {
         if (file instanceof Blob) return await convertFileToBase64(file)
         return file // already Base64 string
       }
-      const convertMultipleIfExists = async (files) => {
-        if (!Array.isArray(files)) return []
-        return await Promise.all(
-          files.map(file => (file instanceof Blob ? convertFileToBase64(file) : file))
-        )
-      }
+   const convertMultipleIfExists = async (files) => {
+  if (!Array.isArray(files)) return []
+  return files.map(file => {
+    if (file?.base64) return file.base64 // our {name, base64} object
+    if (file instanceof Blob) return convertFileToBase64(file) // in case raw Blob
+    return file // already Base64 string
+  })
+}
       // Usage
       const hospitalLogoBase64 = await convertIfExists(formData.hospitalLogo);
       const hospitalDocumentsBase64 = await convertIfExists(formData.hospitalDocuments);
@@ -1074,12 +1072,13 @@ const EmailBlur = () => {
         })
         setIsSubmitting(false) // ⬅️ Start loading
 
-        sendDermaCareOnboardingEmail({
-          name: formData.name,
-          email: formData.emailAddress,
-          password: savedClinicData.data.clinicTemporaryPassword,
-          userID: savedClinicData.data.clinicUsername,
-        })
+         setTimeout(() => {
+    sendDermaCareOnboardingEmail({
+      name: formData.name,
+      email: formData.emailAddress,
+      password: savedClinicData.data.clinicTemporaryPassword,
+      userID: savedClinicData.data.clinicUsername,
+    });
 
         navigate('/clinic-management', {
           state: {
@@ -1087,7 +1086,8 @@ const EmailBlur = () => {
             newClinic: savedClinicData,
           },
         })
-      } else {
+      },3000)
+     } else {
         toast.error(savedClinicData.message || 'Something went wrong', { position: 'top-right' })
       }
     } catch (error) {
@@ -1136,40 +1136,24 @@ const EmailBlur = () => {
                 />
                 {errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
               </CCol>
-              <CCol md={6}>
-                <CFormLabel>
-                  Email Address<span className="text-danger">*</span>
-                </CFormLabel>
-               <CFormInput
-  type="email"
-  name="emailAddress"
-  value={formData.emailAddress || ""}
-  onChange={(e) => {
-    const { name, value } = e.target;
+               <CCol md={6}>
+  <CFormInput
+    type="email"
+    name="emailAddress"
+    label="Email Address"
+    value={formData.emailAddress}
+    onChange={(e) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }}
+    // onBlur={EmailBlur}
+    invalid={!!errors.emailAddress}
+  />
+  {errors.emailAddress && (
+    <CFormFeedback invalid>{errors.emailAddress}</CFormFeedback>
+  )}
+</CCol>
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    let error = "";
-
-    if (!value.trim()) {
-      error = "Email is required";
-    } else if (value.includes(' ')) {
-      error = "Email cannot contain spaces";
-    } else if (!emailRegex.test(value.trim())) {
-      error = 'Email must contain "@" and "." in a valid format';
-    }
-
-    setErrors((prev) => ({ ...prev, [name]: error || undefined }));
-  }}
-  invalid={!!errors.emailAddress}
-/>
-
-
-                {errors.emailAddress && (
-                  <CFormFeedback invalid>{errors.emailAddress}</CFormFeedback>
-                )}
-              </CCol>
             </CRow>
             <CRow className="mb-3">
            <CCol md={6}>
@@ -1699,15 +1683,14 @@ const EmailBlur = () => {
                 <CTooltip content="NABH Accreditation / Aesthetic Procedure Training Certificate">
                   <CFormLabel>Others (NABH / Aesthetic Training)</CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  name="others"
-                  ref={fileInputRefs.others} // use `ref` not `inputref9`
-                  onChange={(e) => handleAppendFiles(e, 'others', 6)}
-                  multiple
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
-                  invalid={!!errors.others}
-                />
+          <CFormInput
+  type="file"
+  name="others"
+  multiple
+  onChange={(e) => handleAppendFiles(e, 'others', 6)}
+  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+  invalid={!!errors.others}
+/>
 
 
                 {errors.others && <CFormFeedback invalid>{errors.others}</CFormFeedback>}
