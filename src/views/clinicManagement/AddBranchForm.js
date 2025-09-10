@@ -92,7 +92,9 @@ const loadBranches = async () => {
     setLoading(false);
   }
 };
-
+useEffect(() => {
+  setCurrentPage(1);
+}, [searchTerm, filterCity]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -326,65 +328,59 @@ if (!formData.longitude) {
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {filteredBranches.length > 0 ? (
-                  filteredBranches.map((branch, index) => (
-                     <CTableRow key={branch.branchId}>
-                    <CTableDataCell>{startIndex+index+1}</CTableDataCell>
-                   
-                      <CTableDataCell>{branch.branchName}</CTableDataCell>
-                      <CTableDataCell>{branch.address}</CTableDataCell>
-                      <CTableDataCell>
-                        <CBadge color="secondary">{branch.city}</CBadge>
-                      </CTableDataCell>
-                      <CTableDataCell>{branch.contactNumber}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton 
-                          color="info" 
-                          size="sm" 
-                          className="me-2"
-                          onClick={() =>{
-                             handleView(branch.branchId)}
-                          }
-                        >
-                          View
-                        </CButton>
-                        <CButton 
-                          color="warning" 
-                          size="sm" 
-                          className="me-2"
-                          onClick={() => handleEdit(branch)}
-                        >
-                          Edit
-                        </CButton>
-                        <CButton 
-                          color="danger" 
-                          size="sm"
-                          onClick={() => {
-                            setDeletingBranch(branch);
-                            setDeleteModalVisible(true);
-                          }}
-                        >
-                          Delete
-                        </CButton>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))
-                ) : (
-                  <CTableRow>
-                    <CTableDataCell colSpan="5" className="text-center">
-                      No branches found
-                    </CTableDataCell>
-                  </CTableRow>
-                )}
+               {paginatedBranches.length > 0 ? (
+  paginatedBranches.map((branch, index) => (
+    <CTableRow key={branch.branchId}>
+      <CTableDataCell>{startIndex + index + 1}</CTableDataCell>
+      <CTableDataCell>{branch.branchName}</CTableDataCell>
+      <CTableDataCell>{branch.address}</CTableDataCell>
+      <CTableDataCell><CBadge color="secondary">{branch.city}</CBadge></CTableDataCell>
+      <CTableDataCell>{branch.contactNumber}</CTableDataCell>
+      <CTableDataCell>
+        <CButton color="info" size="sm" className="me-2" onClick={() => handleView(branch.branchId)}>View</CButton>
+        <CButton color="warning" size="sm" className="me-2" onClick={() => handleEdit(branch)}>Edit</CButton>
+        <CButton color="danger" size="sm" onClick={() => { setDeletingBranch(branch); setDeleteModalVisible(true); }}>Delete</CButton>
+      </CTableDataCell>
+    </CTableRow>
+  ))
+) : (
+  <CTableRow>
+    <CTableDataCell colSpan="6" className="text-center">
+      No branches found
+    </CTableDataCell>
+  </CTableRow>
+)}
+
               </CTableBody>
             </CTable>
           )}
         </CCardBody>
-        <CCardFooter>
-          <div className="text-muted">
-            Showing {filteredBranches.length} of {branches.length} branches
-          </div>
-        </CCardFooter>
+      <CCardFooter className="d-flex justify-content-between align-items-center">
+  <div className="text-muted">
+    Showing {startIndex + 1}-{endIndex} of {filteredBranches.length} branches
+  </div>
+
+  <div>
+    <CButton
+      color="secondary"
+      size="sm"
+      className="me-2"
+      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+      disabled={currentPage === 1}
+    >
+      Previous
+    </CButton>
+
+    <CButton
+      color="secondary"
+      size="sm"
+      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+      disabled={currentPage === totalPages || totalPages === 0}
+    >
+      Next
+    </CButton>
+  </div>
+</CCardFooter>
       </CCard>
 
       {/* Add/Edit Branch Modal */}

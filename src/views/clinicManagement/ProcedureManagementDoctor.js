@@ -1624,18 +1624,7 @@ const handleChanges = async (e) => {
 
               
 
-              <CCol md={3}>
-                <h6>
-                  GST (%)<span className="text-danger">*</span>
-                </h6>
-                <CFormInput
-                  type="number"
-                  value={newService.gst || ''}
-                  onChange={(e) =>
-                    setNewService((prev) => ({ ...prev, gst: Number(e.target.value) }))
-                  }
-                />
-              </CCol>
+             
                <CCol md={3}>
                 <h6>
                   Discount (%) <span className="text-danger">*</span>
@@ -1654,6 +1643,18 @@ const handleChanges = async (e) => {
                 {errors.discount && (
                   <CFormText className="text-danger">{errors.discount}</CFormText>
                 )}
+              </CCol>
+               <CCol md={3}>
+                <h6>
+                  GST (%)<span className="text-danger">*</span>
+                </h6>
+                <CFormInput
+                  type="number"
+                  value={newService.gst || ''}
+                  onChange={(e) =>
+                    setNewService((prev) => ({ ...prev, gst: Number(e.target.value) }))
+                  }
+                />
               </CCol>
             <CCol md={3}>
                 <h6>Other Taxes(%)</h6>

@@ -56,7 +56,7 @@ import { getClinicTimings } from './AddClinicAPI'
 
 const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const navigate = useNavigate()
-  const savedQuestionId = localStorage.getItem("savedQuestionId"); 
+  const savedQuestionId = localStorage.getItem("savedQuestionId");
 
   const [errors, setErrors] = useState({})
   const [backendErrors, setBackendErrors] = ''
@@ -69,11 +69,11 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [timings, setTimings] = useState([])
   const [loadingTimings, setLoadingTimings] = useState(false)
-const [nabhQuestions, setNabhQuestions] = useState([]);
-const [nabhAnswers, setNabhAnswers] = useState([]);
-const [showNabhModal, setShowNabhModal] = useState(false);
-const [nabhScore, setNabhScore] = useState(null);
-const [nabhSubmitted, setNabhSubmitted]=useState(false);
+  const [nabhQuestions, setNabhQuestions] = useState([]);
+  const [nabhAnswers, setNabhAnswers] = useState([]);
+  const [showNabhModal, setShowNabhModal] = useState(false);
+  const [nabhScore, setNabhScore] = useState(null);
+  const [nabhSubmitted, setNabhSubmitted] = useState(false);
   // const [initialData,setInitialData ]=useState()
   const fileInputRefs = {
     others: useRef(null),
@@ -106,7 +106,7 @@ const [nabhSubmitted, setNabhSubmitted]=useState(false);
     hospitalDocuments: null,
     // hospitalcategory: [],
     hospitalContract: null,
-    freeFollowUps:'',
+    freeFollowUps: '',
     clinicalEstablishmentCertificate: null,
     businessRegistrationCertificate: null,
     clinicType: '',
@@ -127,10 +127,10 @@ const [nabhSubmitted, setNabhSubmitted]=useState(false);
     twitterHandle: '',
     facebookHandle: '',
     latitude: "",
-  longitude: "",
-  walkthrough: "",
-  branch: "",
-  nabhScore:nabhScore,
+    longitude: "",
+    walkthrough: "",
+    branch: "",
+    nabhScore: nabhScore,
 
   })
   useEffect(() => {
@@ -179,30 +179,35 @@ const [nabhSubmitted, setNabhSubmitted]=useState(false);
     }
 
   }
-  const handleWebsiteBlur = () => {
-    const website = formData.website.trim()
+const handleWebsiteBlur = () => {
+  const website = formData.website.trim()
 
-    if (!website) {
-      setErrors((prev) => ({ ...prev, website: 'Website is required' }))
-    } else if (!/^https?:\/\//i.test(website)) {
-      setErrors((prev) => ({
-        ...prev,
-        website: 'Website must start with http:// or https://',
-      }))
-    } else if (!websiteRegex.test(website)) {
-      setErrors((prev) => ({
-        ...prev,
-        website: 'Enter a valid website URL',
-      }))
-    } else {
-      setErrors((prev) => ({ ...prev, website: '' }))
-    }
+  if (!website) {
+    setErrors((prev) => ({ ...prev, website: 'Website is required' }))
+  } else if (!/^https?:\/\//i.test(website)) {
+    setErrors((prev) => ({
+      ...prev,
+      website: 'Website must start with http:// or https://',
+    }))
+  } else if (!/^https?:\/\/\S+$/i.test(website)) {  // 👈 updated regex
+    setErrors((prev) => ({
+      ...prev,
+      website: 'Enter a valid website URL (no spaces allowed)',
+    }))
+  } else {
+    setErrors((prev) => ({ ...prev, website: '' }))
   }
- 
+}
+
+
+
+
   const websiteRegex = /^(https?:\/\/)[\w\-]+(\.[\w\-]+)+[/#?]?.*$/
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
 
 
+
+  
   const validateForm = () => {
     const newErrors = {}
 
@@ -225,11 +230,13 @@ const [nabhSubmitted, setNabhSubmitted]=useState(false);
       newErrors.city = 'City name must contain only letters'
     }
     // Email validation-
-    if (!formData.emailAddress?.trim()) {
-      newErrors.emailAddress = 'Email is required'
-    } else if (!emailRegex.test(formData.emailAddress.trim())) {
-      newErrors.emailAddress = 'Email must contain "@" and "." in a valid format'
-    }
+ if (!email.trim()) {
+  newErrors.emailAddress = 'Email is required';
+} else if (email.includes(' ')) {
+  newErrors.emailAddress = 'Email cannot contain spaces';
+} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  newErrors.emailAddress = 'Email must contain "@" and "." in a valid format';
+}
     // Contact Number
     const phoneRegex = /^[5-9][0-9]{9}$/ // This regex checks if the number starts with 5-9 and is followed by 9 digits
 
@@ -350,55 +357,59 @@ const [nabhSubmitted, setNabhSubmitted]=useState(false);
     }
 
     if (!formData.website.trim()) {
-      newErrors.website = 'Website is required.'
-    } else if (!websiteRegex.test(normalizeWebsite(formData.website.trim()))) {
-      newErrors.website = 'Website must start with http:// or https:// and be a valid URL'
-    }
+  newErrors.website = 'Website is required.'
+} else {
+  const cleanedWebsite = formData.website.replace(/\s+/g, '') // remove all spaces
+  if (!websiteRegex.test(normalizeWebsite(cleanedWebsite))) {
+    newErrors.website = 'Website must start with http:// or https:// and be a valid URL'
+  }
+}
+
     if (!formData.subscription || formData.subscription.trim() === '') {
       newErrors.subscription = 'Please select a subscription type'
     }
-// Latitude validation
-// Latitude
-if (!formData.latitude) {
-  newErrors.latitude = "Latitude is required";
-} else {
-  const lat = parseFloat(formData.latitude);
-  if (isNaN(lat) || lat < -90 || lat > 90) {
-    newErrors.latitude = "Latitude must be between -90 and 90";
-  } else {
-    delete newErrors.latitude; // ✅ clear error if valid
-  }
-}
+    // Latitude validation
+    // Latitude
+    if (!formData.latitude) {
+      newErrors.latitude = "Latitude is required";
+    } else {
+      const lat = parseFloat(formData.latitude);
+      if (isNaN(lat) || lat < -90 || lat > 90) {
+        newErrors.latitude = "Latitude must be between -90 and 90";
+      } else {
+        delete newErrors.latitude; // ✅ clear error if valid
+      }
+    }
 
-// Longitude
-if (!formData.longitude) {
-  newErrors.longitude = "Longitude is required";
-} else {
-  const lng = parseFloat(formData.longitude);
-  if (isNaN(lng) || lng < -180 || lng > 180) {
-    newErrors.longitude = "Longitude must be between -180 and 180";
-  } else {
-    delete newErrors.longitude; // ✅ clear error if valid
-  }
-}
+    // Longitude
+    if (!formData.longitude) {
+      newErrors.longitude = "Longitude is required";
+    } else {
+      const lng = parseFloat(formData.longitude);
+      if (isNaN(lng) || lng < -180 || lng > 180) {
+        newErrors.longitude = "Longitude must be between -180 and 180";
+      } else {
+        delete newErrors.longitude; // ✅ clear error if valid
+      }
+    }
 
 
 
-  // if (!formData.walkthrough?.trim()) {
-  //   newErrors.walkthrough = "Walkthrough URL is required"
-  // }
+    // if (!formData.walkthrough?.trim()) {
+    //   newErrors.walkthrough = "Walkthrough URL is required"
+    // }
 
-  if (!formData.branch?.trim()) {
-    newErrors.branch = "Branch name is required"
-  }
-  if (!formData.nabhScore || !String(formData.nabhScore).trim()) {
-  newErrors.nabhScore = "NABH Score is required";
-}
-  if (!formData.freeFollowUps) {
-    newErrors.freeFollowUps = "Free Follow Ups is required"
-  } else if (isNaN(formData.freeFollowUps) || formData.freeFollowUps < 1) {
-    newErrors.freeFollowUps = "Free Follow Ups must be a positive number"
-  }
+    if (!formData.branch?.trim()) {
+      newErrors.branch = "Branch name is required"
+    }
+    if (!formData.nabhScore || !String(formData.nabhScore).trim()) {
+      newErrors.nabhScore = "NABH Score is required";
+    }
+    if (!formData.freeFollowUps) {
+      newErrors.freeFollowUps = "Free Follow Ups is required"
+    } else if (isNaN(formData.freeFollowUps) || formData.freeFollowUps < 1) {
+      newErrors.freeFollowUps = "Free Follow Ups must be a positive number"
+    }
     // No `else { newErrors.website = '' }`
 
     console.log('Validation errors:', newErrors)
@@ -433,144 +444,64 @@ if (!formData.longitude) {
       [name]: '',
     }))
   }
-const handleFileChange = async (e) => {
-  const { name, files } = e.target
-  if (!files || !files[0]) return
+ // ✅ File change handler
+const handleHospitalLogoChange = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-  const file = files[0]
-  const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'application/zip']
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']; // only images
+  const allowedExtensions = ['jpeg', 'jpg', 'png'];
 
-  if (!allowedTypes.includes(file.type)) {
-    setErrors(prev => ({ ...prev, [name]: 'Invalid file type' }))
-    return
+  const fileExtension = file.name.split('.').pop().toLowerCase();
+
+  // Validate type AND extension
+  if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension)) {
+    setErrors((prev) => ({
+      ...prev,
+      hospitalLogo: 'Invalid file type (only JPEG, JPG, PNG allowed)',
+    }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null }));
+    return;
   }
 
-  if (file.size > 102400) {
-    setErrors(prev => ({ ...prev, [name]: 'File must be < 100 KB' }))
-    return
+  // Validate file size (<100 KB)
+  const MAX_SIZE = 100 * 1024; // 100 KB in bytes
+  if (file.size > MAX_SIZE) {
+    setErrors((prev) => ({
+      ...prev,
+      hospitalLogo: `File must be < 100 KB (current: ${(file.size / 1024).toFixed(2)} KB)`,
+    }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null }));
+    return;
   }
 
   try {
     const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result.split(',')[1])
-      reader.onerror = (err) => reject(err)
-    })
-
-    setFormData(prev => ({ ...prev, [name]: base64 }))
-    setErrors(prev => ({ ...prev, [name]: '' }))
-  } catch (err) {
-    setErrors(prev => ({ ...prev, [name]: 'Failed to read file' }))
-  }
-}
-
-
-
-// const convertIfExists = async (file) => {
-//   if (!file) return ''                  // nothing selected
-//   if (file instanceof Blob) return await convertFileToBase64(file) // new file
-//   return file                            // already Base64 string
-// }
-
-const convertMultipleIfExists = async (files) => {
-  if (!Array.isArray(files) || files.length === 0) return [];
-  return await Promise.all(
-    files.map(async (file) => {
-      if (!allowedTypes.includes(file.type)) {
-        throw new Error(`Invalid file type: ${file.name}`);
-      }
-      if (file.size > 102400) {
-        throw new Error(`File must be < 100 KB: ${file.name}`);
-      }
-      return await convertFileToBase64(file);
-    })
-  );
-
-  
-  const selectedFiles = Array.from(files)
-
-  // Validate files
-  for (let file of selectedFiles) {
-    if (!allowedTypes.includes(file.type)) {
-      setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }))
-      return
-    }
-    if (file.size > 102400) { // 100 KB
-      setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }))
-      return
-    }
-  }
-
-  // Save files
-  const value = multiple ? selectedFiles : selectedFiles[0]
-  setFormData((prev) => ({ ...prev, [name]: value }))
-
-  // Clear errors
-  setErrors((prev) => ({ ...prev, [name]: '' }))
-}
-const handleProfessionalIndemnityFiles = async (e) => {
-  const files = Array.from(e.target.files || []);
-  if (files.length === 0) return;
-
-  const allowedTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'image/jpeg',
-    'image/png',
-  ];
-  const MAX_SIZE_BYTES = 102400; // 100 KB
-
-  const base64Files = [];
-
-  for (let file of files) {
-    if (!allowedTypes.includes(file.type)) {
-      setErrors((prev) => ({
-        ...prev,
-        professionalIndemnityInsurance: 'Invalid file type',
-      }));
-      return;
-    }
-    if (file.size > MAX_SIZE_BYTES) {
-      setErrors((prev) => ({
-        ...prev,
-        professionalIndemnityInsurance: 'File must be < 100 KB',
-      }));
-      return;
-    }
-
-    // Convert to Base64
-    const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-    reader.onload = () => {
-  // Remove 'data:*/*;base64,' prefix
-  const base64 = reader.result.split(',')[1]
-  setFormData(prev => ({ ...prev, [name]: base64 }))
-  setErrors(prev => ({ ...prev, [name]: '' }))
-}
-reader.onerror = () => {
-  setErrors(prev => ({ ...prev, [name]: 'Failed to read file' }))
-}
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = (err) => reject(err);
     });
-    base64Files.push(base64);
+
+    setFormData((prev) => ({
+      ...prev,
+      hospitalLogo: { fileName: file.name, base64 },
+    }));
+
+    setErrors((prev) => ({ ...prev, hospitalLogo: '' }));
+  } catch (err) {
+    setErrors((prev) => ({ ...prev, hospitalLogo: 'Failed to read file' }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null }));
   }
-
-  setFormData((prev) => ({
-    ...prev,
-    professionalIndemnityInsurance: base64Files.length === 1 ? base64Files[0] : base64Files,
-  }));
-
-  setErrors((prev) => ({ ...prev, professionalIndemnityInsurance: '' }));
 };
 
 
 
-const handleMultipleFilesChange = async (e) => {
-  const { name, files } = e.target
-  if (!files || files.length === 0) return
+const handleFileChange = async (e) => {
+  const { name, files } = e.target;
+  if (!files || !files[0]) return;
 
+  const file = files[0];
   const allowedTypes = [
     'application/pdf',
     'application/msword',
@@ -579,108 +510,281 @@ const handleMultipleFilesChange = async (e) => {
     'image/jpg',
     'image/png',
     'application/zip',
-  ]
+  ];
+  const allowedExtensions = ['pdf','doc','docx','jpeg','jpg','png','zip'];
+  const fileExtension = file.name.split('.').pop().toLowerCase();
 
-  const base64Files = []
-
-  for (const file of files) {
-    if (!allowedTypes.includes(file.type)) {
-      setErrors(prev => ({ ...prev, [name]: 'Invalid file type in selection' }))
-      return
-    }
-    if (file.size > 102400) {
-      setErrors(prev => ({ ...prev, [name]: 'Each file must be < 100 KB' }))
-      return
-    }
-
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = (err) => reject(err)
-    })
-    base64Files.push(base64)
+  if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+    setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }));
+    return;
   }
 
-  setFormData(prev => ({ ...prev, [name]: base64Files }))
-  setErrors(prev => ({ ...prev, [name]: '' }))
+  if (file.size > 102400) {
+    setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }));
+    return;
+  }
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = (err) => reject(err);
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: { fileName: file.name, base64 },
+    }));
+
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  } catch (err) {
+    setErrors((prev) => ({ ...prev, [name]: 'Failed to read file' }));
+  }
+};
+
+// ✅ Clear handler (X button click)
+const handleClearFile = (name, inputRef) => {
+  if (inputRef?.current) {
+    inputRef.current.value = '' // clear actual input
+  }
+  setFormData((prev) => ({
+    ...prev,
+    [name]: { fileName: '', base64: '' },
+  }))
+  setErrors((prev) => ({ ...prev, [name]: '' }))
 }
 
-const handleAppendFiles = async (e, fieldName, maxFiles = 6) => {
-  const selectedFiles = Array.from(e.target.files || [])
-  if (!selectedFiles.length) return
 
-  const allowedTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'image/jpeg',
-    'image/png',
-    'application/zip',
-  ]
-  const MAX_SIZE_BYTES = 102400 // 100 KB
 
-  // Validate each selected file
-  for (let file of selectedFiles) {
-    if (!allowedTypes.includes(file.type)) {
-      setErrors(prev => ({ ...prev, [fieldName]: 'Invalid file type' }))
-      return
+
+  // const convertIfExists = async (file) => {
+  //   if (!file) return ''                  // nothing selected
+  //   if (file instanceof Blob) return await convertFileToBase64(file) // new file
+  //   return file                            // already Base64 string
+  // }
+
+  const convertMultipleIfExists = async (files) => {
+    if (!Array.isArray(files) || files.length === 0) return [];
+    return await Promise.all(
+      files.map(async (file) => {
+        if (!allowedTypes.includes(file.type)) {
+          throw new Error(`Invalid file type: ${file.name}`);
+        }
+        if (file.size > 102400) {
+          throw new Error(`File must be < 100 KB: ${file.name}`);
+        }
+        return await convertFileToBase64(file);
+      })
+    );
+
+
+    const selectedFiles = Array.from(files)
+
+    // Validate files
+    for (let file of selectedFiles) {
+      if (!allowedTypes.includes(file.type)) {
+        setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }))
+        return
+      }
+      if (file.size > 102400) { // 100 KB
+        setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }))
+        return
+      }
     }
-    if (file.size > MAX_SIZE_BYTES) {
-      setErrors(prev => ({ ...prev, [fieldName]: 'File must be < 100 KB' }))
-      return
-    }
+
+    // Save files
+    const value = multiple ? selectedFiles : selectedFiles[0]
+    setFormData((prev) => ({ ...prev, [name]: value }))
+
+    // Clear errors
+    setErrors((prev) => ({ ...prev, [name]: '' }))
   }
+  const handleProfessionalIndemnityFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-  // Convert files to raw Base64
-  const base64Files = await Promise.all(
-    selectedFiles.slice(0, maxFiles).map(file =>
-      new Promise((resolve, reject) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+    ];
+    const MAX_SIZE_BYTES = 102400; // 100 KB
+
+    const base64Files = [];
+
+    for (let file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        setErrors((prev) => ({
+          ...prev,
+          professionalIndemnityInsurance: 'Invalid file type',
+        }));
+        return;
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        setErrors((prev) => ({
+          ...prev,
+          professionalIndemnityInsurance: 'File must be < 100 KB',
+        }));
+        return;
+      }
+
+      // Convert to Base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          // Remove 'data:*/*;base64,' prefix
+          const base64 = reader.result.split(',')[1]
+          setFormData(prev => ({ ...prev, [name]: base64 }))
+          setErrors(prev => ({ ...prev, [name]: '' }))
+        }
+        reader.onerror = () => {
+          setErrors(prev => ({ ...prev, [name]: 'Failed to read file' }))
+        }
+      });
+      base64Files.push(base64);
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      professionalIndemnityInsurance: base64Files.length === 1 ? base64Files[0] : base64Files,
+    }));
+
+    setErrors((prev) => ({ ...prev, professionalIndemnityInsurance: '' }));
+  };
+
+
+
+  const handleMultipleFilesChange = async (e) => {
+    const { name, files } = e.target
+    if (!files || files.length === 0) return
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'application/zip',
+    ]
+
+    const base64Files = []
+
+    for (const file of files) {
+      if (!allowedTypes.includes(file.type)) {
+        setErrors(prev => ({ ...prev, [name]: 'Invalid file type in selection' }))
+        return
+      }
+      if (file.size > 102400) {
+        setErrors(prev => ({ ...prev, [name]: 'Each file must be < 100 KB' }))
+        return
+      }
+
+      const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader()
         reader.readAsDataURL(file)
-        reader.onload = () => {
-          // Strip the prefix: "data:application/pdf;base64,"
-          const rawBase64 = reader.result.split(',')[1]
-          resolve(rawBase64)
-        }
-        reader.onerror = err => reject(err)
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = (err) => reject(err)
       })
-    )
-  )
-
-  // Append to existing files in state
-  setFormData(prev => {
-    const existingFiles = Array.isArray(prev[fieldName]) ? prev[fieldName] : []
-    const combinedFiles = [...existingFiles, ...base64Files].slice(0, maxFiles)
-    return { ...prev, [fieldName]: combinedFiles }
-  })
-
-  setErrors(prev => ({ ...prev, [fieldName]: '' }))
-}
-
-
-
-
-
-
-
-
-
-  const EmailBlur = () => {
-    const email = formData.emailAddress.trim()
-    if (!email.includes('@')) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        emailAddress: 'Email must contain "@" symbol',
-      }))
-    } else {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        emailAddress: '',
-      }))
+      base64Files.push(base64)
     }
+
+    setFormData(prev => ({ ...prev, [name]: base64Files }))
+    setErrors(prev => ({ ...prev, [name]: '' }))
   }
-  
+
+  const handleAppendFiles = async (e, fieldName, maxFiles = 6) => {
+    const selectedFiles = Array.from(e.target.files || [])
+    if (!selectedFiles.length) return
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'application/zip',
+    ]
+    const MAX_SIZE_BYTES = 102400 // 100 KB
+
+    // Validate each selected file
+    for (let file of selectedFiles) {
+      if (!allowedTypes.includes(file.type)) {
+        setErrors(prev => ({ ...prev, [fieldName]: 'Invalid file type' }))
+        return
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        setErrors(prev => ({ ...prev, [fieldName]: 'File must be < 100 KB' }))
+        return
+      }
+    }
+
+    // Convert files to raw Base64
+    const base64Files = await Promise.all(
+      selectedFiles.slice(0, maxFiles).map(file =>
+        new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.readAsDataURL(file)
+          reader.onload = () => {
+            // Strip the prefix: "data:application/pdf;base64,"
+            const rawBase64 = reader.result.split(',')[1]
+            resolve(rawBase64)
+          }
+          reader.onerror = err => reject(err)
+        })
+      )
+    )
+
+    // Append to existing files in state
+    setFormData(prev => {
+      const existingFiles = Array.isArray(prev[fieldName]) ? prev[fieldName] : []
+      const combinedFiles = [...existingFiles, ...base64Files].slice(0, maxFiles)
+      return { ...prev, [fieldName]: combinedFiles }
+    })
+
+    setErrors(prev => ({ ...prev, [fieldName]: '' }))
+  }
+
+
+
+
+
+
+
+
+
+const EmailBlur = () => {
+  const email = formData.emailAddress.trim();
+
+  if (!email) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      emailAddress: 'Email is required',
+    }));
+  } else if (email.includes(' ')) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      emailAddress: 'Email cannot contain spaces',
+    }));
+  } else if (!email.includes('@')) {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      emailAddress: 'Email must contain "@" symbol',
+    }));
+  } else {
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      emailAddress: '',
+    }));
+  }
+};
+
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
@@ -709,18 +813,18 @@ const handleAppendFiles = async (e, fieldName, maxFiles = 6) => {
       reader.onerror = (error) => reject(error)
     })
   }
-const convertFileToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
-    reader.onload = () => {
-      // Only keep the part after comma (raw Base64)
-      const base64 = reader.result.split(',')[1]
-      resolve(base64)
-    }
-    reader.onerror = (error) => reject(error)
-  })
-}
+  const convertFileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        // Only keep the part after comma (raw Base64)
+        const base64 = reader.result.split(',')[1]
+        resolve(base64)
+      }
+      reader.onerror = (error) => reject(error)
+    })
+  }
 
   const [existingDoctors, setExistingDoctors] = useState([])
   useEffect(() => {
@@ -749,65 +853,65 @@ const convertFileToBase64 = (file) => {
     }
   }, [])
 
-useEffect(() => {
-  const fetchQuestions = async () => {
-    try {
-      const response = await axios.get(`${BASE_URL}/${getAllQuestions}`, {
-        params: { id: savedQuestionId }
-      });
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/${getAllQuestions}`, {
+          params: { id: savedQuestionId }
+        });
 
-      console.log("Fetched data:", response.data);
+        console.log("Fetched data:", response.data);
 
-      if (response.data.success && response.data.data) {
-        const qaList = response.data.data.questionsAndAnswers || [];
+        if (response.data.success && response.data.data) {
+          const qaList = response.data.data.questionsAndAnswers || [];
 
-        // Extract questions
-        setNabhQuestions(qaList.map((item) => item.question));
+          // Extract questions
+          setNabhQuestions(qaList.map((item) => item.question));
 
-        // Extract existing answers (boolean values)
-        setNabhAnswers(qaList.map((item) => item.answer));
+          // Extract existing answers (boolean values)
+          setNabhAnswers(qaList.map((item) => item.answer));
+        }
+      } catch (err) {
+        console.error("Error fetching NABH questions:", err);
       }
-    } catch (err) {
-      console.error("Error fetching NABH questions:", err);
-    }
-  };
-
-  fetchQuestions();
-}, [savedQuestionId]);
-
-
-
-const handleNabhSubmit = async () => {
-  try {
-    const payload = {
-      questionsAndAnswers: nabhQuestions.map((q, index) => ({
-        question: q,
-        answer: nabhAnswers[index] === true,
-      })),
     };
 
-    const response = await axios.post(
-      `${BASE_URL}/${postAllQuestionsAndAnswers}`,
-      payload
-    );
+    fetchQuestions();
+  }, [savedQuestionId]);
 
-    if (response.data.success) {
-      const score = response.data.data?.score ?? 0;
 
-      setNabhScore(score);       
-      setFormData(prev => ({    
-        ...prev,
-        nabhScore: score,
-      }));
-      setNabhSubmitted(true);   
-      setShowNabhModal(false);
-      setErrors(prev => ({ ...prev, nabhScore: '' }));
 
+  const handleNabhSubmit = async () => {
+    try {
+      const payload = {
+        questionsAndAnswers: nabhQuestions.map((q, index) => ({
+          question: q,
+          answer: nabhAnswers[index] === true,
+        })),
+      };
+
+      const response = await axios.post(
+        `${BASE_URL}/${postAllQuestionsAndAnswers}`,
+        payload
+      );
+
+      if (response.data.success) {
+        const score = response.data.data?.score ?? 0;
+
+        setNabhScore(score);
+        setFormData(prev => ({
+          ...prev,
+          nabhScore: score,
+        }));
+        setNabhSubmitted(true);
+        setShowNabhModal(false);
+        setErrors(prev => ({ ...prev, nabhScore: '' }));
+
+      }
+    } catch (error) {
+      console.error("Error saving NABH answers:", error);
     }
-  } catch (error) {
-    console.error("Error saving NABH answers:", error);
-  }
-};
+  };
 
 
   // ✅ Save to localStorage for frontend-only preview/debug
@@ -870,32 +974,32 @@ const handleNabhSubmit = async () => {
     console.log('📦 Loaded from localStorage for preview:', previewFromLocalStorage)
 
     try {
-   const convertIfExists = async (file) => {
-  if (!file) return ''
-  if (file instanceof Blob) return await convertFileToBase64(file)
-  return file // already Base64 string
-}
-    const convertMultipleIfExists = async (files) => {
-  if (!Array.isArray(files)) return []
-  return await Promise.all(
-    files.map(file => (file instanceof Blob ? convertFileToBase64(file) : file))
-  )
-}
+      const convertIfExists = async (file) => {
+        if (!file) return ''
+        if (file instanceof Blob) return await convertFileToBase64(file)
+        return file // already Base64 string
+      }
+      const convertMultipleIfExists = async (files) => {
+        if (!Array.isArray(files)) return []
+        return await Promise.all(
+          files.map(file => (file instanceof Blob ? convertFileToBase64(file) : file))
+        )
+      }
       // Usage
-     const hospitalLogoBase64 = await convertIfExists(formData.hospitalLogo);
-const hospitalDocumentsBase64 = await convertIfExists(formData.hospitalDocuments);
-const hospitalContractBase64 = await convertIfExists(formData.hospitalContract);
-const clinicalEstablishmentCertificateBase64 = await convertIfExists(formData.clinicalEstablishmentCertificate);
-const businessRegistrationCertificateBase64 = await convertIfExists(formData.businessRegistrationCertificate);
-const drugLicenseCertificateBase64 = await convertIfExists(formData.drugLicenseCertificate);
-const drugLicenseFormTypeBase64 = await convertIfExists(formData.drugLicenseFormType);
-const pharmacistCertificateBase64 = await convertIfExists(formData.pharmacistCertificate);
-const biomedicalWasteManagementAuthBase64 = await convertIfExists(formData.biomedicalWasteManagementAuth);
-const tradeLicenseBase64 = await convertIfExists(formData.tradeLicense);
-const fireSafetyCertificateBase64 = await convertIfExists(formData.fireSafetyCertificate);
-const professionalIndemnityInsuranceBase64 = await convertIfExists(formData.professionalIndemnityInsurance);
-const gstRegistrationCertificateBase64 = await convertIfExists(formData.gstRegistrationCertificate);
-const othersBase64 = await convertMultipleIfExists(formData.others);
+      const hospitalLogoBase64 = await convertIfExists(formData.hospitalLogo);
+      const hospitalDocumentsBase64 = await convertIfExists(formData.hospitalDocuments);
+      const hospitalContractBase64 = await convertIfExists(formData.hospitalContract);
+      const clinicalEstablishmentCertificateBase64 = await convertIfExists(formData.clinicalEstablishmentCertificate);
+      const businessRegistrationCertificateBase64 = await convertIfExists(formData.businessRegistrationCertificate);
+      const drugLicenseCertificateBase64 = await convertIfExists(formData.drugLicenseCertificate);
+      const drugLicenseFormTypeBase64 = await convertIfExists(formData.drugLicenseFormType);
+      const pharmacistCertificateBase64 = await convertIfExists(formData.pharmacistCertificate);
+      const biomedicalWasteManagementAuthBase64 = await convertIfExists(formData.biomedicalWasteManagementAuth);
+      const tradeLicenseBase64 = await convertIfExists(formData.tradeLicense);
+      const fireSafetyCertificateBase64 = await convertIfExists(formData.fireSafetyCertificate);
+      const professionalIndemnityInsuranceBase64 = await convertIfExists(formData.professionalIndemnityInsurance);
+      const gstRegistrationCertificateBase64 = await convertIfExists(formData.gstRegistrationCertificate);
+      const othersBase64 = await convertMultipleIfExists(formData.others);
       const formatToAMPM = (time24) => {
         const [hourStr, minuteStr] = time24.split(':')
         let hour = parseInt(hourStr, 10)
@@ -932,7 +1036,7 @@ const othersBase64 = await convertMultipleIfExists(formData.others);
         professionalIndemnityInsurance: professionalIndemnityInsuranceBase64,
         gstRegistrationCertificate: gstRegistrationCertificateBase64,
         others: othersBase64,
-        freeFollowUps:formData.freeFollowUps,
+        freeFollowUps: formData.freeFollowUps,
         instagramHandle: formData.instagramHandle,
         twitterHandle: formData.twitterHandle,
         facebookHandle: formData.facebookHandle,
@@ -941,11 +1045,11 @@ const othersBase64 = await convertMultipleIfExists(formData.others);
           ? `${formData.consultationExpiration} days`
           : '',
         subscription: formData.subscription,
-        latitude:formData.latitude,
-        longitude:formData.longitude,
-        walkthrough:formData.walkthrough,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        walkthrough: formData.walkthrough,
         nabhScore: formData.nabhScore,
-        branch:formData.branch,
+        branch: formData.branch,
       }
 
       // API Submission
@@ -1000,51 +1104,57 @@ const othersBase64 = await convertMultipleIfExists(formData.others);
                   <span className="text-danger">*</span>
                 </CFormLabel>
                 <CFormInput
-  type="text"
-  name="name"
-  value={formData.name || ""}
-  onChange={(e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));  // <-- save the value
+                  type="text"
+                  name="name"
+                  value={formData.name || ""}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setFormData((prev) => ({ ...prev, [name]: value }));  // <-- save the value
 
-    // validate dynamically
-    const error =
-      !value.trim()
-        ? "Clinic name is required"
-        : !/^[a-zA-Z\s]{2,50}$/.test(value)
-        ? "Clinic name must contain only letters (2–50 chars)"
-        : "";
+                    // validate dynamically
+                    const error =
+                      !value.trim()
+                        ? "Clinic name is required"
+                        : !/^[a-zA-Z\s]{2,50}$/.test(value)
+                          ? "Clinic name must contain only letters (2–50 chars)"
+                          : "";
 
-    setErrors((prev) => ({ ...prev, [name]: error || undefined }));
-  }}
-  onKeyDown={preventNumberInput}
-  invalid={!!errors.name}
-/>
-{errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
+                    setErrors((prev) => ({ ...prev, [name]: error || undefined }));
+                  }}
+                  onKeyDown={preventNumberInput}
+                  invalid={!!errors.name}
+                />
+                {errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
               </CCol>
               <CCol md={6}>
                 <CFormLabel>
                   Email Address<span className="text-danger">*</span>
                 </CFormLabel>
-                <CFormInput
-                  type="email"
-                  name="emailAddress"
-                  value={formData.emailAddress || ""}
-                  onChange={(e)=>{
-                    const {name, value}=e.target;
-                    setFormData((prev)=>({...prev, [name]:value}))
-                    const emailRegex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    let error="";
-                    if(!value.trim){
-                      error="Email is required"
-                    }else if(!emailRegex.test(value.trim())){
-                      error='Email must contain "@" and "." in a valid format';
-                    }
-                    setErrors((prev)=>({...prev, [name]:error || undefined}));
-                  }}
-                  invalid={!!errors.emailAddress}
-                  // feedbackInvalid={errors.emailAddress}
-                />
+               <CFormInput
+  type="email"
+  name="emailAddress"
+  value={formData.emailAddress || ""}
+  onChange={(e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let error = "";
+
+    if (!value.trim()) {
+      error = "Email is required";
+    } else if (value.includes(' ')) {
+      error = "Email cannot contain spaces";
+    } else if (!emailRegex.test(value.trim())) {
+      error = 'Email must contain "@" and "." in a valid format';
+    }
+
+    setErrors((prev) => ({ ...prev, [name]: error || undefined }));
+  }}
+  invalid={!!errors.emailAddress}
+/>
+
 
                 {errors.emailAddress && (
                   <CFormFeedback invalid>{errors.emailAddress}</CFormFeedback>
@@ -1052,37 +1162,56 @@ const othersBase64 = await convertMultipleIfExists(formData.others);
               </CCol>
             </CRow>
             <CRow className="mb-3">
-              <CCol md={6}>
-                <CFormLabel>
-                  Contact Number<span style={{ color: 'red' }}>*</span>
-                </CFormLabel>
-                <CFormInput
-                  type="tel"
-                  name="contactNumber"
-                  value={formData.contactNumber}
-                  onChange={handleInputChange}
-                  maxLength="10"
-                  invalid={!!errors.contactNumber}
-                />
-                {errors.contactNumber && (
-                  <CFormFeedback invalid>{errors.contactNumber}</CFormFeedback>
-                )}
-              </CCol>
+           <CCol md={6}>
+  <CFormLabel>
+    Contact Number<span style={{ color: 'red' }}>*</span>
+  </CFormLabel>
+<CFormInput
+  type="tel"
+  name="contactNumber"
+  value={formData.contactNumber}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    handleInputChange({ target: { name: 'contactNumber', value } });
+  }}
+  maxLength={10}
+  invalid={!!errors.contactNumber}
+/>
+  {errors.contactNumber && (
+    <CFormFeedback invalid>{errors.contactNumber}</CFormFeedback>
+  )}
+</CCol>
+
               <CCol md={6}>
                 <CFormLabel>
                   Website<span style={{ color: 'red' }}>*</span>
                 </CFormLabel>
-                <CFormInput
-                  type="text"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleInputChange}
-                  onBlur={handleWebsiteBlur}
-                  invalid={!!errors.website}
-                />
-                {errors.website && (
-                  <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.website}</div>
-                )}
+              <CFormInput
+  type="text"
+  name="website"
+  value={formData.website}
+  onChange={(e) => {
+    const { name, value } = e.target;
+
+    // Update form data
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Real-time validation
+    let error = '';
+    if (!value.trim()) {
+      error = 'Website is required';
+    } else if (!/^https?:\/\/[^\s]+$/.test(value.trim())) {
+      error = 'Website must start with http:// or https:// and contain no spaces';
+    }
+
+    setErrors((prev) => ({ ...prev, [name]: error || undefined }));
+  }}
+  invalid={!!errors.website}
+/>
+{errors.website && (
+  <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.website}</div>
+)}
+
               </CCol>
             </CRow>
             <CRow className="mb-3">
@@ -1122,7 +1251,7 @@ const othersBase64 = await convertMultipleIfExists(formData.others);
                     disabled={loadingTimings}
                   >
                     <option value="">Select Closing Time</option>
-                    
+
                     {timings.map((slot, idx) => (
                       <option key={idx} value={slot.closingTime}>
                         {slot.closingTime}
@@ -1237,41 +1366,79 @@ const othersBase64 = await convertMultipleIfExists(formData.others);
               </CCol>
             </CRow>
             <CRow className="mb-3">
-              <CCol md={6}>
-                <CFormLabel>
-                  Hospital Logo<span className="text-danger">*</span>
-                </CFormLabel>
-                <FileInputWithRemove
-                  name="hospitalLogo"
-                  file={formData.hospitalLogo}
-                  error={errors.hospitalLogo}
-                  onChange={handleFileChange}
-                  onRemove={(name) => {
-setFormData(prev => ({ ...prev, hospitalLogo: file }))
-                    setErrors((prev) => ({ ...prev, [name]: '' }))
-                  }}
-                  accept="image/*"
-                  invalid={!!errors.hospitalLogo}
-                />
-              </CCol>
+              {/* <CCol md={6}>
+    <CFormLabel>
+      Hospital Logo<span className="text-danger">*</span>
+    </CFormLabel>
+    <FileInputWithRemove
+      name="hospitalLogo"
+      file={formData.hospitalLogo}
+      error={errors.hospitalLogo}
+      onChange={handleFileChange}
+      accept=".pdf,.doc,.docx,.jpeg,.png"
+      onRemove={(name) => {
+        setFormData((prev) => ({ ...prev, [name]: '' }))  // 👈 clear the field
+        setErrors((prev) => ({ ...prev, [name]: '' }))
+      }}
+     
+      invalid={!!errors.hospitalLogo}
+    />
+  </CCol> */}
+               
+
+<CCol md={6} className="position-relative">
+  <CFormLabel>
+    Hospital Logo<span className="text-danger">*</span>
+  </CFormLabel>
+  <div className="position-relative">
+ <CFormInput
+  type="file"
+  name="hospitalLogo"
+  onChange={handleHospitalLogoChange}
+  accept=".pdf,.doc,.docx,.jpeg,.jpg,.png,.zip"
+  invalid={!!errors.hospitalLogo}
+  ref={fileInputRef}
+
+/>
+
+    {formData?.hospitalLogo?.fileName && (
+      <CButton
+        type="button"
+        size="sm"
+        color="danger"
+        className="position-absolute end-0 top-50 translate-middle-y me-2"
+        onClick={() => handleClearFile('hospitalLogo', fileInputRef)}
+      >
+        ✕
+      </CButton>
+    )}
+  </div>
+  {errors.hospitalLogo && (
+    <CFormFeedback invalid>{errors.hospitalLogo}</CFormFeedback>
+  )}
+</CCol>
+
+
+
               <CCol md={6}>
                 <CTooltip content="Issued by Local Fire Department">
                   <CFormLabel>
                     Hospital Documents<span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-           <CFormInput
-  type="file"
-  name="hospitalDocuments"
-  onChange={handleFileChange}
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.hospitalDocuments}
-/>
-{errors.hospitalDocuments && (
-  <CFormFeedback invalid>{errors.hospitalDocuments}</CFormFeedback>
-)}
+                <CFormInput
+                  type="file"
+                  name="hospitalDocuments"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.jpeg,.png"
+                  invalid={!!errors.hospitalDocuments}
+                />
+                {errors.hospitalDocuments && (
+                  <CFormFeedback invalid>{errors.hospitalDocuments}</CFormFeedback>
+                )}
               </CCol>
             </CRow>
+
             <CRow className="mb-3">
               <CCol md={6} className="mb-2">
                 <CTooltip content="Issued by Registrar of Companies or local municipal body">
@@ -1280,14 +1447,14 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-              <CFormInput
-  type="file"
-  name="clinicalEstablishmentCertificate"
-  id="clinicalReg"
-  onChange={handleFileChange}   // 🔥 reuse one function
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.clinicalEstablishmentCertificate}
-/>
+                <CFormInput
+                  type="file"
+                  name="clinicalEstablishmentCertificate"
+                  id="clinicalReg"
+                  onChange={handleFileChange}   // 🔥 reuse one function
+                  accept=".pdf,.doc,.docx,.jpeg,.png"
+                  invalid={!!errors.clinicalEstablishmentCertificate}
+                />
                 {errors.clinicalEstablishmentCertificate && (
                   <CFormFeedback invalid>{errors.clinicalEstablishmentCertificate}</CFormFeedback>
                 )}
@@ -1299,19 +1466,19 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     Business Registration Certificate <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-            <CFormInput
-  type="file"
-  id="businessReg"
-  name="businessRegistrationCertificate"
-  onChange={handleFileChange}   // 🔥 reuse one handler
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.businessRegistrationCertificate}
-/>
-{errors.businessRegistrationCertificate && (
-  <CFormFeedback invalid>
-    {errors.businessRegistrationCertificate}
-  </CFormFeedback>
-)}
+                <CFormInput
+                  type="file"
+                  id="businessReg"
+                  name="businessRegistrationCertificate"
+                  onChange={handleFileChange}   // 🔥 reuse one handler
+                  accept=".pdf,.doc,.docx,.jpeg,.png"
+                  invalid={!!errors.businessRegistrationCertificate}
+                />
+                {errors.businessRegistrationCertificate && (
+                  <CFormFeedback invalid>
+                    {errors.businessRegistrationCertificate}
+                  </CFormFeedback>
+                )}
 
               </CCol>
             </CRow>
@@ -1347,20 +1514,20 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-        <CFormInput
-  type="file"
-  id="indemnity"
-  name="professionalIndemnityInsurance"
-  onChange={handleFileChange} // ✅ single-file handler
-  accept=".pdf,.doc,.docx,.jpeg,.png" // no `multiple`
-  invalid={!!errors.professionalIndemnityInsurance}
-/>
+                <CFormInput
+                  type="file"
+                  id="indemnity"
+                  name="professionalIndemnityInsurance"
+                  onChange={handleFileChange} // ✅ single-file handler
+                  accept=".pdf,.doc,.docx,.jpeg,.png" // no `multiple`
+                  invalid={!!errors.professionalIndemnityInsurance}
+                />
 
-{errors.professionalIndemnityInsurance && (
-  <CFormFeedback invalid>
-    {errors.professionalIndemnityInsurance}
-  </CFormFeedback>
-)}
+                {errors.professionalIndemnityInsurance && (
+                  <CFormFeedback invalid>
+                    {errors.professionalIndemnityInsurance}
+                  </CFormFeedback>
+                )}
 
 
               </CCol>
@@ -1396,17 +1563,17 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-              <CFormInput
-  type="file"
-  id="biomedicalWaste"
-  name="biomedicalWasteManagementAuth"
-  onChange={handleFileChange}
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.biomedicalWasteManagementAuth}
-/>
-{errors.biomedicalWasteManagementAuth && (
-  <CFormFeedback invalid>{errors.biomedicalWasteManagementAuth}</CFormFeedback>
-)}
+                <CFormInput
+                  type="file"
+                  id="biomedicalWaste"
+                  name="biomedicalWasteManagementAuth"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.jpeg,.png"
+                  invalid={!!errors.biomedicalWasteManagementAuth}
+                />
+                {errors.biomedicalWasteManagementAuth && (
+                  <CFormFeedback invalid>{errors.biomedicalWasteManagementAuth}</CFormFeedback>
+                )}
 
               </CCol>
             </CRow>
@@ -1417,17 +1584,17 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                   <CTooltip content="Issued by State Drug Control Department">
                     <CFormLabel>Drug License Certificate <span className="text-danger">*</span></CFormLabel>
                   </CTooltip>
-                 <CFormInput
-  type="file"
-  id="drugLicenseCertificate"
-  name="drugLicenseCertificate"
-  onChange={handleFileChange}   // 🔥 universal handler
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.drugLicenseCertificate}
-/>
-{errors.drugLicenseCertificate && (
-  <CFormFeedback invalid>{errors.drugLicenseCertificate}</CFormFeedback>
-)}
+                  <CFormInput
+                    type="file"
+                    id="drugLicenseCertificate"
+                    name="drugLicenseCertificate"
+                    onChange={handleFileChange}   // 🔥 universal handler
+                    accept=".pdf,.doc,.docx,.jpeg,.png"
+                    invalid={!!errors.drugLicenseCertificate}
+                  />
+                  {errors.drugLicenseCertificate && (
+                    <CFormFeedback invalid>{errors.drugLicenseCertificate}</CFormFeedback>
+                  )}
 
                 </CCol>
 
@@ -1435,17 +1602,17 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                   <CTooltip content="Issued by State Drug Control Department">
                     <CFormLabel>DrugLicenseFormType 20/21 <span className="text-danger">*</span></CFormLabel>
                   </CTooltip>
-                <CFormInput
-  type="file"
-  id="Form20/21"
-  name="drugLicenseFormType"
-  onChange={handleFileChange}   // 🔥 reuse one function
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.drugLicenseFormType}
-/>
-{errors.drugLicenseFormType && (
-  <CFormFeedback invalid>{errors.drugLicenseFormType}</CFormFeedback>
-)}
+                  <CFormInput
+                    type="file"
+                    id="Form20/21"
+                    name="drugLicenseFormType"
+                    onChange={handleFileChange}   // 🔥 reuse one function
+                    accept=".pdf,.doc,.docx,.jpeg,.png"
+                    invalid={!!errors.drugLicenseFormType}
+                  />
+                  {errors.drugLicenseFormType && (
+                    <CFormFeedback invalid>{errors.drugLicenseFormType}</CFormFeedback>
+                  )}
 
                 </CCol>
               </CRow>
@@ -1458,16 +1625,16 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-               <CFormInput
-  type="file"
-  name="tradeLicense"
-  onChange={handleFileChange}   // 🔥 centralized handler
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.tradeLicense}
-/>
-{errors.tradeLicense && (
-  <CFormFeedback invalid>{errors.tradeLicense}</CFormFeedback>
-)}
+                <CFormInput
+                  type="file"
+                  name="tradeLicense"
+                  onChange={handleFileChange}   // 🔥 centralized handler
+                  accept=".pdf,.doc,.docx,.jpeg,.png"
+                  invalid={!!errors.tradeLicense}
+                />
+                {errors.tradeLicense && (
+                  <CFormFeedback invalid>{errors.tradeLicense}</CFormFeedback>
+                )}
 
               </CCol>
 
@@ -1478,17 +1645,17 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-              <CFormInput
-  type="file"
-  id="fireSafety"
-  name="fireSafetyCertificate"
-  onChange={handleFileChange}   // 🔥 centralized handler
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.fireSafetyCertificate}
-/>
-{errors.fireSafetyCertificate && (
-  <CFormFeedback invalid>{errors.fireSafetyCertificate}</CFormFeedback>
-)}
+                <CFormInput
+                  type="file"
+                  id="fireSafety"
+                  name="fireSafetyCertificate"
+                  onChange={handleFileChange}   // 🔥 centralized handler
+                  accept=".pdf,.doc,.docx,.jpeg,.png"
+                  invalid={!!errors.fireSafetyCertificate}
+                />
+                {errors.fireSafetyCertificate && (
+                  <CFormFeedback invalid>{errors.fireSafetyCertificate}</CFormFeedback>
+                )}
 
               </CCol>
             </CRow>
@@ -1501,148 +1668,148 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-               <CFormInput
-  type="file"
-  id="gstCert"
-  name="gstRegistrationCertificate"
-  onChange={handleFileChange}   // 🔥 centralized handler
-  accept=".pdf,.doc,.docx,.jpeg,.png"
-  invalid={!!errors.gstRegistrationCertificate}
-/>
-{errors.gstRegistrationCertificate && (
-  <CFormFeedback invalid>{errors.gstRegistrationCertificate}</CFormFeedback>
-)}
+                <CFormInput
+                  type="file"
+                  id="gstCert"
+                  name="gstRegistrationCertificate"
+                  onChange={handleFileChange}   // 🔥 centralized handler
+                  accept=".pdf,.doc,.docx,.jpeg,.png"
+                  invalid={!!errors.gstRegistrationCertificate}
+                />
+                {errors.gstRegistrationCertificate && (
+                  <CFormFeedback invalid>{errors.gstRegistrationCertificate}</CFormFeedback>
+                )}
 
               </CCol>
 
-            <CCol md={6}>
-  <CTooltip content="NABH Accreditation / Aesthetic Procedure Training Certificate">
-    <CFormLabel>Others (NABH / Aesthetic Training)</CFormLabel>
-  </CTooltip>
-<CFormInput
-  type="file"
-  name="others"
-  ref={fileInputRefs.others} // use `ref` not `inputref9`
-  onChange={(e) => handleAppendFiles(e, 'others', 6)}
-  multiple
-  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
-  invalid={!!errors.others}
-/>
+              <CCol md={6}>
+                <CTooltip content="NABH Accreditation / Aesthetic Procedure Training Certificate">
+                  <CFormLabel>Others (NABH / Aesthetic Training)</CFormLabel>
+                </CTooltip>
+                <CFormInput
+                  type="file"
+                  name="others"
+                  ref={fileInputRefs.others} // use `ref` not `inputref9`
+                  onChange={(e) => handleAppendFiles(e, 'others', 6)}
+                  multiple
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+                  invalid={!!errors.others}
+                />
 
 
-  {errors.others && <CFormFeedback invalid>{errors.others}</CFormFeedback>}
+                {errors.others && <CFormFeedback invalid>{errors.others}</CFormFeedback>}
 
-  {/* Display selected file names below input */}
-  {Array.isArray(formData.others) && formData.others.length > 0 && (
-    <div className="mt-2">
-      {formData.others.map((file, index) => (
-        <div
-          key={index}
-          className="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1"
-        >
-          <small className="text-dark">{file.name}</small>
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-danger"
-            onClick={() => {
-              const updatedFiles = formData.others.filter((_, i) => i !== index)
-              setFormData((prev) => ({
-                ...prev,
-                others: updatedFiles,
-              }))
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      ))}
-    </div>
-  )}
-</CCol>
+                {/* Display selected file names below input */}
+                {Array.isArray(formData.others) && formData.others.length > 0 && (
+                  <div className="mt-2">
+                    {formData.others.map((file, index) => (
+                      <div
+                        key={index}
+                        className="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1"
+                      >
+                        <small className="text-dark">{file.name}</small>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => {
+                            const updatedFiles = formData.others.filter((_, i) => i !== index)
+                            setFormData((prev) => ({
+                              ...prev,
+                              others: updatedFiles,
+                            }))
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CCol>
 
             </CRow>
             <CRow>
               <CCol md={6}>
-               <CRow >
-               
-<CCol md={6}>
-  <CFormLabel>
-    Consultation Expiration (in days) <span className="text-danger">*</span>
-  </CFormLabel>
-  <CFormInput
-  type="text"
-  name="consultationExpiration"
-  value={formData.consultationExpiration}
-  onChange={(e) => {
-    let value = e.target.value.replace(/\D/g, ""); // allow only digits
-    if (value.length > 2) value = value.slice(0, 2); // limit to 2 digits
+                <CRow >
 
-    setFormData((prev) => ({
-      ...prev,
-      consultationExpiration: value,
-    }));
+                  <CCol md={6}>
+                    <CFormLabel>
+                      Consultation Expiration (in days) <span className="text-danger">*</span>
+                    </CFormLabel>
+                    <CFormInput
+                      type="text"
+                      name="consultationExpiration"
+                      value={formData.consultationExpiration}
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/\D/g, ""); // allow only digits
+                        if (value.length > 2) value = value.slice(0, 2); // limit to 2 digits
 
-    // Clear error if valid
-    if (value) {
-      setErrors((prev) => ({
-        ...prev,
-        consultationExpiration: "",
-      }));
-    } else {
-      // Add error again if empty
-      setErrors((prev) => ({
-        ...prev,
-        consultationExpiration: "Consultation Expiration is required",
-      }));
-    }
-  }}
-  onBlur={(e) => {
-    let value = e.target.value;
-    if (value.length === 1) {
-      value = value.padStart(2, "0"); // add leading zero
-    }
+                        setFormData((prev) => ({
+                          ...prev,
+                          consultationExpiration: value,
+                        }));
 
-    setFormData((prev) => ({
-      ...prev,
-      consultationExpiration: value,
-    }));
+                        // Clear error if valid
+                        if (value) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            consultationExpiration: "",
+                          }));
+                        } else {
+                          // Add error again if empty
+                          setErrors((prev) => ({
+                            ...prev,
+                            consultationExpiration: "Consultation Expiration is required",
+                          }));
+                        }
+                      }}
+                      onBlur={(e) => {
+                        let value = e.target.value;
+                        if (value.length === 1) {
+                          value = value.padStart(2, "0"); // add leading zero
+                        }
 
-    // Double check on blur (so if user tabs away empty field, error comes back)
-    if (!value) {
-      setErrors((prev) => ({
-        ...prev,
-        consultationExpiration: "Consultation Expiration is required",
-      }));
-    }
-  }}
-  placeholder="Enter consultation days (01-99)"
-  invalid={!!errors.consultationExpiration}
-/>
-  {errors.consultationExpiration && (
-    <CFormFeedback invalid>{errors.consultationExpiration}</CFormFeedback>
-  )}
-</CCol>
+                        setFormData((prev) => ({
+                          ...prev,
+                          consultationExpiration: value,
+                        }));
+
+                        // Double check on blur (so if user tabs away empty field, error comes back)
+                        if (!value) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            consultationExpiration: "Consultation Expiration is required",
+                          }));
+                        }
+                      }}
+                      placeholder="Enter consultation days (01-99)"
+                      invalid={!!errors.consultationExpiration}
+                    />
+                    {errors.consultationExpiration && (
+                      <CFormFeedback invalid>{errors.consultationExpiration}</CFormFeedback>
+                    )}
+                  </CCol>
 
 
 
-                <CCol md={6}>
-                   <CFormLabel>
-                  No. of Free Follow Ups <span className="text-danger">*</span>
-                </CFormLabel>
-                <CFormInput
-                  type="number"
-                  name="freeFollowUps"
-                  value={formData.freeFollowUps}
-                  onChange={handleInputChange}
-                  min="1"
-                  placeholder="Enter next visit consultation count"
-                  invalid={!!errors.freeFollowUps}
-                />
-                {errors.freeFollowUps && (
-                  <CFormFeedback invalid>{errors.freeFollowUps}</CFormFeedback>
-                )}
-                </CCol>
-               </CRow>
+                  <CCol md={6}>
+                    <CFormLabel>
+                      No. of Free Follow Ups <span className="text-danger">*</span>
+                    </CFormLabel>
+                    <CFormInput
+                      type="number"
+                      name="freeFollowUps"
+                      value={formData.freeFollowUps}
+                      onChange={handleInputChange}
+                      min="1"
+                      placeholder="Enter next visit consultation count"
+                      invalid={!!errors.freeFollowUps}
+                    />
+                    {errors.freeFollowUps && (
+                      <CFormFeedback invalid>{errors.freeFollowUps}</CFormFeedback>
+                    )}
+                  </CCol>
+                </CRow>
               </CCol>
               <CCol md={6}>
                 <CFormLabel>
@@ -1724,264 +1891,266 @@ setFormData(prev => ({ ...prev, hospitalLogo: file }))
                   <CFormFeedback invalid>{errors.hasPharmacist}</CFormFeedback>
                 )}
               </CCol>
-            {selectedPharmacistOption === 'Yes' && (
-  <CCol md={6}>
-    <CTooltip content="Valid Pharmacist Registration Certificate">
-      <CFormLabel>
-        Pharmacist Certificate <span className="text-danger">*</span>
-      </CFormLabel>
-    </CTooltip>
+              {selectedPharmacistOption === 'Yes' && (
+                <CCol md={6}>
+                  <CTooltip content="Valid Pharmacist Registration Certificate">
+                    <CFormLabel>
+                      Pharmacist Certificate <span className="text-danger">*</span>
+                    </CFormLabel>
+                  </CTooltip>
 
-    <CFormInput
-      type="file"
-      id="pharmacistCert"
-      name="pharmacistCertificate"
-      onChange={handleFileChange} // ✅ reuse function
-      accept=".pdf,.doc,.docx,.jpeg,.png"
-      invalid={!!errors.pharmacistCertificate}
-    />
+                  <CFormInput
+                    type="file"
+                    id="pharmacistCert"
+                    name="pharmacistCertificate"
+                    onChange={handleFileChange} // ✅ reuse function
+                    accept=".pdf,.doc,.docx,.jpeg,.png"
+                    invalid={!!errors.pharmacistCertificate}
+                  />
 
-    {errors.pharmacistCertificate && (
-      <CFormFeedback invalid>{errors.pharmacistCertificate}</CFormFeedback>
-    )}
-  </CCol>
-)}
+                  {errors.pharmacistCertificate && (
+                    <CFormFeedback invalid>{errors.pharmacistCertificate}</CFormFeedback>
+                  )}
+                </CCol>
+              )}
 
             </CRow>
-              {/* ✅ Clinic Coordinates */}
-<CRow className="mb-3">
-  <CCol md={6}>
-    <CFormLabel>
-      Clinic Latitude <span className="text-danger">*</span>
-    </CFormLabel>
-    <CFormInput
-  type="number"
-  step="any"
-  placeholder="Enter latitude"
-  value={formData.latitude || ""}
-  onChange={(e) => {
-    const { value } = e.target;
-    setFormData((prev) => ({ ...prev, latitude: value }));
+            {/* ✅ Clinic Coordinates */}
+            <CRow className="mb-3">
+              <CCol md={6}>
+                <CFormLabel>
+                  Clinic Latitude <span className="text-danger">*</span>
+                </CFormLabel>
+                <CFormInput
+                  type="number"
+                  step="any"
+                  placeholder="Enter latitude"
+                  value={formData.latitude || ""}
+                  onChange={(e) => {
+                    const { value } = e.target;
+                    setFormData((prev) => ({ ...prev, latitude: value }));
 
-    // validate immediately
-    const lat = parseFloat(value);
-    let error = "";
-    if (!value) {
-      error = "Latitude is required";
-    } else if (isNaN(lat) || lat < -90 || lat > 90) {
-      error = "Latitude must be between -90 and 90";
-    }
+                    // validate immediately
+                    const lat = parseFloat(value);
+                    let error = "";
+                    if (!value) {
+                      error = "Latitude is required";
+                    } else if (isNaN(lat) || lat < -90 || lat > 90) {
+                      error = "Latitude must be between -90 and 90";
+                    }
 
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      if (error) {
-        newErrors.latitude = error;
-      } else {
-        delete newErrors.latitude; // ✅ remove error when valid
-      }
-      return newErrors;
-    });
-  }}
-  invalid={!!errors.latitude}
-/>
-{errors.latitude && (
-  <CFormFeedback invalid>{errors.latitude}</CFormFeedback>
-)}
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      if (error) {
+                        newErrors.latitude = error;
+                      } else {
+                        delete newErrors.latitude; // ✅ remove error when valid
+                      }
+                      return newErrors;
+                    });
+                  }}
+                  invalid={!!errors.latitude}
+                />
+                {errors.latitude && (
+                  <CFormFeedback invalid>{errors.latitude}</CFormFeedback>
+                )}
 
-  </CCol>
+              </CCol>
 
-  <CCol md={6}>
-    <CFormLabel>
-      Clinic Longitude <span className="text-danger">*</span>
-    </CFormLabel>
-    <CFormInput
-  type="number"
-  step="any"
-  placeholder="Enter longitude"
-  value={formData.longitude || ""}
-  onChange={(e) => {
-    const { value } = e.target;
-    setFormData((prev) => ({ ...prev, longitude: value }));
+              <CCol md={6}>
+                <CFormLabel>
+                  Clinic Longitude <span className="text-danger">*</span>
+                </CFormLabel>
+                <CFormInput
+                  type="number"
+                  step="any"
+                  placeholder="Enter longitude"
+                  value={formData.longitude || ""}
+                  onChange={(e) => {
+                    const { value } = e.target;
+                    setFormData((prev) => ({ ...prev, longitude: value }));
 
-    // validate immediately
-    const lng = parseFloat(value);
-    let error = "";
-    if (!value) {
-      error = "Longitude is required";
-    } else if (isNaN(lng) || lng < -180 || lng > 180) {
-      error = "Longitude must be between -180 and 180";
-    }
+                    // validate immediately
+                    const lng = parseFloat(value);
+                    let error = "";
+                    if (!value) {
+                      error = "Longitude is required";
+                    } else if (isNaN(lng) || lng < -180 || lng > 180) {
+                      error = "Longitude must be between -180 and 180";
+                    }
 
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      if (error) {
-        newErrors.longitude = error;
-      } else {
-        delete newErrors.longitude; // ✅ remove error when valid
-      }
-      return newErrors;
-    });
-  }}
-  invalid={!!errors.longitude}
-/>
-{errors.longitude && (
-  <CFormFeedback invalid>{errors.longitude}</CFormFeedback>
-)}
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      if (error) {
+                        newErrors.longitude = error;
+                      } else {
+                        delete newErrors.longitude; // ✅ remove error when valid
+                      }
+                      return newErrors;
+                    });
+                  }}
+                  invalid={!!errors.longitude}
+                />
+                {errors.longitude && (
+                  <CFormFeedback invalid>{errors.longitude}</CFormFeedback>
+                )}
 
-  </CCol>
-</CRow>
+              </CCol>
+            </CRow>
 
 
-{/* ✅ Walkthrough URL */}
-<CRow className="mb-3">
-  <CCol md={6}>
-    <CFormLabel>
-      Virtual Clinic Tour <span className="text-danger"></span>
-    </CFormLabel>
- <CFormInput
+            {/* ✅ Walkthrough URL */}
+            <CRow className="mb-3">
+              <CCol md={6}>
+                <CFormLabel>
+                  Virtual Clinic Tour <span className="text-danger"></span>
+                </CFormLabel>
+               <CFormInput
   type="url"
   placeholder="https://example.com/VirtualClinicTour"
   value={formData.walkthrough || ""}
   onChange={(e) => {
     const { value } = e.target;
+
+    // Update form data
     setFormData((prev) => ({ ...prev, walkthrough: value }));
 
-    // ✅ validate URL
+    // Real-time validation
     let error = "";
-    // if (!value.trim()) {
-    //   error = "Walkthrough URL is required";
-    // } else {
+
+    if (!value.trim()) {
+      error = "Walkthrough URL is required";
+    } else if (value.includes(" ")) {
+      error = "URL cannot contain spaces";
+    } else {
       try {
         new URL(value); // throws if invalid
       } catch {
         error = "Enter a valid URL (e.g. https://example.com)";
       }
-    // }
+    }
 
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      if (error) {
-        newErrors.walkthrough = error;
-      } else {
-        delete newErrors.walkthrough; // ✅ clear error when valid
-      }
-      return newErrors;
-    });
+    // Set or clear error
+    setErrors((prev) => ({
+      ...prev,
+      walkthrough: error || undefined,
+    }));
   }}
   invalid={!!errors.walkthrough}
 />
 {errors.walkthrough && (
-  <CFormFeedback invalid>{errors.walkthrough}</CFormFeedback>
+  <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.walkthrough}</div>
 )}
 
-  </CCol>
-  {/* ✅ Branch Input */}
 
-  <CCol md={6}>
-    <CFormLabel>
-      Branch <span className="text-danger">*</span>
-    </CFormLabel>
-    <CFormInput
-      type="text"
-      placeholder="Enter branch name"
-      value={formData.branch || ""}
-      onChange={(e) =>{
-       const value = e.target.value;
+              </CCol>
+              {/* ✅ Branch Input */}
 
-    setFormData((prev) => ({ ...prev, branch: value }));
-        if(!value){
-        setErrors((prev)=>({...prev, branch:"Branch name is required"}))
-        }
-        else{
-        setErrors((prev)=>({...prev, branch:""}))
-        }
-        }}
+              <CCol md={6}>
+                <CFormLabel>
+                  Branch <span className="text-danger">*</span>
+                </CFormLabel>
+                <CFormInput
+                  type="text"
+                  placeholder="Enter branch name"
+                  value={formData.branch || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
 
-      invalid={!!errors.branch}
-    />
-    {errors.branch && <CFormFeedback invalid>{errors.branch}</CFormFeedback>}
-  </CCol>
+                    setFormData((prev) => ({ ...prev, branch: value }));
+                    if (!value) {
+                      setErrors((prev) => ({ ...prev, branch: "Branch name is required" }))
+                    }
+                    else {
+                      setErrors((prev) => ({ ...prev, branch: "" }))
+                    }
+                  }}
 
-</CRow>
+                  invalid={!!errors.branch}
+                />
+                {errors.branch && <CFormFeedback invalid>{errors.branch}</CFormFeedback>}
+              </CCol>
 
-  {/* ✅ NABH Score - Opens Modal */}
-  <CRow className="mb-3">
-    <CCol md={12} className='d-flex align-items-center'>
-      <CFormLabel className="me-3">NABH Score <span className="text-danger">*</span></CFormLabel>
-      {nabhScore!==null && (
-        <span className="me-3 fw-bold text-success">{nabhScore}</span>
-      )}
-      <CButton
-        color="primary"
-        onClick={() => !nabhSubmitted && setShowNabhModal(true)}
-        disabled={nabhSubmitted}
-      >
-        Open NABH Questionnaire
-      </CButton>
-      </CCol>
-    {errors.nabhScore && (
-      <CCol md={12}>
-        <div className="text-danger mt-1">{errors.nabhScore}</div>
-      </CCol>
-    )}  
-  </CRow>
+            </CRow>
 
-<CModal visible={showNabhModal} onClose={() => setShowNabhModal(false)} size="lg">
-  <CModalHeader>
-    <CModalTitle>NABH Questionnaire</CModalTitle>
-  </CModalHeader>
-  <CModalBody>
-    {nabhQuestions.map((question, index) => (
-      <CRow key={index} className="mb-4">
-        {/* Question with number */}
-        <CCol md={12}>
-          <CFormLabel>
-            {index + 1}. {question}
-          </CFormLabel>
-        </CCol>
+            {/* ✅ NABH Score - Opens Modal */}
+            <CRow className="mb-3">
+              <CCol md={12} className='d-flex align-items-center'>
+                <CFormLabel className="me-3">NABH Score <span className="text-danger">*</span></CFormLabel>
+                {nabhScore !== null && (
+                  <span className="me-3 fw-bold text-success">{nabhScore}</span>
+                )}
+                <CButton
+                  color="primary"
+                  onClick={() => !nabhSubmitted && setShowNabhModal(true)}
+                  disabled={nabhSubmitted}
+                >
+                  Open NABH Questionnaire
+                </CButton>
+              </CCol>
+              {errors.nabhScore && (
+                <CCol md={12}>
+                  <div className="text-danger mt-1">{errors.nabhScore}</div>
+                </CCol>
+              )}
+            </CRow>
 
-        {/* Radio buttons below the question */}
-        <CCol md={12} className="d-flex mt-2">
-      <CFormCheck
-  type="radio"
-  name={`nabh-${index}`}
-  id={`nabh-${index}-yes`}
-  label="Yes"
-  checked={nabhAnswers[index] === true}
-  onChange={() => {
-    const updated = [...nabhAnswers];
-    updated[index] = true;
-    setNabhAnswers(updated);
-  }}
-  className="me-4"
-/>
-<CFormCheck
-  type="radio"
-  name={`nabh-${index}`}
-  id={`nabh-${index}-no`}
-  label="No"
-  checked={nabhAnswers[index] === false}
-  onChange={() => {
-    const updated = [...nabhAnswers];
-    updated[index] = false;
-    setNabhAnswers(updated);
-  }}
-/>
+            <CModal visible={showNabhModal} onClose={() => setShowNabhModal(false)} size="lg">
+              <CModalHeader>
+                <CModalTitle>NABH Questionnaire</CModalTitle>
+              </CModalHeader>
+              <CModalBody>
+                {nabhQuestions.map((question, index) => (
+                  <CRow key={index} className="mb-4">
+                    {/* Question with number */}
+                    <CCol md={12}>
+                      <CFormLabel>
+                        {index + 1}. {question}
+                      </CFormLabel>
+                    </CCol>
 
-        </CCol>
-      </CRow>
-    ))}
-  </CModalBody>
-  <CModalFooter>
-    <CButton color="secondary" onClick={() => setShowNabhModal(false)}>
-      Close
-    </CButton>
-    <CButton color="primary" onClick={handleNabhSubmit}>
-      Save
-    </CButton>
-  </CModalFooter>
-</CModal>
- 
+                    {/* Radio buttons below the question */}
+                    <CCol md={12} className="d-flex mt-2">
+                      <CFormCheck
+                        type="radio"
+                        name={`nabh-${index}`}
+                        id={`nabh-${index}-yes`}
+                        label="Yes"
+                        checked={nabhAnswers[index] === true}
+                        onChange={() => {
+                          const updated = [...nabhAnswers];
+                          updated[index] = true;
+                          setNabhAnswers(updated);
+                        }}
+                        className="me-4"
+                      />
+                      <CFormCheck
+                        type="radio"
+                        name={`nabh-${index}`}
+                        id={`nabh-${index}-no`}
+                        label="No"
+                        checked={nabhAnswers[index] === false}
+                        onChange={() => {
+                          const updated = [...nabhAnswers];
+                          updated[index] = false;
+                          setNabhAnswers(updated);
+                        }}
+                      />
+
+                    </CCol>
+                  </CRow>
+                ))}
+              </CModalBody>
+              <CModalFooter>
+                <CButton color="secondary" onClick={() => setShowNabhModal(false)}>
+                  Close
+                </CButton>
+                <CButton color="primary" onClick={handleNabhSubmit}>
+                  Save
+                </CButton>
+              </CModalFooter>
+            </CModal>
+
             {errors.submit && <div className="alert alert-danger">{errors.submit}</div>}
 
             <div className="d-flex justify-content-end gap-2 mt-4">
