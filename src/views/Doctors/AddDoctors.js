@@ -46,12 +46,13 @@ import {
   CategoryData,
 } from '../categoryManagement/CategoryAPI'
 
-const AddDoctors = ({ modalVisible, setModalVisible, clinicId }) => {
+const AddDoctors = ({ modalVisible, setModalVisible, clinicId, closeForm  }) => {
     const navigate = useNavigate() // ✅ define navigate here
 
   const { doctorData, errorMessage, setDoctorData, fetchHospitalDetails, fetchDoctorDetails } =
     useHospital()
-
+const [activeTab, setActiveTab] = useState(1);
+  
   const [doctors, setDoctors] = useState([]);
 
   // const [modalVisible, setModalVisible] = useState(false)
@@ -93,7 +94,25 @@ const AddDoctors = ({ modalVisible, setModalVisible, clinicId }) => {
       return updated
     })
   }
+const [formData, setFormData] = useState({
+  doctorName: '',
+  doctorMobileNumber: '',
+  specialization: '',
+  subServices: [],
+  // ...other fields
+});
 
+const handleClose = () => {
+  // Reset the form
+  setFormData({
+    doctorName: '',
+    doctorMobileNumber: '',
+    specialization: '',
+    subServices: [],
+  });
+  // Close modal
+  closeForm();
+};
   const [form, setForm] = useState({
     doctorPicture: null, // file input or image URL
     doctorLicence: '',
@@ -103,7 +122,7 @@ const AddDoctors = ({ modalVisible, setModalVisible, clinicId }) => {
     service: [],
     subServices: [], // Note: 'subSerives' in Java, but 'subServices' is more consistent in JS
     specialization: '',
-    gender: 'Female',
+    gender: '',
     experience: '',
     qualification: '',
     associationsOrMemberships: '',
@@ -334,6 +353,10 @@ const AddDoctors = ({ modalVisible, setModalVisible, clinicId }) => {
 
     if (!form.doctorName.trim()) {
       errors.doctorName = 'Doctor name is required'
+      isValid = false
+    }
+    if (!form.gender.trim()) {
+      errors.gender = 'gender is required'
       isValid = false
     }
 
@@ -856,20 +879,22 @@ const AddDoctors = ({ modalVisible, setModalVisible, clinicId }) => {
                 }}
               />
               {!isSubServiceComplete && (
-                <div className="text-danger mt-2">
-                  Some selected Procedures are missing details like price or final cost.
-                  <br />
-                    <span
-        className="text-primary"
-        style={{ cursor: 'pointer', textDecoration: 'underline' }}
-        onClick={() =>navigate("/clinic-management/H_1?tab=3")}
-
-  
-      >
-        Please add Procedure details
-      </span>
-                </div>
-              )}
+        <div className="text-danger mt-2">
+          Some selected Procedures are missing details like price or final cost.
+          <br />
+          
+<span
+  className="text-primary"
+  style={{ cursor: "pointer", textDecoration: "underline" }}
+  onClick={() => {
+    handleClose();
+    navigate(`/clinic-management/${clinicId}?tab=5`);
+  }}
+>
+  Please add Procedure details
+</span>
+        </div>
+      )}
 
               {formErrors.subServiceName && (
                 <div className="text-danger mt-1">{formErrors.subServiceName}</div>
@@ -933,16 +958,24 @@ const AddDoctors = ({ modalVisible, setModalVisible, clinicId }) => {
               )}
             </CCol>
             <CCol md={6}>
-              <CFormLabel>Gender</CFormLabel>
+              <CFormLabel>Gender <span className="text-danger">*</span></CFormLabel>
               <CFormSelect
                 value={form.gender}
-                onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
+                onChange={(e) => {
+      setForm((p) => ({ ...p, gender: e.target.value }));
+      // Clear error immediately when user selects
+      if (e.target.value) setFormErrors((prev) => ({ ...prev, gender: '' }));
+    }}
+  invalid={!!formErrors.gender} // highlights the select in red
               >
                 <option value="">Select Gender</option> {/* Add this line */}
                 <option>Female</option>
                 <option>Male</option>
                 <option>Other</option>
               </CFormSelect>
+                {formErrors.gender && (
+    <div className="text-danger mt-1">{formErrors.gender}</div>
+  )}
             </CCol>
             <CCol md={6}>
               <CFormLabel>

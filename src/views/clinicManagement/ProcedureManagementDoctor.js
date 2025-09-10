@@ -257,7 +257,7 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
   // Open for editing
 
   const openEditModal = async (service) => {
-    console.log('hello there', service.subServiceId)
+    
     setSubServiceId(service.subServiceId)
     setModalMode('edit')
     setModalVisible(true)
@@ -607,6 +607,7 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
   const validateForm = () => {
     const newErrors = {}
 
+
     if (!newService.serviceName) {
       newErrors.serviceName = 'Service name is required.'
     }
@@ -614,7 +615,10 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
     if (!newService.categoryName) {
       newErrors.categoryName = 'Category is required.'
     }
-
+    if (!newService.subServiceName){
+      newErrors.subServiceName='Procedure Name is required'
+    }
+   
     if (!newService.price) {
       newErrors.price = 'price is required.'
     } else if (isNaN(newService.price)) {
@@ -723,6 +727,8 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
     }
   }
   const handleAddService = async () => {
+      const isValid = validateForm(); // ✅ Call it here
+
     console.log('--- handleAddService START ---')
 
     // Calculate derived values before sending
@@ -1044,8 +1050,7 @@ const handleChanges = async (e) => {
       const res = await axios.get(`${BASE_URL}/${getservice}/${value}`)
       const serviceList = res.data?.data || []
       setServiceOptions(serviceList)
-        console.log(newService)
-  console.log(viewService)
+        console.log('my new service', newService)
     } catch (err) {
       console.error('Failed to fetch services:', err)
       setServiceOptions([])
@@ -1144,6 +1149,7 @@ const handleChanges = async (e) => {
               </CCol>
               <CCol sm={6}>
                 <strong>Service Id:</strong>
+              
                 <div>{viewService.serviceId}</div>
               </CCol>
             </CRow>
@@ -1249,6 +1255,7 @@ const handleChanges = async (e) => {
                   viewService.preProcedureQA.map((qa, index) => {
                     const question = Object.keys(qa)[0]
                     const answers = qa[question]
+                    console.log('my view service', viewService)
                     return (
                       <div key={index} style={{ marginBottom: '10px' }}>
                         <strong>{question}</strong>
@@ -1389,7 +1396,6 @@ const handleChanges = async (e) => {
     <CFormText className="text-danger">{errors.categoryName}</CFormText>
   )}
 </CCol>
-
               <CCol md={4}>
                 <h6>
                   Service Name <span className="text-danger">*</span>
@@ -1630,24 +1636,6 @@ const handleChanges = async (e) => {
                   }
                 />
               </CCol>
-            <CCol md={3}>
-                <h6>Other Taxes(%)</h6>
-                <CFormInput
-                  type="number"
-                  placeholder="Tax Percentage"
-                  value={newService.taxPercentage || ''}
-                  name="taxPercentage"
-                  onChange={handleChange}
-                  min={1}
-                  onKeyDown={(e) => {
-                    if (e.key === '-' || e.key === 'e') e.preventDefault()
-                  }}
-                />
-                {errors.taxPercentage && (
-                  <CFormText className="text-danger">{errors.taxPercentage}</CFormText>
-                )}
-              </CCol>
-
                <CCol md={3}>
                 <h6>
                   Discount (%) <span className="text-danger">*</span>
@@ -1667,6 +1655,25 @@ const handleChanges = async (e) => {
                   <CFormText className="text-danger">{errors.discount}</CFormText>
                 )}
               </CCol>
+            <CCol md={3}>
+                <h6>Other Taxes(%)</h6>
+                <CFormInput
+                  type="number"
+                  placeholder="Tax Percentage"
+                  value={newService.taxPercentage || ''}
+                  name="taxPercentage"
+                  onChange={handleChange}
+                  min={1}
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === 'e') e.preventDefault()
+                  }}
+                />
+                {errors.taxPercentage && (
+                  <CFormText className="text-danger">{errors.taxPercentage}</CFormText>
+                )}
+              </CCol>
+
+              
             </CRow>
 
             <h6 className="m-3">Procedure (Optional)</h6>

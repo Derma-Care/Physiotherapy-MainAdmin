@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import {
   CCard,
   CCardBody,
@@ -37,10 +37,10 @@ import { BASE_URL, UpdateClinic, DeleteClinic } from '../../baseUrl'
 import capitalizeWords from '../../Utils/capitalizeWords'
 import { toast } from 'react-toastify'
 import AddDoctors from '../Doctors/AddDoctors'
-
+import { useNavigate, useLocation } from "react-router-dom";
 const ClinicDetails = () => {
   const { hospitalId } = useParams()
-  const navigate = useNavigate()
+
   const [formErrors, setFormErrors] = useState({})
   const [clinicData, setClinicData] = useState(null)
   const [editableClinicData, setEditableClinicData] = useState({
@@ -48,7 +48,10 @@ const ClinicDetails = () => {
   })
   const [timings, setTimings] = useState([])
   const [isEditing, setIsEditing] = useState(false)
-  const [activeTab, setActiveTab] = useState(0)
+   const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(0);
+  
   const [loading, setLoading] = useState(true)
   const [loadingTimings, setLoadingTimings] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -137,7 +140,11 @@ const ClinicDetails = () => {
   //   '06:00 PM',
   //   '07:00 PM',
   // ]
-
+ useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    setActiveTab(tab ? Number(tab) : 0);
+  }, [location.search]);
   const fetchClinicDetails = async () => {
     setLoading(true)
     try {
@@ -211,7 +218,10 @@ const ClinicDetails = () => {
   const updateClinicData = async (id, data) => {
     await axios.put(`${BASE_URL}/${UpdateClinic}/${id}`, data)
   }
-
+  const handleTabChange = (tabIndex) => {
+    setActiveTab(tabIndex);
+    navigate(`/clinic-management/${hospitalId}?tab=${tabIndex}`);
+  };
   const handleDeleteClinic = async () => {
     try {
       const res = await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId}`)
@@ -231,57 +241,85 @@ const ClinicDetails = () => {
 
   return (
     <CCard className="mt-4">
-      <CCardHeader>
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <CButton color="secondary" onClick={() => navigate(-1)}>
-            Back
-          </CButton>
-          <h4 className="mb-0">Clinic Details</h4>
-          {/* <CButton color="primary me-5" onClick={() => navigate('/add-doctor')}>
-            Add Doctor
-          </CButton> */}
-          {activeTab===3 &&(
-<div className="d-flex justify-content-end w-100 mb-3">
-                  <button
-                    className="btn btn-info text-white d-flex align-items-center gap-2 shadow-sm rounded-pill px-4 py-2"
-                    onClick={() => {
-                      setFormErrors({})
-                      setModalVisible(true)
-                    }}
-                    style={{
-                      background: 'linear-gradient(90deg, #0072CE 0%, #00AEEF 100%)',
-                      border: 'none',
-                      fontWeight: '600',
-                      fontSize: '16px',
-                    }}
-                  >
-                    <CIcon icon={cilUser} size="lg" />
-                    <span>Add Doctor</span>
-                  </button>
-                </div>
-          )}
-                <AddDoctors modalVisible={modalVisible} setModalVisible={setModalVisible} clinicId={hospitalId} />
+    <CCardHeader>
+  <div className="d-flex justify-content-between align-items-center mb-3 w-100">
+    {/* Left: Back Button */}
+    <CButton color="secondary" onClick={() => navigate(-1)}>
+      Back
+    </CButton>
 
-        </div>
-      </CCardHeader>
+    {/* Center: Title */}
+    <h4 className="mb-0 text-center flex-grow-1">Clinic Details</h4>
+
+    {/* Right: Add Doctor Button */}
+    {activeTab === 3 && (
+      <button
+        className="btn btn-info text-white d-flex align-items-center gap-2 shadow-sm rounded-pill px-4 py-2"
+        onClick={() => {
+          setFormErrors({});
+          setModalVisible(true);
+        }}
+        style={{
+          background: 'linear-gradient(90deg, #0072CE 0%, #00AEEF 100%)',
+          border: 'none',
+          fontWeight: '600',
+          fontSize: '16px',
+        }}
+      >
+        <CIcon icon={cilUser} size="lg" />
+        <span>Add Doctor</span>
+      </button>
+    )}
+  </div>
+
+ {modalVisible && (
+  <AddDoctors
+    modalVisible={modalVisible}
+    setModalVisible={setModalVisible}
+    clinicId={hospitalId}
+    closeForm={() => setModalVisible(false)} // closes modal
+  />
+)}
+</CCardHeader>
+
 
       <CCardBody>
         {loading ? (
           <p className="text-center">Loading...</p>
         ) : (
           <>
-            <CNav variant="tabs" role="tablist">
-              {tabList.map((tabName, idx) => (
-                <CNavItem key={idx}>
-                  <CNavLink
-                    className={classNames({ active: activeTab === idx })}
-                    onClick={() => setActiveTab(idx)}
-                  >
-                    {tabName}
-                  </CNavLink>
-                </CNavItem>
-              ))}
-            </CNav>
+         <CNav variant="tabs">
+        <CNavItem>
+          <CNavLink active={activeTab === 0} onClick={() => handleTabChange(0)}>
+            Basic Details
+          </CNavLink>
+        </CNavItem>
+        <CNavItem>
+          <CNavLink active={activeTab === 1} onClick={() => handleTabChange(1)}>
+            Additional Details
+          </CNavLink>
+        </CNavItem>
+        <CNavItem>
+          <CNavLink active={activeTab === 2} onClick={() => handleTabChange(2)}>
+            Branch Details
+          </CNavLink>
+        </CNavItem>
+        <CNavItem>
+          <CNavLink active={activeTab === 3} onClick={() => handleTabChange(3)}>
+            Doctors
+          </CNavLink>
+        </CNavItem>
+        <CNavItem>
+          <CNavLink active={activeTab === 4} onClick={() => handleTabChange(4)}>
+            Appointments
+          </CNavLink>
+        </CNavItem>
+        <CNavItem>
+          <CNavLink active={activeTab === 5} onClick={() => handleTabChange(5)}>
+            Procedures
+          </CNavLink>
+        </CNavItem>
+      </CNav>
 
             <CTabContent className="mt-3">
               {/* Tab 1: Basic Details */}
@@ -402,33 +440,56 @@ const ClinicDetails = () => {
                     </CCol>
                   </CRow>
 
-                  <CButton
-                    color="primary"
-                    className="me-2"
-                    onClick={async () => {
-                      if (isEditing) {
-                        try {
-                          await updateClinicData(hospitalId, editableClinicData)
-                          await fetchClinicDetails()
-                          setIsEditing(false)
-                        } catch (error) {
-                          console.error('Error updating clinic:', error)
-                        }
-                      } else {
-                        setIsEditing(true)
-                      }
-                    }}
-                  >
-                    {isEditing ? 'Save' : 'Edit'}
-                  </CButton>
+ {isEditing ? (
+  <>
+    <CButton
+      color="success"
+      className="me-2"
+      onClick={async () => {
+        try {
+          await updateClinicData(hospitalId, editableClinicData)
+          await fetchClinicDetails()
+          setIsEditing(false)
+        } catch (error) {
+          console.error('Error updating clinic:', error)
+        }
+      }}
+    >
+      Update
+    </CButton>
 
-                  <CButton
-                    color="danger"
-                    style={{ color: 'white' }}
-                    onClick={() => setShowDeleteModal(true)}
-                  >
-                    Delete Clinic
-                  </CButton>
+    <CButton
+      color="secondary"
+      className="me-2"
+      onClick={() => {
+        setIsEditing(false)
+        setEditableClinicData(clinicData) // ✅ reset to original details
+      }}
+    >
+      Cancel
+    </CButton>
+  </>
+) : (
+  <>
+    <CButton
+      color="primary"
+      className="me-2"
+      onClick={() => setIsEditing(true)}
+    >
+      Edit
+    </CButton>
+
+    {/* ✅ Only show Delete when not editing */}
+    <CButton
+      color="danger"
+      style={{ color: 'white' }}
+      onClick={() => setShowDeleteModal(true)}
+    >
+      Delete Clinic
+    </CButton>
+  </>
+)}
+
                   {/* <CButton color="primary" style={{color:'white', float:'right'}} onClick={()=>setShowBranchForm(true)}>Add Branches</CButton> */}
                   {/* <AddBranchForm visible={showBranchForm} onClose={()=>setShowBranchForm(false)} /> */}
                 </CForm>
@@ -439,7 +500,7 @@ const ClinicDetails = () => {
                 <CForm>
                   <CRow className="mb-3">
                     <CCol md={6}>
-                      <CFormLabel>Email</CFormLabel>
+                      <CFormLabel>Email <span className="text-danger">*</span></CFormLabel>
                       <CFormInput
                         type="email"
                         value={editableClinicData.emailAddress || ''}
@@ -471,7 +532,7 @@ const ClinicDetails = () => {
                     </CCol>
 
                     <CCol md={6}>
-                      <CFormLabel>City</CFormLabel>
+                      <CFormLabel>City <span className="text-danger">*</span></CFormLabel>
                       <CFormInput
                         type="text"
                         value={editableClinicData.city || ''}
@@ -486,7 +547,7 @@ const ClinicDetails = () => {
 
                   <CRow className="mb-3">
                     <CCol md={6}>
-                      <CFormLabel>Website</CFormLabel>
+                      <CFormLabel>Website <span className="text-danger">*</span></CFormLabel>
                       <CFormInput
                         type="text"
                         value={editableClinicData.website || ''}
@@ -497,7 +558,7 @@ const ClinicDetails = () => {
                       />
                     </CCol>
                     <CCol md={6}>
-                      <CFormLabel>Issuing Authority</CFormLabel>
+                      <CFormLabel>Issuing Authority <span className="text-danger">*</span></CFormLabel>
                       <CFormInput
                         type="text"
                         value={editableClinicData.issuingAuthority || ''}
@@ -529,7 +590,7 @@ const ClinicDetails = () => {
 
                   <CRow className="mb-3">
                    <CCol md={6}>
-  <CFormLabel>Opening Time</CFormLabel>
+  <CFormLabel>Opening Time <span className="text-danger">*</span></CFormLabel>
   <CFormSelect
     value={editableClinicData.openingTime || ''}
     disabled={!isEditingAdditional}
@@ -541,7 +602,7 @@ const ClinicDetails = () => {
       setFormErrors((prev) => ({ ...prev, openingTime: '' }));
     }}
   >
-    <option value="">Select Opening Time</option>
+    <option value="">Select Opening Time <span className="text-danger">*</span></option>
     {timings.length > 0 &&
       timings.map((slot, idx) => (
         <option key={idx} value={slot.openingTime}>
@@ -557,7 +618,7 @@ const ClinicDetails = () => {
 
 
                     <CCol md={6}>
-                      <CFormLabel>Closing Time</CFormLabel>
+                      <CFormLabel>Closing Time <span className="text-danger">*</span></CFormLabel>
                       <CFormSelect
                         value={editableClinicData.closingTime || ''}
                         disabled={!isEditingAdditional}
@@ -582,8 +643,8 @@ const ClinicDetails = () => {
                     </CCol>
                   </CRow>
                   <CRow>
-                  <CCol md={3}>
-  <CFormLabel>Consultation Expiration (in days)</CFormLabel>
+                  <CCol md={6}>
+  <CFormLabel>Consultation Expiration (in days) <span className="text-danger">*</span></CFormLabel>
   <CFormInput
     type="text"
     placeholder="Enter number of days"
@@ -599,8 +660,8 @@ const ClinicDetails = () => {
 </CCol>
 
 
-                    <CCol md={3}>
-  <CFormLabel>Free Follow-Ups (count)</CFormLabel>
+                    <CCol md={6}>
+  <CFormLabel>Free Follow-Ups (count) <span className="text-danger">*</span></CFormLabel>
   <CFormInput
     type="number"
     min={0}
@@ -628,7 +689,11 @@ const ClinicDetails = () => {
     <div className="text-danger">{formErrors.freeFollowUps}</div>
   )}
 </CCol>
-                    <CCol md={6}>
+                   
+                  </CRow>
+
+<CRow>
+   <CCol md={6}>
                       <CFormLabel>
                         Subscription<span className="text-danger">*</span>
                       </CFormLabel>
@@ -654,11 +719,21 @@ const ClinicDetails = () => {
                         <div className="text-danger">{formErrors.subscription}</div>
                       )}
                     </CCol>
-                  </CRow>
-
+                     <CCol md={6}>
+                      <CFormLabel>License Number <span className="text-danger">*</span></CFormLabel>
+                      <CFormInput
+                        type="text"
+                        value={editableClinicData.licenseNumber || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) =>
+                          setEditableClinicData({ ...editableClinicData, licenseNumber: e.target.value })
+                        }
+                      />
+                    </CCol>
+</CRow>
                   <CRow>
                     <CCol md={6} className="mt-3">
-                     <CFormLabel>Hospital Documents</CFormLabel>
+                     <CFormLabel>Hospital Documents <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.hospitalDocuments ? (
                         (() => {
@@ -716,7 +791,7 @@ const ClinicDetails = () => {
                     </CCol>
                  
                      <CCol md={6} className="mt-3">
-                     <CFormLabel>Hospital Contract Documents</CFormLabel>
+                     <CFormLabel>Hospital Contract Documents <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.contractorDocuments ? (
                         (() => {
@@ -776,7 +851,7 @@ const ClinicDetails = () => {
 
                   <CRow>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Business Registration Certificate</CFormLabel>
+                      <CFormLabel>Business Registration Certificate <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.businessRegistrationCertificate ? (
                         (() => {
@@ -835,7 +910,7 @@ const ClinicDetails = () => {
                       )}
                     </CCol>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Biomedical Waste Management Auth</CFormLabel>
+                      <CFormLabel>Biomedical Waste Management Auth <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.biomedicalWasteManagementAuth ? (
                         (() => {
@@ -897,7 +972,7 @@ const ClinicDetails = () => {
 
                   <CRow>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Trade License</CFormLabel>
+                      <CFormLabel>Trade License <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.tradeLicense ? (
                         (() => {
@@ -954,7 +1029,7 @@ const ClinicDetails = () => {
                       )}
                     </CCol>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Fire Safety Certificate</CFormLabel>
+                      <CFormLabel>Fire Safety Certificate <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.fireSafetyCertificate ? (
                         (() => {
@@ -1014,7 +1089,7 @@ const ClinicDetails = () => {
 
                   <CRow>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Professional Indemnity Insurance</CFormLabel>
+                      <CFormLabel>Professional Indemnity Insurance <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.professionalIndemnityInsurance ? (
                         (() => {
@@ -1073,7 +1148,7 @@ const ClinicDetails = () => {
                       )}
                     </CCol>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Other Documents</CFormLabel>
+                      <CFormLabel>Other Documents <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.others && editableClinicData.others.length > 0 ? (
                         editableClinicData.others.map((base64Data, index) => {
@@ -1132,7 +1207,7 @@ const ClinicDetails = () => {
 
                   <CRow>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Drug License Certificate</CFormLabel>
+                      <CFormLabel>Drug License Certificate <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.drugLicenseCertificate ? (
                         (() => {
@@ -1189,7 +1264,7 @@ const ClinicDetails = () => {
                       )}
                     </CCol>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Drug License Form Type</CFormLabel>
+                      <CFormLabel>Drug License Form Type <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.drugLicenseFormType ? (
                         (() => {
@@ -1249,7 +1324,7 @@ const ClinicDetails = () => {
 
                   <CRow>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Pharmacist Certificate</CFormLabel>
+                      <CFormLabel>Pharmacist Certificate <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.pharmacistCertificate ? (
                         (() => {
@@ -1306,7 +1381,7 @@ const ClinicDetails = () => {
                       )}
                     </CCol>
                     <CCol md={6} className="mt-3">
-                      <CFormLabel>Clinical Establishment Certificate</CFormLabel>
+                      <CFormLabel>Clinical Establishment Certificate <span className="text-danger">*</span></CFormLabel>
 
                       {editableClinicData.clinicalEstablishmentCertificate ? (
                         (() => {
@@ -1360,14 +1435,14 @@ const ClinicDetails = () => {
                         })()
                       ) : (
                         <div className="text-muted">
-                          No clinical establishment certificate available.
+                          No clinical establishment certificate available. 
                         </div>
                       )}
                     </CCol>
                   </CRow>
     <CRow className="mt-3">
                 <CCol md={6}>
-                  <CFormLabel>Latitude</CFormLabel>
+                  <CFormLabel>Latitude <span className="text-danger">*</span></CFormLabel>
                   <CFormInput
                     type="number"
                     step="any"
@@ -1406,7 +1481,7 @@ const ClinicDetails = () => {
                 </CCol>
 
                 <CCol md={6}>
-                  <CFormLabel>Longitude</CFormLabel>
+                  <CFormLabel>Longitude <span className="text-danger">*</span></CFormLabel>
                   <CFormInput
                     type="number"
                     step="any"
@@ -1498,7 +1573,7 @@ const ClinicDetails = () => {
 
 
                 <CCol md={6}>
-                  <CFormLabel>NABH Score</CFormLabel>
+                  <CFormLabel>NABH Score <span className="text-danger">*</span></CFormLabel>
                   <CFormInput
                     type="number"
                     value={editableClinicData.nabhScore ?? ''}
@@ -1517,7 +1592,7 @@ const ClinicDetails = () => {
 
               <CRow className="mt-3">
                 <CCol md={6}>
-                  <CFormLabel>Branch</CFormLabel>
+                  <CFormLabel>Branch <span className="text-danger">*</span></CFormLabel>
                   <CFormInput
                     type="text"
                     value={editableClinicData.branch ?? ''}
@@ -1550,29 +1625,48 @@ const ClinicDetails = () => {
                 </CCol>
               </CRow>
 
-                  <CButton
-                    color="primary"
-                    className="me-2 mt-3"
-                    onClick={async () => {
-                      if (isEditingAdditional) {
-                        try {
-                          localStorage.setItem(
-                            `clinic-${hospitalId}-consultation-expiration`,
-                            editableClinicData.consultationExpiration,
-                          )
-                          await updateClinicData(hospitalId, editableClinicData)
-                          await fetchClinicDetails()
-                          setIsEditingAdditional(false)
-                        } catch (error) {
-                          console.error('Error updating additional details:', error)
-                        }
-                      } else {
-                        setIsEditingAdditional(true)
-                      }
-                    }}
-                  >
-                    {isEditingAdditional ? 'Update' : 'Edit'}
-                  </CButton>
+                 {isEditingAdditional ? (
+  <>
+    <CButton
+      color="success"
+      className="me-2 mt-3"
+      onClick={async () => {
+        try {
+          localStorage.setItem(
+            `clinic-${hospitalId}-consultation-expiration`,
+            editableClinicData.consultationExpiration,
+          )
+          await updateClinicData(hospitalId, editableClinicData)
+          await fetchClinicDetails()
+          setIsEditingAdditional(false)
+        } catch (error) {
+          console.error('Error updating additional details:', error)
+        }
+      }}
+    >
+      Update
+    </CButton>
+
+    <CButton
+      color="secondary"
+      className="mt-3"
+      onClick={() => {
+        setIsEditingAdditional(false)
+        setEditableClinicData(clinicData) // ✅ reset to original values
+      }}
+    >
+      Cancel
+    </CButton>
+  </>
+) : (
+  <CButton
+    color="primary"
+    className="me-2 mt-3"
+    onClick={() => setIsEditingAdditional(true)}
+  >
+    Edit
+  </CButton>
+)}
                 </CForm>
               </CTabPane>
 
@@ -1585,6 +1679,7 @@ const ClinicDetails = () => {
                 <table className="table">
                   <thead>
                     <tr>
+                      <th>S No</th>
                       <th>Doctor Name</th>
                       <th>Contact</th>
                       <th>Specialization</th>
@@ -1597,6 +1692,7 @@ const ClinicDetails = () => {
                     {allDoctors.length > 0 ? (
                       allDoctors.map((doc, idx) => (
                         <tr key={idx}>
+                          <td>{idx + 1}</td> 
                           <td>{capitalizeWords(doc.doctorName)}</td>
                           <td>{doc.doctorMobileNumber}</td>
                           <td>{doc.specialization}</td>
@@ -1648,9 +1744,9 @@ const ClinicDetails = () => {
                   </div>
                 ))}
               </CTabPane>
-              <CTabPane visible={activeTab === 5}>
-  <ProcedureManagementDoctor clinicId={hospitalId}/>
-</CTabPane>
+             <CTabPane visible={activeTab === 5}>
+        <ProcedureManagementDoctor clinicId={hospitalId} />
+      </CTabPane>
             </CTabContent>
 
             <CModal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)}>

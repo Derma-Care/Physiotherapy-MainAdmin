@@ -251,9 +251,15 @@ const appointmentManagement = () => {
               onChange={handleStatusChange}
               checked={statusFilters.includes('Pending')}
             /> */}
+               <CFormCheck
+              label="Confirmed"
+              value="Confirmed"
+              onChange={handleStatusChange}
+              checked={statusFilters.includes('Confirmed')}
+            />
             <CFormCheck
               label="Active"
-              value="Active"
+              value="In-Progress"
               onChange={handleStatusChange}
               checked={statusFilters.includes('In-Progress')}
             />
@@ -263,12 +269,7 @@ const appointmentManagement = () => {
               onChange={handleStatusChange}
               checked={statusFilters.includes('Completed')}
             />
-            <CFormCheck
-              label="Confirmed"
-              value="Confirmed"
-              onChange={handleStatusChange}
-              checked={statusFilters.includes('Confirmed')}
-            />
+         
             {/* <CFormCheck
               label="Rejected"
               value="Rejected"

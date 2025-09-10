@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { BASE_URL, createBranch, deleteBranch, getBranchById, getAllBranches, updateBranches } from '../../baseUrl'
+import { BASE_URL, createBranch, deleteBranch, getBranchByClinicId, getAllBranches, updateBranches,getBranchById } from '../../baseUrl'
 
 
 // Fetch all branches
@@ -19,12 +19,27 @@ export const fetchAllBranches = async () => {
     }
   }
 }
+export const fetchBranchByBranchId=async(branchId)=>{
+  console.log("fetchBranchByBranchId",branchId);
+  try{
+    const response=await axios.get(`${BASE_URL}/${getBranchById}/${branchId}`)
+    return response.data
+  }catch (error) {
+    if (error.response && error.response.status === 404) {
+      console.log('Branches response:', error.response.data)
+      return error.response.data
+    } else {
+      console.error('Unexpected error:', error.message || error)
+      throw error
+    }
+  }
+}
 
 // Fetch branch by ID
-export const fetchBranchById = async (branchId) => {
-  console.log('Fetching branch by ID:', branchId)
+export const fetchBranchById = async (clinicId) => {
+  console.log('Fetching branch by ID:', clinicId)
   try {
-    const response = await axios.get(`${BASE_URL}/${getBranchById}/${branchId}`)
+    const response = await axios.get(`${BASE_URL}/${getBranchByClinicId}/${clinicId}`)
     console.log('Branch response:', response.data)
     return response.data
   } catch (error) {

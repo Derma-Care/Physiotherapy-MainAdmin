@@ -433,50 +433,240 @@ if (!formData.longitude) {
       [name]: '',
     }))
   }
+const handleFileChange = async (e) => {
+  const { name, files } = e.target
+  if (!files || !files[0]) return
 
-  const handleFileChange = async (e) => {
-    const { name, files } = e.target
-    const file = files[0]
+  const file = files[0]
+  const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'application/zip']
 
-    if (!file) return
+  if (!allowedTypes.includes(file.type)) {
+    setErrors(prev => ({ ...prev, [name]: 'Invalid file type' }))
+    return
+  }
 
-    // Save the file object for displaying name in UI
-    setFormData((prev) => ({
-      ...prev,
-      [name]: file, // keep original file for UI
-    }))
-    setErrors((prev) => ({ ...prev, [name]: '' }))
+  if (file.size > 102400) {
+    setErrors(prev => ({ ...prev, [name]: 'File must be < 100 KB' }))
+    return
+  }
 
-    const stripBase64Prefix = (base64) => base64.split(',')[1]
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result.split(',')[1])
+      reader.onerror = (err) => reject(err)
+    })
 
-    const convertToBase64 = (file) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.readAsDataURL(file)
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = (error) => reject(error)
-      })
+    setFormData(prev => ({ ...prev, [name]: base64 }))
+    setErrors(prev => ({ ...prev, [name]: '' }))
+  } catch (err) {
+    setErrors(prev => ({ ...prev, [name]: 'Failed to read file' }))
+  }
+}
+
+
+
+// const convertIfExists = async (file) => {
+//   if (!file) return ''                  // nothing selected
+//   if (file instanceof Blob) return await convertFileToBase64(file) // new file
+//   return file                            // already Base64 string
+// }
+
+const convertMultipleIfExists = async (files) => {
+  if (!Array.isArray(files) || files.length === 0) return [];
+  return await Promise.all(
+    files.map(async (file) => {
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(`Invalid file type: ${file.name}`);
+      }
+      if (file.size > 102400) {
+        throw new Error(`File must be < 100 KB: ${file.name}`);
+      }
+      return await convertFileToBase64(file);
+    })
+  );
+
+  
+  const selectedFiles = Array.from(files)
+
+  // Validate files
+  for (let file of selectedFiles) {
+    if (!allowedTypes.includes(file.type)) {
+      setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }))
+      return
     }
-
-    try {
-      const base64File = await convertToBase64(file)
-      const cleanBase64 = stripBase64Prefix(base64File)
-
-      // Save base64 under a different key for submission
-      setFormData((prev) => ({
-        ...prev,
-        [`${name}Base64`]: cleanBase64,
-      }))
-    } catch (error) {
-      console.error('File conversion error:', error)
-      setErrors((prev) => ({
-        ...prev,
-        [name]: 'File conversion failed',
-      }))
+    if (file.size > 102400) { // 100 KB
+      setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }))
+      return
     }
   }
 
-  const handleEmailBlur = () => {
+  // Save files
+  const value = multiple ? selectedFiles : selectedFiles[0]
+  setFormData((prev) => ({ ...prev, [name]: value }))
+
+  // Clear errors
+  setErrors((prev) => ({ ...prev, [name]: '' }))
+}
+const handleProfessionalIndemnityFiles = async (e) => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
+
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/png',
+  ];
+  const MAX_SIZE_BYTES = 102400; // 100 KB
+
+  const base64Files = [];
+
+  for (let file of files) {
+    if (!allowedTypes.includes(file.type)) {
+      setErrors((prev) => ({
+        ...prev,
+        professionalIndemnityInsurance: 'Invalid file type',
+      }));
+      return;
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      setErrors((prev) => ({
+        ...prev,
+        professionalIndemnityInsurance: 'File must be < 100 KB',
+      }));
+      return;
+    }
+
+    // Convert to Base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+    reader.onload = () => {
+  // Remove 'data:*/*;base64,' prefix
+  const base64 = reader.result.split(',')[1]
+  setFormData(prev => ({ ...prev, [name]: base64 }))
+  setErrors(prev => ({ ...prev, [name]: '' }))
+}
+reader.onerror = () => {
+  setErrors(prev => ({ ...prev, [name]: 'Failed to read file' }))
+}
+    });
+    base64Files.push(base64);
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    professionalIndemnityInsurance: base64Files.length === 1 ? base64Files[0] : base64Files,
+  }));
+
+  setErrors((prev) => ({ ...prev, professionalIndemnityInsurance: '' }));
+};
+
+
+
+const handleMultipleFilesChange = async (e) => {
+  const { name, files } = e.target
+  if (!files || files.length === 0) return
+
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'application/zip',
+  ]
+
+  const base64Files = []
+
+  for (const file of files) {
+    if (!allowedTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, [name]: 'Invalid file type in selection' }))
+      return
+    }
+    if (file.size > 102400) {
+      setErrors(prev => ({ ...prev, [name]: 'Each file must be < 100 KB' }))
+      return
+    }
+
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = (err) => reject(err)
+    })
+    base64Files.push(base64)
+  }
+
+  setFormData(prev => ({ ...prev, [name]: base64Files }))
+  setErrors(prev => ({ ...prev, [name]: '' }))
+}
+
+const handleAppendFiles = async (e, fieldName, maxFiles = 6) => {
+  const selectedFiles = Array.from(e.target.files || [])
+  if (!selectedFiles.length) return
+
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/png',
+    'application/zip',
+  ]
+  const MAX_SIZE_BYTES = 102400 // 100 KB
+
+  // Validate each selected file
+  for (let file of selectedFiles) {
+    if (!allowedTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, [fieldName]: 'Invalid file type' }))
+      return
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      setErrors(prev => ({ ...prev, [fieldName]: 'File must be < 100 KB' }))
+      return
+    }
+  }
+
+  // Convert files to raw Base64
+  const base64Files = await Promise.all(
+    selectedFiles.slice(0, maxFiles).map(file =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+        reader.onload = () => {
+          // Strip the prefix: "data:application/pdf;base64,"
+          const rawBase64 = reader.result.split(',')[1]
+          resolve(rawBase64)
+        }
+        reader.onerror = err => reject(err)
+      })
+    )
+  )
+
+  // Append to existing files in state
+  setFormData(prev => {
+    const existingFiles = Array.isArray(prev[fieldName]) ? prev[fieldName] : []
+    const combinedFiles = [...existingFiles, ...base64Files].slice(0, maxFiles)
+    return { ...prev, [fieldName]: combinedFiles }
+  })
+
+  setErrors(prev => ({ ...prev, [fieldName]: '' }))
+}
+
+
+
+
+
+
+
+
+
+  const EmailBlur = () => {
     const email = formData.emailAddress.trim()
     if (!email.includes('@')) {
       setErrors((prevErrors) => ({
@@ -519,17 +709,19 @@ if (!formData.longitude) {
       reader.onerror = (error) => reject(error)
     })
   }
-  const convertFileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      if (!(file instanceof Blob)) {
-        return reject(new Error('Invalid file type'))
-      }
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result.split(',')[1]) // remove prefix
-      reader.onerror = (error) => reject(error)
-    })
-  }
+const convertFileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => {
+      // Only keep the part after comma (raw Base64)
+      const base64 = reader.result.split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = (error) => reject(error)
+  })
+}
+
   const [existingDoctors, setExistingDoctors] = useState([])
   useEffect(() => {
     const fetchDoctors = async () => {
@@ -678,50 +870,32 @@ const handleNabhSubmit = async () => {
     console.log('📦 Loaded from localStorage for preview:', previewFromLocalStorage)
 
     try {
-      const convertIfExists = async (file) => (file ? await convertFileToBase64(file) : '')
-      const convertMultipleIfExists = async (files) =>
-        Array.isArray(files) ? await Promise.all(files.map(convertFileToBase64)) : []
-
+   const convertIfExists = async (file) => {
+  if (!file) return ''
+  if (file instanceof Blob) return await convertFileToBase64(file)
+  return file // already Base64 string
+}
+    const convertMultipleIfExists = async (files) => {
+  if (!Array.isArray(files)) return []
+  return await Promise.all(
+    files.map(file => (file instanceof Blob ? convertFileToBase64(file) : file))
+  )
+}
       // Usage
-      const hospitalLogoBase64 = await convertIfExists(formData.hospitalLogo)
-
-      const hospitalDocumentsBase64 = await convertIfExists(formData.hospitalDocuments)
-
-      // Then check the result of that conversion
-      // if (hospitalDocumentsBase64.some((doc) => typeof doc !== 'string' || !doc.length)) {
-      //   toast.error('One or more hospital documents failed to convert to base64.', {
-      //     position: 'top-right',
-      //   })
-      //   return
-      // }
-
-      const hospitalContractBase64 = await convertIfExists(formData.hospitalContract)
-      const clinicalEstablishmentCertificateBase64 = await convertIfExists(
-        formData.clinicalEstablishmentCertificate,
-      )
-      const businessRegistrationCertificateBase64 = await convertIfExists(
-        formData.businessRegistrationCertificate,
-      )
-      const drugLicenseCertificateBase64 = await convertIfExists(formData.drugLicenseCertificate)
-      const drugLicenseFormTypeBase64 = await convertIfExists(formData.drugLicenseFormType)
-      const pharmacistCertificateBase64 = await convertIfExists(formData.pharmacistCertificate)
-      const biomedicalWasteManagementAuthBase64 = await convertIfExists(
-        formData.biomedicalWasteManagementAuth,
-      )
-      const tradeLicenseBase64 = await convertIfExists(formData.tradeLicense)
-      const fireSafetyCertificateBase64 = await convertIfExists(formData.fireSafetyCertificate)
-      const professionalIndemnityInsuranceBase64 = await convertIfExists(
-        formData.professionalIndemnityInsurance,
-      )
-      const gstRegistrationCertificateBase64 = await convertIfExists(
-        formData.gstRegistrationCertificate,
-      )
-      // If `others` is an array
-      const othersBase64 =
-        formData.others && formData.others.length > 0
-          ? await convertMultipleIfExists(formData.others)
-          : ''
-
+     const hospitalLogoBase64 = await convertIfExists(formData.hospitalLogo);
+const hospitalDocumentsBase64 = await convertIfExists(formData.hospitalDocuments);
+const hospitalContractBase64 = await convertIfExists(formData.hospitalContract);
+const clinicalEstablishmentCertificateBase64 = await convertIfExists(formData.clinicalEstablishmentCertificate);
+const businessRegistrationCertificateBase64 = await convertIfExists(formData.businessRegistrationCertificate);
+const drugLicenseCertificateBase64 = await convertIfExists(formData.drugLicenseCertificate);
+const drugLicenseFormTypeBase64 = await convertIfExists(formData.drugLicenseFormType);
+const pharmacistCertificateBase64 = await convertIfExists(formData.pharmacistCertificate);
+const biomedicalWasteManagementAuthBase64 = await convertIfExists(formData.biomedicalWasteManagementAuth);
+const tradeLicenseBase64 = await convertIfExists(formData.tradeLicense);
+const fireSafetyCertificateBase64 = await convertIfExists(formData.fireSafetyCertificate);
+const professionalIndemnityInsuranceBase64 = await convertIfExists(formData.professionalIndemnityInsurance);
+const gstRegistrationCertificateBase64 = await convertIfExists(formData.gstRegistrationCertificate);
+const othersBase64 = await convertMultipleIfExists(formData.others);
       const formatToAMPM = (time24) => {
         const [hourStr, minuteStr] = time24.split(':')
         let hour = parseInt(hourStr, 10)
@@ -1053,19 +1227,7 @@ const handleNabhSubmit = async () => {
                 <CFormInput
                   type="file"
                   name="hospitalContract"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      hospitalContract: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        hospitalContract: '',
-                      }))
-                    }
-                  }}
+                  onChange={handleFileChange}
                   accept=".pdf,.doc,.docx,.jpeg,.png"
                   invalid={!!errors.hospitalContract}
                 />
@@ -1083,9 +1245,9 @@ const handleNabhSubmit = async () => {
                   name="hospitalLogo"
                   file={formData.hospitalLogo}
                   error={errors.hospitalLogo}
-                  onChange={(e) => setFormData({ ...formData, hospitalLogo: e.target.files[0] })}
+                  onChange={handleFileChange}
                   onRemove={(name) => {
-                    setFormData((prev) => ({ ...prev, [name]: '' })) // OR null
+setFormData(prev => ({ ...prev, hospitalLogo: file }))
                     setErrors((prev) => ({ ...prev, [name]: '' }))
                   }}
                   accept="image/*"
@@ -1098,28 +1260,16 @@ const handleNabhSubmit = async () => {
                     Hospital Documents<span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  name="hospitalDocuments"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      hospitalDocuments: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        hospitalDocuments: '',
-                      }))
-                    }
-                  }}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.hospitalDocuments}
-                />
-                {errors.hospitalDocuments && (
-                  <CFormFeedback invalid>{errors.hospitalDocuments}</CFormFeedback>
-                )}
+           <CFormInput
+  type="file"
+  name="hospitalDocuments"
+  onChange={handleFileChange}
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.hospitalDocuments}
+/>
+{errors.hospitalDocuments && (
+  <CFormFeedback invalid>{errors.hospitalDocuments}</CFormFeedback>
+)}
               </CCol>
             </CRow>
             <CRow className="mb-3">
@@ -1130,26 +1280,14 @@ const handleNabhSubmit = async () => {
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  name="clinicalEstablishmentCertificate"
-                  id="clinicalReg"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      clinicalEstablishmentCertificate: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        clinicalEstablishmentCertificate: '',
-                      }))
-                    }
-                  }}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.clinicalEstablishmentCertificate}
-                />
+              <CFormInput
+  type="file"
+  name="clinicalEstablishmentCertificate"
+  id="clinicalReg"
+  onChange={handleFileChange}   // 🔥 reuse one function
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.clinicalEstablishmentCertificate}
+/>
                 {errors.clinicalEstablishmentCertificate && (
                   <CFormFeedback invalid>{errors.clinicalEstablishmentCertificate}</CFormFeedback>
                 )}
@@ -1161,29 +1299,20 @@ const handleNabhSubmit = async () => {
                     Business Registration Certificate <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="businessReg"
-                  name="businessRegistrationCertificate"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      businessRegistrationCertificate: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        businessRegistrationCertificate: '',
-                      }))
-                    }
-                  }}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.businessRegistrationCertificate}
-                />
-                {errors.businessRegistrationCertificate && (
-                  <CFormFeedback invalid>{errors.businessRegistrationCertificate}</CFormFeedback>
-                )}
+            <CFormInput
+  type="file"
+  id="businessReg"
+  name="businessRegistrationCertificate"
+  onChange={handleFileChange}   // 🔥 reuse one handler
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.businessRegistrationCertificate}
+/>
+{errors.businessRegistrationCertificate && (
+  <CFormFeedback invalid>
+    {errors.businessRegistrationCertificate}
+  </CFormFeedback>
+)}
+
               </CCol>
             </CRow>
 
@@ -1218,31 +1347,22 @@ const handleNabhSubmit = async () => {
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="indemnity"
-                  name="professionalIndemnityInsurance"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      professionalIndemnityInsurance: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        professionalIndemnityInsurance: '',
-                      }))
-                    }
-                  }}
-                  multiple
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.professionalIndemnityInsurance}
-                />
+        <CFormInput
+  type="file"
+  id="indemnity"
+  name="professionalIndemnityInsurance"
+  onChange={handleFileChange} // ✅ single-file handler
+  accept=".pdf,.doc,.docx,.jpeg,.png" // no `multiple`
+  invalid={!!errors.professionalIndemnityInsurance}
+/>
 
-                {errors.professionalIndemnityInsurance && (
-                  <CFormFeedback invalid>{errors.professionalIndemnityInsurance}</CFormFeedback>
-                )}
+{errors.professionalIndemnityInsurance && (
+  <CFormFeedback invalid>
+    {errors.professionalIndemnityInsurance}
+  </CFormFeedback>
+)}
+
+
               </CCol>
             </CRow>
 
@@ -1276,30 +1396,18 @@ const handleNabhSubmit = async () => {
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="biomedicalWaste"
-                  name="biomedicalWasteManagementAuth"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      biomedicalWasteManagementAuth: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        biomedicalWasteManagementAuth: '',
-                      }))
-                    }
-                  }}
-                  // multiple
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.biomedicalWasteManagementAuth}
-                />
-                {errors.biomedicalWasteManagementAuth && (
-                  <CFormFeedback invalid>{errors.biomedicalWasteManagementAuth}</CFormFeedback>
-                )}
+              <CFormInput
+  type="file"
+  id="biomedicalWaste"
+  name="biomedicalWasteManagementAuth"
+  onChange={handleFileChange}
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.biomedicalWasteManagementAuth}
+/>
+{errors.biomedicalWasteManagementAuth && (
+  <CFormFeedback invalid>{errors.biomedicalWasteManagementAuth}</CFormFeedback>
+)}
+
               </CCol>
             </CRow>
 
@@ -1307,59 +1415,38 @@ const handleNabhSubmit = async () => {
               <CRow className="mb-3">
                 <CCol md={6}>
                   <CTooltip content="Issued by State Drug Control Department">
-                    <CFormLabel>Drug License Certificate</CFormLabel>
+                    <CFormLabel>Drug License Certificate <span className="text-danger">*</span></CFormLabel>
                   </CTooltip>
-                  <CFormInput
-                    type="file"
-                    id="drugLicenseCertificate"
-                    name="drugLicenseCertificate"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null
-                      setFormData((prev) => ({
-                        ...prev,
-                        drugLicenseCertificate: file,
-                      }))
-                      if (file) {
-                        setErrors((prev) => ({
-                          ...prev,
-                          drugLicenseCertificate: '',
-                        }))
-                      }
-                    }}
-                    invalid={!!errors.drugLicenseCertificate}
-                  />
-                  {errors.drugLicenseCertificate && (
-                    <CFormFeedback invalid>{errors.drugLicenseCertificate}</CFormFeedback>
-                  )}
+                 <CFormInput
+  type="file"
+  id="drugLicenseCertificate"
+  name="drugLicenseCertificate"
+  onChange={handleFileChange}   // 🔥 universal handler
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.drugLicenseCertificate}
+/>
+{errors.drugLicenseCertificate && (
+  <CFormFeedback invalid>{errors.drugLicenseCertificate}</CFormFeedback>
+)}
+
                 </CCol>
 
                 <CCol md={6}>
                   <CTooltip content="Issued by State Drug Control Department">
-                    <CFormLabel>DrugLicenseFormType 20/21</CFormLabel>
+                    <CFormLabel>DrugLicenseFormType 20/21 <span className="text-danger">*</span></CFormLabel>
                   </CTooltip>
-                  <CFormInput
-                    type="file"
-                    id="Form20/21"
-                    name="drugLicenseFormType"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null
-                      setFormData((prev) => ({
-                        ...prev,
-                        drugLicenseFormType: file,
-                      }))
-                      if (file) {
-                        setErrors((prev) => ({
-                          ...prev,
-                          drugLicenseFormType: '',
-                        }))
-                      }
-                    }}
-                    accept=".pdf,.doc,.docx,.jpeg,.png"
-                    invalid={!!errors.drugLicenseFormType}
-                  />
-                  {errors.drugLicenseFormType && (
-                    <CFormFeedback invalid>{errors.drugLicenseFormType}</CFormFeedback>
-                  )}
+                <CFormInput
+  type="file"
+  id="Form20/21"
+  name="drugLicenseFormType"
+  onChange={handleFileChange}   // 🔥 reuse one function
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.drugLicenseFormType}
+/>
+{errors.drugLicenseFormType && (
+  <CFormFeedback invalid>{errors.drugLicenseFormType}</CFormFeedback>
+)}
+
                 </CCol>
               </CRow>
             )}
@@ -1371,28 +1458,17 @@ const handleNabhSubmit = async () => {
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  name="tradeLicense"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      tradeLicense: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        tradeLicense: '',
-                      }))
-                    }
-                  }}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.tradeLicense}
-                />
-                {errors.tradeLicense && (
-                  <CFormFeedback invalid>{errors.tradeLicense}</CFormFeedback>
-                )}
+               <CFormInput
+  type="file"
+  name="tradeLicense"
+  onChange={handleFileChange}   // 🔥 centralized handler
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.tradeLicense}
+/>
+{errors.tradeLicense && (
+  <CFormFeedback invalid>{errors.tradeLicense}</CFormFeedback>
+)}
+
               </CCol>
 
               <CCol md={6}>
@@ -1402,29 +1478,18 @@ const handleNabhSubmit = async () => {
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="fireSafety"
-                  name="fireSafetyCertificate"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      fireSafetyCertificate: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        fireSafetyCertificate: '',
-                      }))
-                    }
-                  }}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.fireSafetyCertificate}
-                />
-                {errors.fireSafetyCertificate && (
-                  <CFormFeedback invalid>{errors.fireSafetyCertificate}</CFormFeedback>
-                )}
+              <CFormInput
+  type="file"
+  id="fireSafety"
+  name="fireSafetyCertificate"
+  onChange={handleFileChange}   // 🔥 centralized handler
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.fireSafetyCertificate}
+/>
+{errors.fireSafetyCertificate && (
+  <CFormFeedback invalid>{errors.fireSafetyCertificate}</CFormFeedback>
+)}
+
               </CCol>
             </CRow>
 
@@ -1436,99 +1501,65 @@ const handleNabhSubmit = async () => {
                     <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="gstCert"
-                  name="gstRegistrationCertificate"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setFormData((prev) => ({
-                      ...prev,
-                      gstRegistrationCertificate: file,
-                    }))
-                    if (file) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        gstRegistrationCertificate: '',
-                      }))
-                    }
-                  }}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.gstRegistrationCertificate}
-                />
-                {errors.gstRegistrationCertificate && (
-                  <CFormFeedback invalid>{errors.gstRegistrationCertificate}</CFormFeedback>
-                )}
+               <CFormInput
+  type="file"
+  id="gstCert"
+  name="gstRegistrationCertificate"
+  onChange={handleFileChange}   // 🔥 centralized handler
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  invalid={!!errors.gstRegistrationCertificate}
+/>
+{errors.gstRegistrationCertificate && (
+  <CFormFeedback invalid>{errors.gstRegistrationCertificate}</CFormFeedback>
+)}
+
               </CCol>
 
-              <CCol md={6}>
-                <CTooltip content="NABH Accreditation / Aesthetic Procedure Training Certificate">
-                  <CFormLabel>Others (NABH / Aesthetic Training)</CFormLabel>
-                </CTooltip>
+            <CCol md={6}>
+  <CTooltip content="NABH Accreditation / Aesthetic Procedure Training Certificate">
+    <CFormLabel>Others (NABH / Aesthetic Training)</CFormLabel>
+  </CTooltip>
+<CFormInput
+  type="file"
+  name="others"
+  ref={fileInputRefs.others} // use `ref` not `inputref9`
+  onChange={(e) => handleAppendFiles(e, 'others', 6)}
+  multiple
+  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+  invalid={!!errors.others}
+/>
 
-                <CFormInput
-                  type="file"
-                  name="others"
-                  inputref9={fileInputRefs.others}
-                  onChange={(e) => {
-                    const selectedFiles = Array.from(e.target.files || [])
 
-                    const totalFiles = formData.others.length + selectedFiles.length
+  {errors.others && <CFormFeedback invalid>{errors.others}</CFormFeedback>}
 
-                    if (totalFiles > 6) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        others: 'You can upload up to 6 files only.',
-                      }))
-                      return
-                    }
+  {/* Display selected file names below input */}
+  {Array.isArray(formData.others) && formData.others.length > 0 && (
+    <div className="mt-2">
+      {formData.others.map((file, index) => (
+        <div
+          key={index}
+          className="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1"
+        >
+          <small className="text-dark">{file.name}</small>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
+            onClick={() => {
+              const updatedFiles = formData.others.filter((_, i) => i !== index)
+              setFormData((prev) => ({
+                ...prev,
+                others: updatedFiles,
+              }))
+            }}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</CCol>
 
-                    setFormData((prev) => ({
-                      ...prev,
-                      others: [...prev.others, ...selectedFiles],
-                    }))
-
-                    // Clear error
-                    setErrors((prev) => ({ ...prev, others: '' }))
-
-                    // Reset input to allow re-upload of same file
-                    if (fileInputRefs.others.current) {
-                      fileInputRefs.others.current.value = ''
-                    }
-                  }}
-                  multiple
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
-                />
-
-                {errors.others && <CFormFeedback invalid>{errors.others}</CFormFeedback>}
-
-                {/* Display selected file names below input */}
-                {Array.isArray(formData.others) && formData.others.length > 0 && (
-                  <div className="mt-2">
-                    {formData.others.map((file, index) => (
-                      <div
-                        key={index}
-                        className="d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1"
-                      >
-                        <small className="text-dark">{file.name}</small>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => {
-                            const updatedFiles = formData.others.filter((_, i) => i !== index)
-                            setFormData((prev) => ({
-                              ...prev,
-                              others: updatedFiles,
-                            }))
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CCol>
             </CRow>
             <CRow>
               <CCol md={6}>
@@ -1693,36 +1724,29 @@ const handleNabhSubmit = async () => {
                   <CFormFeedback invalid>{errors.hasPharmacist}</CFormFeedback>
                 )}
               </CCol>
-              {selectedPharmacistOption === 'Yes' && (
-                <CCol md={6}>
-                  <CTooltip content="Valid Pharmacist Registration Certificate">
-                    <CFormLabel>Pharmacist Certificate</CFormLabel>
-                  </CTooltip>
-                  <CFormInput
-                    type="file"
-                    id="pharmacistCert"
-                    name="pharmacistCertificate"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null
-                      setFormData((prev) => ({
-                        ...prev,
-                        pharmacistCertificate: file,
-                      }))
-                      if (file) {
-                        setErrors((prev) => ({
-                          ...prev,
-                          pharmacistCertificate: '',
-                        }))
-                      }
-                    }}
-                    accept=".pdf,.doc,.docx,.jpeg,.png"
-                    invalid={!!errors.pharmacistCertificate}
-                  />
-                  {errors.pharmacistCertificate && (
-                    <CFormFeedback invalid>{errors.pharmacistCertificate}</CFormFeedback>
-                  )}
-                </CCol>
-              )}
+            {selectedPharmacistOption === 'Yes' && (
+  <CCol md={6}>
+    <CTooltip content="Valid Pharmacist Registration Certificate">
+      <CFormLabel>
+        Pharmacist Certificate <span className="text-danger">*</span>
+      </CFormLabel>
+    </CTooltip>
+
+    <CFormInput
+      type="file"
+      id="pharmacistCert"
+      name="pharmacistCertificate"
+      onChange={handleFileChange} // ✅ reuse function
+      accept=".pdf,.doc,.docx,.jpeg,.png"
+      invalid={!!errors.pharmacistCertificate}
+    />
+
+    {errors.pharmacistCertificate && (
+      <CFormFeedback invalid>{errors.pharmacistCertificate}</CFormFeedback>
+    )}
+  </CCol>
+)}
+
             </CRow>
               {/* ✅ Clinic Coordinates */}
 <CRow className="mb-3">
@@ -1812,11 +1836,11 @@ const handleNabhSubmit = async () => {
 <CRow className="mb-3">
   <CCol md={6}>
     <CFormLabel>
-      Virtual Clinic Tour <span className="text-danger">*</span>
+      Virtual Clinic Tour <span className="text-danger"></span>
     </CFormLabel>
  <CFormInput
   type="url"
-  placeholder="https://example.com/walkthrough"
+  placeholder="https://example.com/VirtualClinicTour"
   value={formData.walkthrough || ""}
   onChange={(e) => {
     const { value } = e.target;
@@ -1883,7 +1907,7 @@ const handleNabhSubmit = async () => {
   {/* ✅ NABH Score - Opens Modal */}
   <CRow className="mb-3">
     <CCol md={12} className='d-flex align-items-center'>
-      <CFormLabel className="me-3">NABH Score </CFormLabel>
+      <CFormLabel className="me-3">NABH Score <span className="text-danger">*</span></CFormLabel>
       {nabhScore!==null && (
         <span className="me-3 fw-bold text-success">{nabhScore}</span>
       )}

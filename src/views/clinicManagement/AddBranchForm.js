@@ -30,10 +30,12 @@ import {
 } from '@coreui/react';
 import {
   fetchAllBranches,
+  
   fetchBranchById,
   createNewBranch,
   updateBranchData,
-  deleteBranchById
+  deleteBranchById,
+  fetchBranchByBranchId
 } from './AddBranchAPI'; // Import the API function
 const AddBranchForm = ({ clinicId }) => {
   const [branches, setBranches] = useState([]);
@@ -48,7 +50,9 @@ const AddBranchForm = ({ clinicId }) => {
   const [viewingBranch, setViewingBranch] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCity, setFilterCity] = useState('');
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage]=useState(5);
+  const [validationErrors, setValidationErrors]=useState({});
   const [formData, setFormData] = useState({
     clinicId: clinicId || '',
     branchName: '',
@@ -73,7 +77,8 @@ React.useEffect(() => {
 const loadBranches = async () => {
   try {
     setLoading(true);
-    const response = await fetchAllBranches();
+    console.log("confused",clinicId)
+    const response = await fetchBranchById(clinicId);
 
     // Extract the array from API response
     const branchArray = Array.isArray(response.data) ? response.data : [];
@@ -92,9 +97,17 @@ const loadBranches = async () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setValidationErrors((prevErrors)=>{
+      if(!prevErrors[name]) return prevErrors;
+      const { [name]:removedError, ...rest} = prevErrors;
+      return rest;
+    })
   };
 
   const handleSubmit = async () => {
+    if(!validateForm()){
+      return;
+    }
     try {
       setLoading(true);
       if (editingBranch) {
@@ -158,7 +171,7 @@ const loadBranches = async () => {
   const handleView = async (branchId) => {
     try {
       setLoading(true);
-      const branch = await fetchBranchById(branchId);
+      const branch = await fetchBranchByBranchId(branchId);
       setViewingBranch(branch.data);
       setViewModalVisible(true);
     } catch (error) {
@@ -187,8 +200,43 @@ const loadBranches = async () => {
       longitude: '',
       virtualClinicTour: '',
     });
-  };
+  };  
+  const validateForm=()=>{
+    const errors={};
 
+    if(!formData.branchName || formData.branchName.trim().length < 3){
+      errors.branchName = "Branch name must be atleast 3 characters.";
+    }
+    if(!formData.address || formData.address.trim().length<5){
+      errors.address="Address must be at least 5 characters";
+    }
+    if(!formData.city){
+      errors.city="City is required";
+    }
+    if(!formData.contactNumber ||  !/^[0-9]{10}$/.test(formData.contactNumber)){
+      errors.contactNumber="Contact Number must be 10 digits.";
+    }
+ if (!formData.email) {
+  errors.email = "Email is required.";
+} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+  errors.email = "Invalid email format.";
+}
+
+if (!formData.latitude) {
+  errors.latitude = "Latitude is required.";
+} else if (isNaN(formData.latitude)) {
+  errors.latitude = "Latitude must be a valid Number.";
+}
+
+if (!formData.longitude) {
+  errors.longitude = "Longitude is required.";
+} else if (isNaN(formData.longitude)) {
+  errors.longitude = "Longitude must be a valid Number.";
+}
+
+  setValidationErrors(errors);
+  return Object.keys(errors).length===0;
+  }
   const handleCloseModal = () => {
     setModalVisible(false);
     setEditingBranch(null);
@@ -203,7 +251,11 @@ const loadBranches = async () => {
     const matchesCity = filterCity ? branch.city === filterCity : true;
     return matchesSearch && matchesCity;
   });
-
+  const totalPages=Math.ceil(filteredBranches.length/rowsPerPage);
+  const startIndex=(currentPage-1)* rowsPerPage;
+  const endIndex=Math.min(startIndex+rowsPerPage, filteredBranches.length);
+  const paginatedBranches=filteredBranches.slice(startIndex, endIndex);
+  
   // Get unique cities for filter dropdown
   const cities = [...new Set(branches.map(branch => branch.city).filter(city => city))];
 
@@ -265,6 +317,7 @@ const loadBranches = async () => {
             <CTable striped hover responsive>
               <CTableHead>
                 <CTableRow>
+                  <CTableHeaderCell>S.No</CTableHeaderCell>
                   <CTableHeaderCell>Branch Name</CTableHeaderCell>
                   <CTableHeaderCell>Address</CTableHeaderCell>
                   <CTableHeaderCell>City</CTableHeaderCell>
@@ -274,8 +327,10 @@ const loadBranches = async () => {
               </CTableHead>
               <CTableBody>
                 {filteredBranches.length > 0 ? (
-                  filteredBranches.map(branch => (
-                    <CTableRow key={branch.branchId}>
+                  filteredBranches.map((branch, index) => (
+                     <CTableRow key={branch.branchId}>
+                    <CTableDataCell>{startIndex+index+1}</CTableDataCell>
+                   
                       <CTableDataCell>{branch.branchName}</CTableDataCell>
                       <CTableDataCell>{branch.address}</CTableDataCell>
                       <CTableDataCell>
@@ -352,87 +407,182 @@ const loadBranches = async () => {
 </CCol>
               <CCol md={6}>
                 <CFormInput
-                  label="Branch Name"
+                  label={
+                    <>
+                    Branch Name <span className="text-danger">*</span>
+                    </>
+                  }
                   name="branchName"
                   value={formData.branchName}
                   onChange={handleChange}
                   className="mb-3"
                   required
+                  invalid={!!validationErrors.branchName}
                 />
+                {validationErrors.branchName &&(
+                  <div className="text-danger small mb-2">{validationErrors.branchName}</div>
+                )}
               </CCol>
             </CRow>
             <CRow>
               <CCol md={6}>
                 <CFormInput
-                  label="Address"
+                  label={
+                    <>
+                       Address <span className="text-danger">*</span>
+                    </>
+                  }
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
                   className="mb-3"
                   required
+                  invalid={!!validationErrors.address}
                 />
+                {validationErrors.address &&(
+                  <div className="text-danger small mb-2">{validationErrors.address}</div>
+                )
+                }
               </CCol>
               <CCol md={6}>
                 <CFormInput
-                  label="City"
+                  // label="City"
+                  label={
+                    <>
+                    City <span className="text-dander">*</span>
+                    </>
+                  }
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
                   className="mb-3"
                   required
+                  invalid={!!validationErrors.city}
                 />
+                {validationErrors.city &&(
+                  <div className="text-danger small mb-2">{validationErrors.city}</div>
+                )}
               </CCol>
             </CRow>
             <CRow>
-              <CCol md={6}>
-                <CFormInput
-                  label="Contact Number"
-                  name="contactNumber"
-                  value={formData.contactNumber}
-                  onChange={handleChange}
-                  className="mb-3"
-                  required
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="mb-3"
-                />
-              </CCol>
+        <CCol md={6}>
+<CFormInput
+  label={
+    <>
+      Contact Number <span className="text-danger">*</span>
+    </>
+  }
+  type="text"
+  name="contactNumber"
+  value={formData.contactNumber}
+  onChange={(e) => {
+    let onlyNums = e.target.value.replace(/[^0-9]/g, ""); // only digits
+    if (onlyNums.length > 10) {
+      onlyNums = onlyNums.slice(0, 10); // restrict to 10 digits
+    }
+    setFormData((prev) => ({ ...prev, contactNumber: onlyNums }));
+
+    // ✅ Clear error when typing
+    setValidationErrors((prevErrors) => {
+      if (!prevErrors.contactNumber) return prevErrors;
+      const { contactNumber, ...rest } = prevErrors;
+      return rest;
+    });
+  }}
+  className="mb-3"
+  required
+  invalid={!!validationErrors.contactNumber}
+/>
+{validationErrors.contactNumber && (
+  <div className="text-danger small mb-2">{validationErrors.contactNumber}</div>
+)}
+</CCol>
+
+          <CCol md={6}>
+  <CFormInput
+    // label="Email"
+    label={
+      <>
+      Email <span className="text-danger">*</span>
+      </>
+    }
+    name="email"
+    type="email"
+    value={formData.email}
+    onChange={handleChange}
+    className="mb-3"
+    invalid={!!validationErrors.email}   // ✅ bind error state
+  />
+  {validationErrors.email && (
+    <div className="text-danger small mb-2">
+      {validationErrors.email}
+    </div>
+  )}
+</CCol>
+
             </CRow>
             <CRow>
+            <CCol md={6}>
+  <CFormInput
+    // label="Latitude"
+    label={
+      <>
+      Latitude <span className="text-danger">*</span>
+      </>
+    }
+    name="latitude"
+    value={formData.latitude}
+    onChange={handleChange}
+    className="mb-3"
+    invalid={!!validationErrors.latitude}   // ✅ bind error state
+    required
+  />
+  {validationErrors.latitude && (
+    <div className="text-danger small mb-2">
+      {validationErrors.latitude}
+    </div>
+  )}
+</CCol>
+
               <CCol md={6}>
-                <CFormInput
-                  label="Latitude"
-                  name="latitude"
-                  value={formData.latitude}
-                  onChange={handleChange}
-                  className="mb-3"
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-                  label="Longitude"
-                  name="longitude"
-                  value={formData.longitude}
-                  onChange={handleChange}
-                  className="mb-3"
-                />
+               <CFormInput
+  // label="Longitude"
+  label={
+    <>
+    Longitude <span className="text-danger"> *</span>
+    </>
+  }
+  name="longitude"
+  value={formData.longitude}
+  onChange={handleChange}
+  className="mb-3"
+  type="number"                       // ✅ restrict to numeric input
+  invalid={!!validationErrors.longitude}  // ✅ highlight error if present
+  required
+/>
+{validationErrors.longitude && (
+  <div className="text-danger small mb-2">
+    {validationErrors.longitude}
+  </div>
+)}
+
               </CCol>
             </CRow>
-            <CFormTextarea
-              label="Virtual Clinic Tour"
-              name="virtualClinicTour"
-              value={formData.virtualClinicTour}
-              onChange={handleChange}
-              className="mb-3"
-              rows={3}
-            />
+           <CFormTextarea
+  label="Virtual Clinic Tour"
+  name="virtualClinicTour"
+  value={formData.virtualClinicTour}
+  onChange={handleChange}
+  className="mb-3"
+  rows={3}
+  invalid={!!validationErrors.virtualClinicTour}   // ✅ highlight error if present
+/>
+{validationErrors.virtualClinicTour && (
+  <div className="text-danger small mb-2">
+    {validationErrors.virtualClinicTour}
+  </div>
+)}
+
           </CForm>
         </CModalBody>
         <CModalFooter>
