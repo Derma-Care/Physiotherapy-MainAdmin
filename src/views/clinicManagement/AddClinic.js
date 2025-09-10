@@ -230,13 +230,14 @@ const handleWebsiteBlur = () => {
       newErrors.city = 'City name must contain only letters'
     }
     // Email validation-
- if (!email.trim()) {
+ if (!formData.email?.trim()) {
   newErrors.emailAddress = 'Email is required';
 } else if (email.includes(' ')) {
   newErrors.emailAddress = 'Email cannot contain spaces';
 } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
   newErrors.emailAddress = 'Email must contain "@" and "." in a valid format';
 }
+
     // Contact Number
     const phoneRegex = /^[5-9][0-9]{9}$/ // This regex checks if the number starts with 5-9 and is followed by 9 digits
 
@@ -447,11 +448,16 @@ const handleWebsiteBlur = () => {
  // ✅ File change handler
 const handleHospitalLogoChange = async (e) => {
   const file = e.target.files?.[0];
-  if (!file) return;
 
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']; // only images
+  // Clear previous error if no file selected
+  if (!file) {
+    setErrors((prev) => ({ ...prev, hospitalLogo: '' }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null }));
+    return;
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
   const allowedExtensions = ['jpeg', 'jpg', 'png'];
-
   const fileExtension = file.name.split('.').pop().toLowerCase();
 
   // Validate type AND extension
@@ -464,17 +470,18 @@ const handleHospitalLogoChange = async (e) => {
     return;
   }
 
-  // Validate file size (<100 KB)
-  const MAX_SIZE = 100 * 1024; // 100 KB in bytes
-  if (file.size > MAX_SIZE) {
+  // Strict file size validation (<100 KB)
+  const MAX_SIZE = 100 * 1024; // 100 KB
+  if (file.size >= MAX_SIZE) {
     setErrors((prev) => ({
       ...prev,
-      hospitalLogo: `File must be < 100 KB (current: ${(file.size / 1024).toFixed(2)} KB)`,
+      hospitalLogo: `File must be < 100 KB `,
     }));
     setFormData((prev) => ({ ...prev, hospitalLogo: null }));
     return;
   }
 
+  // If file is valid, read as Base64 and clear any error
   try {
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -488,12 +495,15 @@ const handleHospitalLogoChange = async (e) => {
       hospitalLogo: { fileName: file.name, base64 },
     }));
 
+    // Clear previous errors
     setErrors((prev) => ({ ...prev, hospitalLogo: '' }));
   } catch (err) {
     setErrors((prev) => ({ ...prev, hospitalLogo: 'Failed to read file' }));
     setFormData((prev) => ({ ...prev, hospitalLogo: null }));
   }
 };
+
+
 
 
 
@@ -1385,21 +1395,19 @@ const EmailBlur = () => {
     />
   </CCol> */}
                
-
 <CCol md={6} className="position-relative">
   <CFormLabel>
     Hospital Logo<span className="text-danger">*</span>
   </CFormLabel>
   <div className="position-relative">
- <CFormInput
-  type="file"
-  name="hospitalLogo"
-  onChange={handleHospitalLogoChange}
-  accept=".pdf,.doc,.docx,.jpeg,.jpg,.png,.zip"
-  invalid={!!errors.hospitalLogo}
-  ref={fileInputRef}
-
-/>
+    <CFormInput
+      type="file"
+      name="hospitalLogo"
+      onChange={handleHospitalLogoChange}
+      accept=".jpeg,.jpg,.png"
+      invalid={!!errors.hospitalLogo} // red border
+      ref={fileInputRef}
+    />
 
     {formData?.hospitalLogo?.fileName && (
       <CButton
@@ -1413,10 +1421,15 @@ const EmailBlur = () => {
       </CButton>
     )}
   </div>
+
+  {/* Red error text explicitly */}
   {errors.hospitalLogo && (
-    <CFormFeedback invalid>{errors.hospitalLogo}</CFormFeedback>
+    <div style={{ color: 'red', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+      {errors.hospitalLogo}
+    </div>
   )}
 </CCol>
+
 
 
 
