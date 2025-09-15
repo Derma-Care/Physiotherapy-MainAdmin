@@ -37,6 +37,7 @@ import {
   deleteBranchById,
   fetchBranchByBranchId
 } from './AddBranchAPI'; // Import the API function
+import DataTable from 'react-data-table-component';0
 const AddBranchForm = ({ clinicId }) => {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,6 @@ const AddBranchForm = ({ clinicId }) => {
   const [viewingBranch, setViewingBranch] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCity, setFilterCity] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage]=useState(5);
   const [validationErrors, setValidationErrors]=useState({});
   const [formData, setFormData] = useState({
@@ -64,7 +64,8 @@ const AddBranchForm = ({ clinicId }) => {
     longitude: '',
     virtualClinicTour: '',
   });
-
+const [itemsPerPage, setItemsPerPage] = useState(5)
+const [currentPage, setCurrentPage] = useState(1)
   // Load branches on component mount
   useEffect(() => {
     loadBranches();
@@ -77,7 +78,6 @@ React.useEffect(() => {
 const loadBranches = async () => {
   try {
     setLoading(true);
-    console.log("confused",clinicId)
     const response = await fetchBranchById(clinicId);
 
     // Extract the array from API response
@@ -253,11 +253,14 @@ if (!formData.longitude) {
     const matchesCity = filterCity ? branch.city === filterCity : true;
     return matchesSearch && matchesCity;
   });
-  const totalPages=Math.ceil(filteredBranches.length/rowsPerPage);
-  const startIndex=(currentPage-1)* rowsPerPage;
-  const endIndex=Math.min(startIndex+rowsPerPage, filteredBranches.length);
-  const paginatedBranches=filteredBranches.slice(startIndex, endIndex);
-  
+
+
+    const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const paginatedBranches = filteredBranches.slice(indexOfFirstItem, indexOfLastItem)
+const totalPages = Math.ceil(filteredBranches.length / itemsPerPage)
+const startIndex = indexOfFirstItem
+const endIndex = Math.min(indexOfLastItem, filteredBranches.length)
   // Get unique cities for filter dropdown
   const cities = [...new Set(branches.map(branch => branch.city).filter(city => city))];
 
@@ -327,54 +330,86 @@ if (!formData.longitude) {
                   <CTableHeaderCell>Actions</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
-              <CTableBody>
-               {paginatedBranches.length > 0 ? (
-  paginatedBranches.map((branch, index) => (
-    <CTableRow key={branch.branchId}>
-      <CTableDataCell>{startIndex + index + 1}</CTableDataCell>
-      <CTableDataCell>{branch.branchName}</CTableDataCell>
-      <CTableDataCell>{branch.address}</CTableDataCell>
-      <CTableDataCell><CBadge color="secondary">{branch.city}</CBadge></CTableDataCell>
-      <CTableDataCell>{branch.contactNumber}</CTableDataCell>
-      <CTableDataCell>
-        <CButton color="info" size="sm" className="me-2" onClick={() => handleView(branch.branchId)}>View</CButton>
-        <CButton color="warning" size="sm" className="me-2" onClick={() => handleEdit(branch)}>Edit</CButton>
-        <CButton color="danger" size="sm" onClick={() => { setDeletingBranch(branch); setDeleteModalVisible(true); }}>Delete</CButton>
+            <CTableBody>
+  {paginatedBranches.length > 0 ? (
+    paginatedBranches.map((branch, index) => (
+      <CTableRow key={branch.branchId}>
+        <CTableDataCell>{startIndex + index + 1}</CTableDataCell>
+        <CTableDataCell>{branch.branchName}</CTableDataCell>
+        <CTableDataCell>{branch.address}</CTableDataCell>
+        <CTableDataCell><CBadge color="secondary">{branch.city}</CBadge></CTableDataCell>
+        <CTableDataCell>{branch.contactNumber}</CTableDataCell>
+        <CTableDataCell>
+          <CButton color="info" size="sm" className="me-2" onClick={() => handleView(branch.branchId)}>View</CButton>
+          <CButton color="warning" size="sm" className="me-2" onClick={() => handleEdit(branch)}>Edit</CButton>
+          <CButton color="danger" size="sm" onClick={() => { setDeletingBranch(branch); setDeleteModalVisible(true); }}>Delete</CButton>
+        </CTableDataCell>
+      </CTableRow>
+    ))
+  ) : (
+    <CTableRow>
+      <CTableDataCell colSpan="6" className="text-center">
+        No branches found
       </CTableDataCell>
     </CTableRow>
-  ))
-) : (
-  <CTableRow>
-    <CTableDataCell colSpan="6" className="text-center">
-      No branches found
-    </CTableDataCell>
-  </CTableRow>
-)}
-
-              </CTableBody>
+  )}
+</CTableBody>
             </CTable>
           )}
         </CCardBody>
-      <CCardFooter className="d-flex justify-content-between align-items-center">
+    <CCardFooter className="d-flex justify-content-between align-items-center">
   <div className="text-muted">
     Showing {startIndex + 1}-{endIndex} of {filteredBranches.length} branches
   </div>
 
+  {/* Rows Per Page Dropdown */}
+  <div className="d-flex align-items-center">
+    <span className="me-2">Rows per page:</span>
+    <CFormSelect
+      value={itemsPerPage}
+      onChange={(e) => {
+        setItemsPerPage(Number(e.target.value))
+        setCurrentPage(1) // ✅ Reset to first page on change
+      }}
+      style={{ width: '80px' }}
+    >
+      {[5, 10, 20, 50].map((size) => (
+        <option key={size} value={size}>
+          {size}
+        </option>
+      ))}
+    </CFormSelect>
+  </div>
+
+  {/* Pagination Buttons */}
   <div>
     <CButton
       color="secondary"
       size="sm"
       className="me-2"
-      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
       disabled={currentPage === 1}
     >
       Previous
     </CButton>
 
+    {/* Page Numbers */}
+    {[...Array(totalPages)].map((_, index) => (
+      <CButton
+        key={index}
+        color={currentPage === index + 1 ? 'primary' : 'secondary'}
+        size="sm"
+        className="me-1"
+        onClick={() => setCurrentPage(index + 1)}
+      >
+        {index + 1}
+      </CButton>
+    ))}
+
     <CButton
       color="secondary"
       size="sm"
-      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
       disabled={currentPage === totalPages || totalPages === 0}
     >
       Next

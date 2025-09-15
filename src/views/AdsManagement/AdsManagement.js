@@ -263,7 +263,7 @@ const AdsManagement=()=>{
         <CNav variant='tabs' role='tablist'>
           <CNavItem>
             <CNavLink active={activeKey===1} onClick={()=>setActiveKey(1)}>
-              Category Ads
+              Dashboard Ads
             </CNavLink>
           </CNavItem>
           <CNavItem>

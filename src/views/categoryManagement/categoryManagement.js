@@ -145,9 +145,9 @@ const CategoryManagement = () => {
 
     if (name === "categoryName") {
       if (!value) error = "Category name is required."
-      else if (!/^[A-Za-z\s]+$/.test(value)) {
-        error = "Category name must only contain alphabets and spaces."
-      }
+      // else if (!/^[A-Za-z\s]+$/.test(value)) {
+      //   error = "Category name must only contain alphabets and spaces."
+      // }
     }
 
     if (name === "categoryImage") {
@@ -776,7 +776,7 @@ const CategoryManagement = () => {
         </div>
       )}
     </div>
-  )
+  ) 
 }
 
 export default CategoryManagement

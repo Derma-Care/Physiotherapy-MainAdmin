@@ -228,7 +228,7 @@ const CustomerManagement = () => {
       const alreadyExists = customerData.some((cust) => cust.mobileNumber === formData.mobileNumber)
       const alreadyExistsEmial = customerData.some((cust) => cust.emailId === formData.emailId)
       if (alreadyExists) {
-        toast.error('Customer already exists.')
+        toast.error('Mobile Number already exists.')
         return
       } else if (alreadyExistsEmial) {
         toast.error('Customer email id already exists.')

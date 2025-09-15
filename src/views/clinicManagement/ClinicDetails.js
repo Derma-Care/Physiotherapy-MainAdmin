@@ -22,6 +22,8 @@ import {
   CModalTitle,
   CFormSelect,
   CFormFeedback,
+  CPaginationItem,
+  CPagination ,
 } from '@coreui/react'
 import { DoctorAllData } from '../../baseUrl'
 import { getClinicTimings } from './AddClinicAPI'
@@ -62,6 +64,8 @@ const ClinicDetails = () => {
   const [modalVisible, setModalVisible] = useState(false)
   const [showBranchForm, setShowBranchForm]=useState(false)
   const tabList = ['Basic Details', 'Additional Details', 'Branches', 'Doctors', 'Appointments', 'Procedures']
+  const [currentPage, setCurrentPage] = useState(1)
+const [itemsPerPage, setItemsPerPage] = useState(10)
   const documentFields = [
     ['Drug License Certificate', 'drugLicenseCertificate'],
     ['Drug License Form Type', 'drugLicenseFormType'],
@@ -162,7 +166,12 @@ const ClinicDetails = () => {
     }
     setLoading(false)
   }
-  
+  const indexOfLastItem = currentPage * itemsPerPage
+const indexOfFirstItem = indexOfLastItem - itemsPerPage
+const currentItems = allDoctors.slice(indexOfFirstItem, indexOfLastItem)
+
+const totalPages = Math.ceil(allDoctors.length / itemsPerPage)
+
   const fetchAllDoctors = async () => {
     try {
       const response = await axios.get(`${CLINIC_ADMIN_URL}${DoctorAllData}/${hospitalId}`)
@@ -1679,7 +1688,7 @@ const ClinicDetails = () => {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>S No</th>
+                      <th>S.No</th>
                       <th>Doctor Name</th>
                       <th>Contact</th>
                       <th>Specialization</th>
@@ -1690,9 +1699,9 @@ const ClinicDetails = () => {
                   </thead>
                   <tbody>
                     {allDoctors.length > 0 ? (
-                      allDoctors.map((doc, idx) => (
-                        <tr key={idx}>
-                          <td>{idx + 1}</td> 
+currentItems.map((doc, idx) => (
+                          <tr key={idx}>
+                          <td>{indexOfFirstItem +idx + 1}</td> 
                           <td>{capitalizeWords(doc.doctorName)}</td>
                           <td>{doc.doctorMobileNumber}</td>
                           <td>{doc.specialization}</td>
@@ -1713,6 +1722,26 @@ const ClinicDetails = () => {
                             >
                               View
                             </CButton>
+                             <CButton
+                              className="btn btn-warning me-2"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDoctor(doc)
+                                setShowDoctorModal(true)
+                              }}
+                            >
+                              Edit
+                            </CButton>
+                             <CButton
+                              className="btn btn-danger me-2"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDoctor(doc)
+                                setShowDoctorModal(true)
+                              }}
+                            >
+                              Delete
+                            </CButton>
                           </td>
                         </tr>
                       ))
@@ -1725,6 +1754,49 @@ const ClinicDetails = () => {
                     )}
                   </tbody>
                 </table>
+
+                {allDoctors.length>0 &&(
+                  <div className="d-flex justify-content-between align-items-center mt-3">
+                    <div className="d-flex align-items-center">
+                      <span className="me-2">Rows per page:</span>
+                      <CFormSelect
+                      value={itemsPerPage}
+                      onChange={(e)=>{
+                        setItemsPerPage(Number(e.target.value))
+                        setCurrentPage(1)
+                      }}
+                      style={{width:'auto'}}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={15}>25</option>
+                      </CFormSelect>
+                    </div>
+                    <CPagination className="mb-0">
+                      <CPaginationItem
+                      disabled={currentPage===1}
+                      onClick={()=>setCurrentPage(currentPage-1)}
+                      >
+                        Previous
+                      </CPaginationItem>
+                      {Array.from({length:totalPages},(_,index)=>{
+                        <CPaginationItem
+                        key={index}
+                        active={currentPage===index+1}
+                        onClick={()=>setCurrentPage(index+1)}
+                        >
+                          {index+1}
+                        </CPaginationItem>
+                      })}
+                      <CPaginationItem  
+                      disabled={currentPage===totalPages}
+                      onClick={()=>setCurrentPage(currentPage+1)}
+                      >
+                        Next
+                      </CPaginationItem>
+                    </CPagination>
+                  </div>
+                )}
               </CTabPane>
 
               {/* Tab 4: Appointments */}

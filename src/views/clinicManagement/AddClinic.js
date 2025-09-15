@@ -340,9 +340,9 @@ const handleWebsiteBlur = () => {
     if (!formData.fireSafetyCertificate) {
       newErrors.fireSafetyCertificate = 'Please upload at least one document'
     }
-    if (!formData.professionalIndemnityInsurance) {
-      newErrors.professionalIndemnityInsurance = 'Please upload at least one document'
-    }
+    // if (!formData.professionalIndemnityInsurance) {
+    //   newErrors.professionalIndemnityInsurance = 'Please upload at least one document'
+    // }
     if (!formData.gstRegistrationCertificate) {
       newErrors.gstRegistrationCertificate = 'Please upload at least one document'
     }
@@ -408,7 +408,7 @@ const handleWebsiteBlur = () => {
     }
     if (!formData.freeFollowUps) {
       newErrors.freeFollowUps = "Free Follow Ups is required"
-    } else if (isNaN(formData.freeFollowUps) || formData.freeFollowUps < 1) {
+    } else if (isNaN(formData.freeFollowUps) || formData.freeFollowUps < 0) {
       newErrors.freeFollowUps = "Free Follow Ups must be a positive number"
     }
     // No `else { newErrors.website = '' }`
@@ -757,47 +757,6 @@ resolve({ name: file.name, base64: rawBase64 })          }
   }
 
 
-
-
-
-
-
-
-
-const EmailBlur = () => {
-  const email = formData.emailAddress.trim();
-
-  if (!email) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      emailAddress: 'Email is required',
-    }));
-  } else if (email.includes(' ')) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      emailAddress: 'Email cannot contain spaces',
-    }));
-  } else if (!email.includes('@')) {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      emailAddress: 'Email must contain "@" symbol',
-    }));
-  } else {
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      emailAddress: '',
-    }));
-  }
-};
-
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData({ ...formData, [name]: value })
-
-    // Remove error while typing
-    setErrors((prev) => ({ ...prev, [name]: '' }))
-  }
   const normalizeWebsite = (url) => {
     // If starts with www. or does not have protocol, prepend https://
     if (!/^https?:\/\//i.test(url)) {
@@ -807,18 +766,6 @@ const EmailBlur = () => {
   }
   console.log('submit button clicked')
 
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      if (!(file instanceof Blob)) {
-        return reject(new Error('Invalid file type'))
-      }
-
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = (error) => reject(error)
-    })
-  }
   const convertFileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -933,170 +880,166 @@ const EmailBlur = () => {
   console.log('📦 Loaded from localStorage for preview:', previewFromLocalStorage)
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    // setIsSubmitting(true)
+  e.preventDefault();
 
-    const isValid = validateForm()
-    if (!isValid) return
+  const isValid = validateForm();
+  if (!isValid) return;
 
-    setIsSubmitting(true) // ⬅️ Start loading
+  setIsSubmitting(true);
 
-    const { emailAddress, contactNumber } = formData
+  const { emailAddress, contactNumber } = formData;
+  const safeExistingDoctors = Array.isArray(existingDoctors) ? existingDoctors : [];
 
-    // Check for duplicate Hand mobile
-    const safeExistingDoctors = Array.isArray(existingDoctors) ? existingDoctors : []
+  const isEmailDuplicate = safeExistingDoctors.some(
+    (doc) => doc.emailAddress?.toLowerCase() === emailAddress?.toLowerCase()
+  );
+  const isMobileDuplicate = safeExistingDoctors.some(
+    (doc) => doc.contactNumber === contactNumber
+  );
 
-    console.log(emailAddress)
-    console.log(contactNumber)
-
-    const isEmailDuplicate = safeExistingDoctors.some(
-      (doc) => doc.emailAddress?.toLowerCase() === emailAddress,
-    )
-    const isMobileDuplicate = safeExistingDoctors.some((doc) => doc.contactNumber === contactNumber)
-
-    if (isEmailDuplicate || isMobileDuplicate) {
-      setIsSubmitting(false)
-      const newErrors = {}
-      if (isEmailDuplicate) {
-        toast.error('Email already exists')
-        newErrors.emailAddress = 'Email already exists'
-      }
-      if (isMobileDuplicate) newErrors.contactNumber = 'Mobile number already exists'
-      toast.error('Mobile number already exists')
-      setErrors((prev) => ({ ...prev, ...newErrors }))
-      return
+  if (isEmailDuplicate || isMobileDuplicate) {
+    const newErrors = {};
+    if (isEmailDuplicate) {
+      toast.error("Email already exists");
+      newErrors.emailAddress = "Email already exists";
     }
-    // ✅ Save to localStorage as "4 days"
-    // ✅ Save clinic formData to localStorage for preview
-    const formattedConsultationDays = `${formData.consultationExpiration} days`
-    const previewData = {
-      ...formData,
-      consultationExpiration: formattedConsultationDays,
+    if (isMobileDuplicate) {
+      toast.error("Mobile number already exists");
+      newErrors.contactNumber = "Mobile number already exists";
     }
-    localStorage.setItem('clinicFormPreview', JSON.stringify(previewData))
-    console.log('👁️ Clinic Form Preview (Frontend only):', previewData)
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+    setIsSubmitting(false);
+    return;
+  }
 
-    const previewFromLocalStorage = JSON.parse(localStorage.getItem('clinicFormPreview'))
-    console.log('📦 Loaded from localStorage for preview:', previewFromLocalStorage)
+  try {
+    // 🔹 Helper functions
+    const convertIfExists = async (file) => {
+      if (!file) return "";
+      if (file instanceof Blob) return await convertFileToBase64(file);
+      return file; // already Base64
+    };
 
-    try {
-      const convertIfExists = async (file) => {
-        if (!file) return ''
-        if (file instanceof Blob) return await convertFileToBase64(file)
-        return file // already Base64 string
-      }
-   const convertMultipleIfExists = async (files) => {
-  if (!Array.isArray(files)) return []
-  return files.map(file => {
-    if (file?.base64) return file.base64 // our {name, base64} object
-    if (file instanceof Blob) return convertFileToBase64(file) // in case raw Blob
-    return file // already Base64 string
-  })
-}
-      // Usage
-      const hospitalLogoBase64 = await convertIfExists(formData.hospitalLogo);
-      const hospitalDocumentsBase64 = await convertIfExists(formData.hospitalDocuments);
-      const hospitalContractBase64 = await convertIfExists(formData.hospitalContract);
-      const clinicalEstablishmentCertificateBase64 = await convertIfExists(formData.clinicalEstablishmentCertificate);
-      const businessRegistrationCertificateBase64 = await convertIfExists(formData.businessRegistrationCertificate);
-      const drugLicenseCertificateBase64 = await convertIfExists(formData.drugLicenseCertificate);
-      const drugLicenseFormTypeBase64 = await convertIfExists(formData.drugLicenseFormType);
-      const pharmacistCertificateBase64 = await convertIfExists(formData.pharmacistCertificate);
-      const biomedicalWasteManagementAuthBase64 = await convertIfExists(formData.biomedicalWasteManagementAuth);
-      const tradeLicenseBase64 = await convertIfExists(formData.tradeLicense);
-      const fireSafetyCertificateBase64 = await convertIfExists(formData.fireSafetyCertificate);
-      const professionalIndemnityInsuranceBase64 = await convertIfExists(formData.professionalIndemnityInsurance);
-      const gstRegistrationCertificateBase64 = await convertIfExists(formData.gstRegistrationCertificate);
-      const othersBase64 = await convertMultipleIfExists(formData.others);
-      const formatToAMPM = (time24) => {
-        const [hourStr, minuteStr] = time24.split(':')
-        let hour = parseInt(hourStr, 10)
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        hour = hour % 12 || 12
-        return `${hour.toString().padStart(2, '0')}:${minuteStr} ${ampm}`
-      }
-
-      const clinicData = {
-        name: formData.name,
-        address: formData.address,
-        city: formData.city,
-        contactNumber: formData.contactNumber,
-        openingTime: formData.openingTime,
-        closingTime: formData.closingTime,
-        hospitalLogo: hospitalLogoBase64,
-        emailAddress: formData.emailAddress,
-        website: normalizeWebsite(formData.website.trim()),
-        licenseNumber: formData.licenseNumber,
-        issuingAuthority: formData.issuingAuthority,
-        hospitalDocuments: hospitalDocumentsBase64,
-        contractorDocuments: hospitalContractBase64,
-        clinicalEstablishmentCertificate: clinicalEstablishmentCertificateBase64,
-        businessRegistrationCertificate: businessRegistrationCertificateBase64,
-        clinicType: clinicTypeOption,
-        medicinesSoldOnSite: selectedOption,
-        drugLicenseCertificate: drugLicenseCertificateBase64,
-        drugLicenseFormType: drugLicenseFormTypeBase64,
-        hasPharmacist: selectedPharmacistOption,
-        pharmacistCertificate: pharmacistCertificateBase64,
-        biomedicalWasteManagementAuth: biomedicalWasteManagementAuthBase64,
-        tradeLicense: tradeLicenseBase64,
-        fireSafetyCertificate: fireSafetyCertificateBase64,
-        professionalIndemnityInsurance: professionalIndemnityInsuranceBase64,
-        gstRegistrationCertificate: gstRegistrationCertificateBase64,
-        others: othersBase64,
-        freeFollowUps: formData.freeFollowUps,
-        instagramHandle: formData.instagramHandle,
-        twitterHandle: formData.twitterHandle,
-        facebookHandle: formData.facebookHandle,
-        recommended: !!formData.recommended,
-        consultationExpiration: formData.consultationExpiration
-          ? `${formData.consultationExpiration} days`
-          : '',
-        subscription: formData.subscription,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
-        walkthrough: formData.walkthrough,
-        nabhScore: formData.nabhScore,
-        branch: formData.branch,
-      }
-
-      // API Submission
-      const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
-      const savedClinicData = response.data
-      console.log(response)
-      console.log(response.message)
-      console.log(savedClinicData.message)
-      if (savedClinicData.success) {
-        toast.success(savedClinicData.message || 'Clinic Added Successfully', {
-          position: 'top-right',
+    const convertMultipleIfExists = async (files) => {
+      if (!Array.isArray(files)) return [];
+      return Promise.all(
+        files.map(async (file) => {
+          if (file?.base64) return file.base64;
+          if (file instanceof Blob) return await convertFileToBase64(file);
+          return file;
         })
-        setIsSubmitting(false) // ⬅️ Start loading
+      );
+    };
 
-         setTimeout(() => {
-    sendDermaCareOnboardingEmail({
+    // 🔹 Convert files
+    const hospitalLogoBase64 = await convertIfExists(formData.hospitalLogo);
+    const hospitalDocumentsBase64 = await convertIfExists(formData.hospitalDocuments);
+    const hospitalContractBase64 = await convertIfExists(formData.hospitalContract);
+    const clinicalEstablishmentCertificateBase64 = await convertIfExists(
+      formData.clinicalEstablishmentCertificate
+    );
+    const businessRegistrationCertificateBase64 = await convertIfExists(
+      formData.businessRegistrationCertificate
+    );
+    const drugLicenseCertificateBase64 = await convertIfExists(formData.drugLicenseCertificate);
+    const drugLicenseFormTypeBase64 = await convertIfExists(formData.drugLicenseFormType);
+    const pharmacistCertificateBase64 = await convertIfExists(formData.pharmacistCertificate);
+    const biomedicalWasteManagementAuthBase64 = await convertIfExists(
+      formData.biomedicalWasteManagementAuth
+    );
+    const tradeLicenseBase64 = await convertIfExists(formData.tradeLicense);
+    const fireSafetyCertificateBase64 = await convertIfExists(formData.fireSafetyCertificate);
+    const professionalIndemnityInsuranceBase64 = await convertIfExists(
+      formData.professionalIndemnityInsurance
+    );
+    const gstRegistrationCertificateBase64 = await convertIfExists(
+      formData.gstRegistrationCertificate
+    );
+    const othersBase64 = await convertMultipleIfExists(formData.others);
+
+    // 🔹 Prepare payload
+    const clinicData = {
       name: formData.name,
-      email: formData.emailAddress,
-      password: savedClinicData.data.clinicTemporaryPassword,
-      userID: savedClinicData.data.clinicUsername,
-    });
+      address: formData.address,
+      city: formData.city,
+      contactNumber: formData.contactNumber,
+      openingTime: formData.openingTime,
+      closingTime: formData.closingTime,
+      hospitalLogo: hospitalLogoBase64,
+      emailAddress: formData.emailAddress,
+      website: normalizeWebsite(formData.website.trim()),
+      licenseNumber: formData.licenseNumber,
+      issuingAuthority: formData.issuingAuthority,
+      hospitalDocuments: hospitalDocumentsBase64,
+      contractorDocuments: hospitalContractBase64,
+      clinicalEstablishmentCertificate: clinicalEstablishmentCertificateBase64,
+      businessRegistrationCertificate: businessRegistrationCertificateBase64,
+      clinicType: clinicTypeOption,
+      medicinesSoldOnSite: selectedOption,
+      drugLicenseCertificate: drugLicenseCertificateBase64,
+      drugLicenseFormType: drugLicenseFormTypeBase64,
+      hasPharmacist: selectedPharmacistOption,
+      pharmacistCertificate: pharmacistCertificateBase64,
+      biomedicalWasteManagementAuth: biomedicalWasteManagementAuthBase64,
+      tradeLicense: tradeLicenseBase64,
+      fireSafetyCertificate: fireSafetyCertificateBase64,
+      professionalIndemnityInsurance: professionalIndemnityInsuranceBase64,
+      gstRegistrationCertificate: gstRegistrationCertificateBase64,
+      others: othersBase64,
+      freeFollowUps: formData.freeFollowUps,
+      instagramHandle: formData.instagramHandle,
+      twitterHandle: formData.twitterHandle,
+      facebookHandle: formData.facebookHandle,
+      recommended: !!formData.recommended,
+      consultationExpiration: formData.consultationExpiration
+        ? `${formData.consultationExpiration} days`
+        : "",
+      subscription: formData.subscription,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      walkthrough: formData.walkthrough,
+      nabhScore: formData.nabhScore,
+      branch: formData.branch,
+    };
 
-        navigate('/clinic-management', {
+    // 🔹 API Call
+    const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData);
+    const savedClinicData = response.data;
+
+    if (savedClinicData.success) {
+      toast.success(savedClinicData.message || "Clinic Added Successfully", {
+        position: "top-right",
+      });
+
+      // 🔹 Send onboarding email + navigate after small delay
+      setTimeout(() => {
+        sendDermaCareOnboardingEmail({
+          name: formData.name,
+          email: formData.emailAddress,
+          password: savedClinicData.data.clinicTemporaryPassword,
+          userID: savedClinicData.data.clinicUsername,
+        });
+
+        navigate("/clinic-management", {
           state: {
             refresh: true,
             newClinic: savedClinicData,
           },
-        })
-      },3000)
-     } else {
-        toast.error(savedClinicData.message || 'Something went wrong', { position: 'top-right' })
-      }
-    } catch (error) {
-      console.error('Error submitting clinic data:', error)
-      toast.error(error.message || 'Something went wrong', { position: 'top-right' })
-    } finally {
-      setIsSubmitting(false)
+        });
+      }, 1000);
+    } else {
+      toast.error(savedClinicData.message || "Something went wrong", {
+        position: "top-right",
+      });
     }
+  } catch (error) {
+    console.error("Error submitting clinic data:", error);
+    toast.error(error.message || "Something went wrong", { position: "top-right" });
+  } finally {
+    setIsSubmitting(false);
   }
+};
+
 
   return (
     <div className="container mt-4">
@@ -1145,6 +1088,7 @@ const EmailBlur = () => {
     onChange={(e) => {
       const { name, value } = e.target;
       setFormData((prev) => ({ ...prev, [name]: value }));
+      setErrors((prev)=>({...prev, [name]:''}))
     }}
     // onBlur={EmailBlur}
     invalid={!!errors.emailAddress}
@@ -1344,7 +1288,7 @@ const EmailBlur = () => {
               <CCol md={6}>
                 <CTooltip content="Issued by Local Fire Department">
                   <CFormLabel>
-                    Hospital Contract<span style={{ color: 'red' }}>*</span>
+                    Clinic Contract<span style={{ color: 'red' }}>*</span>
                   </CFormLabel>
                 </CTooltip>
                 <CFormInput
@@ -1381,7 +1325,7 @@ const EmailBlur = () => {
                
 <CCol md={6} className="position-relative">
   <CFormLabel>
-    Hospital Logo<span className="text-danger">*</span>
+    Clinic Logo<span className="text-danger">*</span>
   </CFormLabel>
   <div className="position-relative">
     <CFormInput
@@ -1420,7 +1364,7 @@ const EmailBlur = () => {
               <CCol md={6}>
                 <CTooltip content="Issued by Local Fire Department">
                   <CFormLabel>
-                    Hospital Documents<span className="text-danger">*</span>
+                    Clinic Documents<span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
                 <CFormInput
@@ -1508,7 +1452,6 @@ const EmailBlur = () => {
                 <CTooltip content="Issued by Insurance Companies">
                   <CFormLabel>
                     Professional Indemnity Insurance
-                    <span className="text-danger">*</span>
                   </CFormLabel>
                 </CTooltip>
                 <CFormInput
@@ -1797,7 +1740,7 @@ const EmailBlur = () => {
                       name="freeFollowUps"
                       value={formData.freeFollowUps}
                       onChange={handleInputChange}
-                      min="1"
+                      min="0"
                       placeholder="Enter next visit consultation count"
                       invalid={!!errors.freeFollowUps}
                     />
