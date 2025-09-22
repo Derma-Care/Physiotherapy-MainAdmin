@@ -667,8 +667,6 @@ const totalPages = Math.ceil(allDoctors.length / itemsPerPage)
     }
   />
 </CCol>
-
-
                     <CCol md={6}>
   <CFormLabel>Free Follow-Ups (count) <span className="text-danger">*</span></CFormLabel>
   <CFormInput
