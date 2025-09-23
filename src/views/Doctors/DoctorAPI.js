@@ -1,7 +1,7 @@
 // doctorUtils.js
 
 import axios from 'axios'
-import { BASE_URL, getAllDoctors, getDoctorByClinicId, doctorAvailableUrl, addDoctorUrl, GetBranches_ByClinicId, getDoctorsByHospitalIdAndBranchId, UpdateDoctor } from '../../baseUrl'
+import { BASE_URL, getAllDoctors, getDoctorByClinicId, doctorAvailableUrl, addDoctorUrl, GetBranches_ByClinicId, getDoctorsByHospitalIdAndBranchId, UpdateDoctor,GetBy_DoctorId } from '../../baseUrl'
 import { toast } from 'react-toastify'
 
 // 🆕 Update Doctor Availability (true/false)

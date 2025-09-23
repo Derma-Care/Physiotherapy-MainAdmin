@@ -3,7 +3,7 @@
   import CIcon from '@coreui/icons-react'
   import { cilUser } from '@coreui/icons'
   import axios from 'axios'
-  import {AddDoctorByAdmin, GetClinicBranches } from './DoctorAPI'
+  import {AddDoctorByAdmin} from './DoctorAPI'
   import { useHospital } from "../../Usecontext/HospitalContext"
 
   import { ToastContainer, toast } from 'react-toastify'
@@ -45,8 +45,8 @@
   import {
     CategoryData,
   } from '../categoryManagement/CategoryAPI'
-
-  const AddDoctors = ({ modalVisible, setModalVisible, clinicId, closeForm  }) => {
+import {GetClinicBranches} from '../Doctors/DoctorAPI'
+  const AddDoctors = ({ modalVisible, setModalVisible, clinicId, closeForm, branchId  }) => {
       const navigate = useNavigate() // ✅ define navigate here
 
     const { doctorData, errorMessage, setDoctorData, fetchHospitalDetails, fetchDoctorDetails } =
@@ -54,6 +54,8 @@
   const [activeTab, setActiveTab] = useState(1);
     
     const [doctors, setDoctors] = useState([]);
+  const [branchOptions, setBranchOptions] = useState([])
+  const [branchLoading, setBranchLoading] = useState(false)
 
     // const [modalVisible, setModalVisible] = useState(false)
     const [newService, setNewService] = useState({
@@ -126,7 +128,7 @@
       experience: '',
       qualification: '',
       associationsOrMemberships: '',
-      branch: [],
+      branch: '',
       availableDays: '', // array of selected days
       availableTimes: '', // array of selected time slots
       profileDescription: '',
@@ -166,8 +168,7 @@
     const [errors, setErrors] = useState({})
     const [currentPage, setCurrentPage]=useState(1);
     const [itemsPerPage, setItemsPerPage]=useState(5);
-const [branchOptions, setBranchOptions] = useState([])
-const [branchLoading, setBranchLoading] = useState(false)
+
     const availableDays = (value, type) => {
       if (type === 'start') {
         setStartDay(value)
@@ -300,44 +301,47 @@ const [branchLoading, setBranchLoading] = useState(false)
       }
     }
     const hospitalId = localStorage.getItem('HospitalId')
-useEffect(() => {
-  const fetchAllData = async () => {
-    setLoading(true)
-    setBranchLoading(true)
 
-    try {
-      // 1️⃣ Fetch main hospital data
-      const data = await fetchHospitalDetails(hospitalId)
-      if (data) {
-        // setDoctorData(data) // uncomment if needed
-        setShowErrorMessage('')
-      } else {
-        setShowErrorMessage('Hospital data not found')
+    useEffect(() => {
+      const fetchAllData = async () => {
+        try {
+          setLoading(true) // ✅ set loading true before fetch
+
+          await fetchData()
+          // await serviceData()
+
+          const data = await fetchHospitalDetails(hospitalId)
+
+          if (data) {
+            // setDoctorData(data)
+            setShowErrorMessage('')
+          } else {
+            setShowErrorMessage('Hospital data not found')
+          }
+           setBranchLoading(true)
+        const response = await GetClinicBranches(clinicId)
+        const branches = response.data || [] // ✅ get the array safely
+        console.log('Branch API response:', response)
+
+        // 🟢 assume API returns array of { branchId, branchName }
+        const formatted = branches.map((b) => ({
+          value: b.branchId || b.id || b.name, // adjust based on actual API
+          label: b.branchName || b.name,
+        }))
+
+        setBranchOptions(formatted)
+        } catch (err) {
+          console.error(err)
+          setShowErrorMessage('Failed to fetch hospital details')
+        } finally {
+          setLoading(false) // ✅ always set to false at the end
+                  setBranchLoading(false)
+
+        }
       }
 
-      // 2️⃣ Fetch clinic branches
-      const response = await GetClinicBranches(clinicId)
-      console.log('Branch API response:', response)
-
-      const branches = response.data || [] // safely extract array
-
-      const formatted = branches.map((b) => ({
-        value: b.branchId || b.id || b.name, // adjust per API
-        label: b.branchName || b.name,
-      }))
-      console.log('i am formatted', formatted)
-      setBranchOptions(formatted)
-    } catch (err) {
-      console.error('❌ Error fetching data:', err)
-      setShowErrorMessage('Failed to fetch hospital details')
-    } finally {
-      setLoading(false)
-      setBranchLoading(false)
-    }
-  }
-
-  fetchAllData()
-}, [hospitalId, clinicId]) // add dependencies if these values can change
+      fetchAllData()
+    }, [])
 
     useEffect(() => {
       const clnicId = localStorage.getItem('HospitalId')
@@ -530,6 +534,7 @@ useEffect(() => {
         // }
 
         const payload = {
+          branchId:branchId,
           hospitalId:clinicId,
           doctorPicture: form.doctorPicture,
           doctorSignature: form.doctorSignature,
@@ -552,7 +557,7 @@ useEffect(() => {
           experience: form.experience,
           qualification: form.qualification,
           associationsOrMemberships: form.associationsOrMemberships,
-        branches: form.branch,
+          branch: form.branch,
           specialization: form.specialization,
           availableDays: form.availableDays,
           availableTimes: form.availableTimes,
@@ -573,13 +578,16 @@ useEffect(() => {
       
         console.log(response)
 
-        if (!response?.data?.success) {
-          throw new Error(response?.data?.message || 'Failed to add doctor')
-        } else if (response.data.status === 400 && showErrorMessage.includes('mobile number')) {
-          toast.error(showErrorMessage, {
-            position: 'top-right',
-          })
-        }
+if (!response.success) {
+      throw new Error(response?.data?.message || 'Something went wrong')
+    }
+
+    // ✅ Show success message only once
+    toast.success(response.data.message || 'Doctor added successfully', {
+      position: 'top-right',
+    })
+// Now you can safely toast
+// toast.success(apiMessage, { position: 'top-right' })
         const newDoctor = response.data.doctor ?? payload
 
         await fetchDoctorDetails(hospitalId)
@@ -638,35 +646,30 @@ useEffect(() => {
         setEndTime('')
         setModalVisible(false)
       } catch (error) {
+         console.error("Error adding doctor:", error)
         const status = error?.response?.status
-        const errorMessage = error?.response?.data?.message || 'Something went wrong'
+    const errorMessage = error?.response?.data?.message || error.message || 'Something went wrong'
+     toast.error(errorMessage, { position: 'top-right' })
+  
+    setModalVisible(true) // Keep modal open so user can fix input if needed
 
-        if (status === 400 && errorMessage.includes('mobile number')) {
-          toast.error(errorMessage, {
-            position: 'top-right',
-          })
-          setErrors((prev) => ({
-            ...prev,
-            doctorMobileNumber: errorMessage,
-          }))
-          setModalVisible(true) // ❌ Keep modal open so user can fix input
-        } else if (status === 400 && errorMessage.includes('email')) {
-          toast.error(errorMessage, {
-            position: 'top-right',
-          })
-          setErrors((prev) => ({
-            ...prev,
-            doctorEmail: errorMessage,
-          }))
-          setModalVisible(true)
-        } else {
-          toast.error(errorMessage, {
-            position: 'top-right',
-          })
-          setModalVisible(false) // ✅ Optional: Close modal on other errors
-        }
+        if (status === 400) {
+      if (errorMessage.includes('mobile number')) {
+        setErrors((prev) => ({
+          ...prev,
+          doctorMobileNumber: errorMessage,
+        }))
+      } else if (errorMessage.includes('email')) {
+        setErrors((prev) => ({
+          ...prev,
+          doctorEmail: errorMessage,
+        }))
       }
+      setModalVisible(true) // Keep modal open for user to fix input
+    } else {
+      setModalVisible(false) // Close modal on other errors
     }
+  }    }
 
     const ChipSection = ({ label, items, onAdd }) => {
       const [input, setInput] = useState('')
@@ -903,7 +906,7 @@ useEffect(() => {
     style={{ cursor: "pointer", textDecoration: "underline" }}
     onClick={() => {
       handleClose();
-      navigate(`/clinic-management/${clinicId}?tab=5`);
+      navigate(`/clinic-management/${clinicId}?tab=3`);
     }}
   >
     Please add Procedure details
@@ -1393,27 +1396,27 @@ useEffect(() => {
                   }}
                 />
               </CCol>
-             <CCol md={6}>
-  <CFormLabel>Branch</CFormLabel>
-  <Select
-    isMulti
-    options={branchOptions} // [{ value: 'H_1-B_1', label: 'punjagutta' }, ...]
-   value={branchOptions.filter((opt) =>
-  Array.isArray(form.branch) && form.branch.some((b) => b.branchId === opt.value)
-)}
-
-    onChange={(selected) =>
-      setForm((prev) => ({
-        ...prev,
-        branch: selected.map((opt) => ({
-          branchId: opt.value,
-          branchName: opt.label,
-        })),
-      }))
-    }
-    placeholder="Select branches..."
-  />
-</CCol>
+              <CCol md={6}>
+              <CFormLabel>Branch</CFormLabel>
+              <Select
+                isMulti
+                options={branchOptions} // [{ value: 'H_1-B_1', label: 'punjagutta' }, ...]
+                value={branchOptions.filter(
+                  (opt) =>
+                    Array.isArray(form.branch) && form.branch.some((b) => b.branchId === opt.value),
+                )}
+                onChange={(selected) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    branch: selected.map((opt) => ({
+                      branchId: opt.value,
+                      branchName: opt.label,
+                    })),
+                  }))
+                }
+                placeholder="Select branches..."
+              />
+            </CCol>
             </CRow>
             <ChipSection
               label="Area of Expertise"
