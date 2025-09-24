@@ -40,11 +40,11 @@ import { BASE_URL } from '../../baseUrl'
 import capitalizeWords from '../../Utils/capitalizeWords'
 import { useNavigate } from 'react-router-dom'
 import { useHospital } from '../../Usecontext/HospitalContext'
-import { GetClinicBranches, handleDeleteToggle } from '../Doctors/DoctorAPI'
+import { GetClinicBranches, handleDeleteToggle } from './DoctorAPI'
 import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
-import { getCustomerByMobile } from '../customerManagement/CustomerManagementAPI'
+import { getCustomerByMobile } from '../customerManagement/CustomerAPI'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { COLORS } from '../../Constant/Themes'
@@ -53,9 +53,9 @@ import ConfirmationModal from '../../components/ConfirmationModal'
 import { http } from '../../Utils/Interceptors'
 import {
   CategoryData,
-  serviceDataH,
+  serviceData,
   subServiceData,
-} from '../ProcedureManagement/ProcedureManagementAPI'
+} from '../ProcedureManagement/ProcedureAPI'
 
 const DoctorDetailsPage = () => {
   const [categoryOptions, setCategoryOptions] = useState([])
@@ -642,7 +642,7 @@ const DoctorDetailsPage = () => {
         setSelectedCategory({ value: cat.categoryId, label: cat.categoryName })
 
         // fetch services for category
-        const servicesRes = await serviceDataH()
+        const servicesRes = await serviceData()
         const filteredServices = (servicesRes?.data || []).filter(
           (s) => s.categoryId === cat.categoryId,
         )
@@ -766,7 +766,7 @@ const DoctorDetailsPage = () => {
     }
 
     try {
-      const res = await serviceDataH() // fetch all services
+      const res = await serviceData() // fetch all services
       const services = res?.data || []
 
       // ✅ filter by category
