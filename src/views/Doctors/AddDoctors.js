@@ -11,6 +11,7 @@
   import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
   import { useNavigate } from 'react-router-dom'
   import { useSearchParams } from "react-router-dom";
+import emailjs from 'emailjs-com'
 
 
   import {
@@ -56,6 +57,7 @@ import {GetClinicBranches} from '../Doctors/DoctorAPI'
     const [doctors, setDoctors] = useState([]);
   const [branchOptions, setBranchOptions] = useState([])
   const [branchLoading, setBranchLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
     // const [modalVisible, setModalVisible] = useState(false)
     const [newService, setNewService] = useState({
@@ -300,7 +302,7 @@ import {GetClinicBranches} from '../Doctors/DoctorAPI'
       } finally {
       }
     }
-    const hospitalId = localStorage.getItem('HospitalId')
+    // const hospitalId = localStorage.getItem('HospitalId')
 
     useEffect(() => {
       const fetchAllData = async () => {
@@ -310,7 +312,7 @@ import {GetClinicBranches} from '../Doctors/DoctorAPI'
           await fetchData()
           // await serviceData()
 
-          const data = await fetchHospitalDetails(hospitalId)
+          const data = await fetchHospitalDetails(clinicId)
 
           if (data) {
             // setDoctorData(data)
@@ -344,7 +346,7 @@ import {GetClinicBranches} from '../Doctors/DoctorAPI'
     }, [])
 
     useEffect(() => {
-      const clnicId = localStorage.getItem('HospitalId')
+      // const clnicId = localStorage.getItem('HospitalId')
       // fetchHospitalDetails(clnicId)
 
       // fetchDoctorDetails(clnicId)
@@ -497,115 +499,9 @@ import {GetClinicBranches} from '../Doctors/DoctorAPI'
 
     //select
 
-    const handleSubmit = async () => {
-      const isValid = validateDoctorForm()
-      if (!isValid) return
-
-      try {
-        // const hospitalId = localStorage.getItem('HospitalId')
-        const hospitalName = localStorage.getItem('HospitalName')
-        const allValidSubServiceIds = (subServiceOptions || []).map((ss) => ss.subServiceId)
-
-        const selectedSubServiceObjects = (subServiceOptions || [])
-          .filter(
-            (sub) =>
-              selectedSubService.includes(sub.subServiceId) &&
-              allValidSubServiceIds.includes(sub.subServiceId),
-          )
-          .map((sub) => ({
-            subServiceId: sub.subServiceId,
-            subServiceName: sub.subServiceName,
-          }))
-
-        // 🔍 2. Check if any doctor already has the same mobile or email
-        // const mobileExists = doctorData.data?.some(
-        //   (doc) => doc.doctorMobileNumber === form.doctorMobileNumber,
-        // )
-        // const emailExists = doctorData.data?.some((doc) => doc.doctorEmail === form.doctorEmail)
-
-        // if (mobileExists) {
-        //   toast.error('A doctor with this mobile number already exists')
-        //   return
-        // }
-
-        // if (emailExists) {
-        //   toast.error('A doctor with this email already exists')
-        //   return
-        // }
-
-        const payload = {
-          branchId:branchId,
-          hospitalId:clinicId,
-          doctorPicture: form.doctorPicture,
-          doctorSignature: form.doctorSignature,
-          doctorName: form.doctorName,
-          doctorMobileNumber: form.doctorMobileNumber,
-          doctorEmail: form.doctorEmail,
-          doctorLicence: form.doctorLicence,
-          category: categoryOptions
-            .filter((cat) => newService.categoryId.includes(cat.value))
-            .map((cat) => ({
-              categoryId: cat.value,
-              categoryName: cat.label,
-            })),
-          service: selectedServices.map((s) => ({
-            serviceId: s.serviceId,
-            serviceName: s.serviceName,
-          })),
-          subServices: selectedSubServiceObjects,
-          gender: form.gender,
-          experience: form.experience,
-          qualification: form.qualification,
-          associationsOrMemberships: form.associationsOrMemberships,
-          branch: form.branch,
-          specialization: form.specialization,
-          availableDays: form.availableDays,
-          availableTimes: form.availableTimes,
-          profileDescription: form.profileDescription,
-          focusAreas: form.focusAreas,
-          languages: form.languages,
-          highlights: form.highlights,
-          // ServiceAvailability:form.ServiceAvailability,
-          doctorFees: {
-            inClinicFee: form.doctorFees.inClinicFee,
-            vedioConsultationFee: form.doctorFees.vedioConsultationFee,
-          },
-        }
-
-        const response = await AddDoctorByAdmin(payload);
-        console.log("API Response:", response);
-
-      
-        console.log(response)
-
-if (!response.success) {
-      throw new Error(response?.data?.message || 'Something went wrong')
-    }
-
-    // ✅ Show success message only once
-    toast.success(response.data.message || 'Doctor added successfully', {
-      position: 'top-right',
-    })
-// Now you can safely toast
-// toast.success(apiMessage, { position: 'top-right' })
-        const newDoctor = response.data.doctor ?? payload
-
-        await fetchDoctorDetails(hospitalId)
-        // ✅ Send onboarding email
-        await sendDermaCareOnboardingEmail({
-          name: form.doctorName,
-          email: form.doctorEmail,
-          password: response.data.data.temporaryPassword,
-          userID: response.data.data.username,
-          clinicName: hospitalName,
-        })
-
-        toast.success(response.data.message || 'Doctor added successfully', {
-          position: 'top-right',
-        })
-
-        // ✅ Reset form
-        setForm({
+  // ✅ Helper function to reset form
+  const resetForm = () => {
+      setForm({
           doctorPicture: null,
           doctorSignature: null,
           doctorLicence: '',
@@ -625,51 +521,146 @@ if (!response.success) {
           languages: [],
           highlights: [],
           doctorFees: {
-            inClinicFee: '',
-            vedioConsultationFee: '',
+              inClinicFee: '',
+              vedioConsultationFee: '',
           },
-        })
+      });
 
-        setNewService({
-          serviceId: '',
-          serviceName: '',
-          categoryId: '',
-          categoryName: '',
-        })
+    setNewService({
+        serviceId: '',
+        serviceName: '',
+        categoryId: '',
+        categoryName: '',
+    });
 
-        setSelectedSubServices([])
-        setServiceOptions([])
-        setSubServiceOptions([])
-        setStartDay('')
-        setEndDay('')
-        setStartTime('')
-        setEndTime('')
-        setModalVisible(false)
-      } catch (error) {
-         console.error("Error adding doctor:", error)
-        const status = error?.response?.status
-    const errorMessage = error?.response?.data?.message || error.message || 'Something went wrong'
-     toast.error(errorMessage, { position: 'top-right' })
-  
-    setModalVisible(true) // Keep modal open so user can fix input if needed
+    setSelectedServices([]);
+    setSelectedSubServices([]);
+    setServiceOptions([]);
+    setSubServiceOptions([]);
+    setStartDay('');
+    setEndDay('');
+    setStartTime('');
+    setEndTime('');
+};
 
-        if (status === 400) {
-      if (errorMessage.includes('mobile number')) {
-        setErrors((prev) => ({
-          ...prev,
-          doctorMobileNumber: errorMessage,
-        }))
-      } else if (errorMessage.includes('email')) {
-        setErrors((prev) => ({
-          ...prev,
-          doctorEmail: errorMessage,
-        }))
-      }
-      setModalVisible(true) // Keep modal open for user to fix input
-    } else {
-      setModalVisible(false) // Close modal on other errors
+const handleSubmit = async () => {
+  console.log("📢 handleSubmit triggered!");
+
+  try {
+    // ✅ Step 1: Log essential dependencies
+    console.log("🟢 doctorData:", doctorData);
+    console.log("🟢 clinicId:", clinicId, "branchId:", branchId);
+
+    // ✅ Step 2: Null-check before accessing .data
+    if (!doctorData || !doctorData.data) {
+      console.warn("⚠ doctorData or doctorData.data is null. Skipping duplicate check.");
     }
-  }    }
+
+    // ✅ Step 3: Check duplicates safely
+    const mobileExists = doctorData?.data?.some(
+      (doc) => doc.doctorMobileNumber === form.doctorMobileNumber
+    );
+    const emailExists = doctorData?.data?.some(
+      (doc) => doc.doctorEmail === form.doctorEmail
+    );
+
+    console.log("🔎 Duplicate Check → Mobile Exists:", mobileExists, "Email Exists:", emailExists);
+
+    // Optional: Show warning & stop if duplicates exist
+    // if (mobileExists || emailExists) return;
+
+    // ✅ Step 4: Prepare sub-service objects
+    const selectedSubServiceObjects = (subServiceOptions || [])
+      .filter((sub) => selectedSubService.includes(sub.subServiceId))
+      .map((sub) => ({
+        subServiceId: sub.subServiceId,
+        subServiceName: sub.subServiceName,
+      }));
+
+    // ✅ Step 5: Construct payload
+    const payload = {
+      branchId,
+      hospitalId: clinicId,
+      doctorPicture: form.doctorPicture,
+      doctorSignature: form.doctorSignature,
+      doctorName: form.doctorName,
+      doctorMobileNumber: form.doctorMobileNumber,
+      doctorEmail: form.doctorEmail,
+      doctorLicence: form.doctorLicence,
+      category: categoryOptions
+        .filter((cat) => newService.categoryId.includes(cat.value))
+        .map((cat) => ({
+          categoryId: cat.value,
+          categoryName: cat.label,
+        })),
+      service: selectedServices.map((s) => ({
+        serviceId: s.serviceId,
+        serviceName: s.serviceName,
+      })),
+      subServices: selectedSubServiceObjects,
+      gender: form.gender,
+      experience: form.experience,
+      qualification: form.qualification,
+      associationsOrMemberships: form.associationsOrMemberships,
+      branch: form.branch,
+      specialization: form.specialization,
+      availableDays: form.availableDays,
+      availableTimes: form.availableTimes,
+      profileDescription: form.profileDescription,
+      focusAreas: form.focusAreas,
+      languages: form.languages,
+      highlights: form.highlights,
+      doctorFees: {
+        inClinicFee: form.doctorFees?.inClinicFee ?? null,
+        vedioConsultationFee: form.doctorFees?.vedioConsultationFee ?? null,
+      },
+    };
+
+    // ✅ Step 6: Log payload clearly before API call
+    console.log("📦 Final Payload Ready to Send:", JSON.stringify(payload, null, 2));
+
+    // ✅ Step 7: Call API
+    const response = await AddDoctorByAdmin(payload);
+    console.log("✅ API Response:", response);
+
+    if (!response?.data) {
+      throw new Error("Invalid API response structure");
+    }
+
+    if (response.data.status === 201) {
+      console.log("🎉 Doctor added successfully!");
+      const newDoctor = response.data.data?.doctor || response.data.data || payload;
+
+      setDoctorData((prev) => ({
+        ...prev,
+        data: [...(prev?.data || []), newDoctor],
+      }));
+
+      if (response.data.data?.temporaryPassword) {
+        await sendDermaCareOnboardingEmail({
+          name: form.doctorName,
+          email: form.doctorEmail,
+          password: response.data.data.temporaryPassword,
+          userID: response.data.data.username,
+          clinicName: localStorage.getItem("HospitalName"),
+        });
+      }
+
+      toast.success(response.data.message || "Doctor added successfully");
+      resetForm();
+      setModalVisible(false);
+    } else {
+      throw new Error(response.data.message || `Unexpected status: ${response.data.status}`);
+    }
+  } catch (error) {
+    console.error("❌ Add Doctor API Error (handleSubmit):", error);
+    toast.error(error.message || "Something went wrong");
+    setModalVisible(true);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
 
     const ChipSection = ({ label, items, onAdd }) => {
       const [input, setInput] = useState('')
@@ -745,7 +736,18 @@ if (!response.success) {
 
     return (
       <div>
-        <ToastContainer />
+        {/* <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      /> */}
         {/* <div className="d-flex justify-content-end mb-3">
           <button
             className="btn btn-info text-white d-flex align-items-center gap-2 shadow-sm rounded-pill px-4 py-2"
@@ -1105,6 +1107,13 @@ if (!response.success) {
                         }))
                         return
                       }
+                       if (file.size > 250 * 1024) {
+                      setFormErrors((prev) => ({
+                        ...prev,
+                        doctorPicture: 'File size must be less than 250KB',
+                      }))
+                      return
+                    }
 
                       const reader = new FileReader()
                       reader.onloadend = () => {
