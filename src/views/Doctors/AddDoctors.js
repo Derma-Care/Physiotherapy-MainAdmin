@@ -264,7 +264,7 @@ import {GetClinicBranches} from '../Doctors/DoctorAPI'
       }
       const indexOfLastItem=currentPage * itemsPerPage;
       const indexOfFirstItem=indexOfLastItem
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const days = ['Sun','Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     const times = [
       '07:00 AM',
       '08:00 AM',
