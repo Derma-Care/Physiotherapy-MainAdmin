@@ -115,7 +115,7 @@ const AppointmentManagement = () => {
       filtered = filtered.filter((item) =>
         statusFilters.some((status) => normalize(status) === normalize(item.status)),
       )
-      console.log('After status filter:', filtered)
+      console.log('After status filter:', filtered);
     }
 
     // Filter by consultation type (only one at a time)
