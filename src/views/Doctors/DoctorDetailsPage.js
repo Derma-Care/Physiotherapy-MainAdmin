@@ -563,27 +563,33 @@ const DoctorDetailsPage = () => {
     }
   }
 
-  useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const clinicId = localStorage.getItem('HospitalId')
-        const response = await GetClinicBranches(clinicId)
-
-        const branches = response?.data || [] // API gives array?
-        const formatted = branches.map((b) => ({
-          value: b.branchId || b.id,
-          label: b.branchName || b.name,
-        }))
-
-        setBranchOptions(formatted)
-      } catch (err) {
-        console.error('Error fetching branches:', err)
-        setBranchOptions([])
-      }
+useEffect(() => {
+  const fetchBranches = async () => {
+    if (!doctorData?.clinicId) {
+      console.warn("❌ No clinicId yet, waiting for doctorData...");
+      return;
     }
 
-    fetchBranches()
-  }, [])
+    try {
+      console.log("✅ Fetching branches for clinicId:", doctorData.clinicId);
+      const response = await GetClinicBranches(doctorData.clinicId);
+
+      const branches = response?.data || [];
+      const formatted = branches.map((b) => ({
+        value: b.branchId || b.id,
+        label: b.branchName || b.name,
+      }));
+
+      setBranchOptions(formatted);
+    } catch (err) {
+      console.error("❌ Error fetching branches:", err);
+      setBranchOptions([]);
+    }
+  };
+
+  fetchBranches();
+}, [doctorData?.clinicId]); // ✅ runs only when clinicId becomes available
+
   // Sync category into formData
   // Category → formData
   useEffect(() => {
