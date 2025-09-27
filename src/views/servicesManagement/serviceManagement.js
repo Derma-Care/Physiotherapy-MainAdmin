@@ -636,10 +636,10 @@ const totalPages = Math.ceil(filteredData.length / itemsPerPage)
     Service Image <span style={{ color: 'red' }}>*</span>
   </label>
 
-  <div className="mb-3 position-relative">
+  {/* <div className="mb-3 position-relative">
   <label className="form-label">
     Service Image <span style={{ color: "red" }}>*</span>
-  </label>
+  </label> */}
 
   {/* File Input */}
   <CFormInput
@@ -696,7 +696,7 @@ const totalPages = Math.ceil(filteredData.length / itemsPerPage)
     <div className="invalid-feedback d-block">{errors.serviceImage}</div>
   )}
 </div>
-</div>
+
 
     </CForm>
   </CModalBody>
