@@ -136,8 +136,6 @@ const totalPages = Math.ceil(allDoctors.length / itemsPerPage)
     setSelectedDoctor(doctor)
     setShowDeleteModal(true)
   }
-
-
 const handleDeleteDoctor = async () => {
   if (!selectedDoctor) return
 
@@ -158,10 +156,7 @@ const handleDeleteDoctor = async () => {
     setSelectedDoctor(null)
   }
 }
-
-
   return (
-    
     <CCard className="mt-4">
        <ToastContainer />
       {/* Header */}
@@ -171,7 +166,6 @@ const handleDeleteDoctor = async () => {
           Back
         </CButton>
       </CCardHeader>
-
       <CCardBody>
         {/* Navigation Tabs */}
         <CNav variant="tabs">

@@ -652,44 +652,42 @@ const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   />
 
   {/* Preview Image */}
-  {newService.serviceImage && (
-    <div
-      className="position-relative mt-2"
-      style={{ display: "inline-block" }}
-    >
-    {newService.serviceImage && (
-  <img
-    src={
-      newService.serviceImage.startsWith("data:image")
-        ? newService.serviceImage // already a base64 image string
-        : `data:image/png;base64,${newService.serviceImage}` // if it's just raw base64 without prefix
-    }
-    alt="Service"
-    className="w-75 h-75 object-cover rounded shadow-md"
-  />
+ {newService.serviceImage && (
+  <div
+    className="position-relative mt-2"
+    style={{ display: "inline-block", width: "auto", height: "auto" }}
+  >
+    <img
+      src={
+        newService.serviceImage.startsWith("data:image")
+          ? newService.serviceImage
+          : `data:image/png;base64,${newService.serviceImage}`
+      }
+      alt="Service"
+      className="rounded shadow-md"
+      style={{ width: "150px", height: "150px", objectFit: "cover", display: "block" }}
+    />
+
+    {/* Close Icon Overlay */}
+    <CIcon
+      icon={cilTrash}
+      size="xl"
+      className="position-absolute bg-white rounded-circle p-1 shadow"
+      style={{
+        top: "-10px", // negative to overlap the corner
+        right: "-10px", // negative to overlap the corner
+        color: "red",
+        cursor: "pointer",
+        border: "1px solid #ddd",
+      }}
+      onClick={() => {
+        setNewService((prev) => ({ ...prev, serviceImage: null }));
+        setErrors((prev) => ({ ...prev, serviceImage: "" }));
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }}
+    />
+  </div>
 )}
-
-
-      {/* Close Icon Overlay */}
-       <CIcon
-        icon={cilTrash}
-        size="xl"
-        className="position-absolute bg-white rounded-circle p-1 shadow"
-        style={{
-          top: "-8px",
-          right: "-8px",
-          color: "red",
-          cursor: "pointer",
-          border: "1px solid #ddd",
-        }}
-        onClick={() => {
-          setNewService((prev) => ({ ...prev, serviceImage: null }));
-          setErrors((prev) => ({ ...prev, serviceImage: "" }));
-          if (fileInputRef.current) fileInputRef.current.value = "";
-        }}
-      />
-    </div>
-  )}
 
   {/* Validation Error */}
   {errors.serviceImage && (
