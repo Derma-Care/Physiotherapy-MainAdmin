@@ -41,6 +41,7 @@ import DoctorCard from '../Doctors/DoctorCard'
 import { ToastContainer } from 'react-toastify'
 import AppointmentManagement from '../AppointmentManagement/AppointmentManagement'
 import 'react-toastify/dist/ReactToastify.css'
+import DoctorDetailsPage from '../Doctors/DoctorDetailsPage'
 
 
 const BranchDetails = () => {
@@ -432,13 +433,13 @@ const handleDeleteDoctor = async () => {
   )}
 
   {/* Edit Doctor Modal */}
-  {editDoctorModal && selectedDoctor && (
+  {/* {editDoctorModal && selectedDoctor && (
     <CModal visible={editDoctorModal} onClose={() => setEditDoctorModal(false)} size="lg" backdrop="static">
       <CModalHeader>
         <CModalTitle>Edit Doctor</CModalTitle>
       </CModalHeader>
       <CModalBody>
-        <EditDoctor
+        <DoctorDetailsPage
           doctorId={selectedDoctor.doctorId} 
           doctor={selectedDoctor}
           clinicId={branchData?.clinicId}
@@ -462,7 +463,7 @@ const handleDeleteDoctor = async () => {
         </CButton>
       </CModalFooter>
     </CModal>
-  )}
+  )} */}
 
   {/* Doctor Cards */}
   {/* Doctor Cards */}

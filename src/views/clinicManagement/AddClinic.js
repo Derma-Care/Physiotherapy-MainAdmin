@@ -1957,17 +1957,13 @@ resolve({ name: file.name, base64: rawBase64 })          }
     // Real-time validation
     let error = "";
 
-    if (!value.trim()) {
-      error = "Walkthrough URL is required";
-    } else if (value.includes(" ")) {
-      error = "URL cannot contain spaces";
-    } else {
-      try {
-        new URL(value); // throws if invalid
-      } catch {
-        error = "Enter a valid URL (e.g. https://example.com)";
-      }
-    }
+  if (value.trim()) {
+  try {
+    new URL(value); // throws if invalid
+  } catch {
+    error = "Enter a valid URL (e.g. https://example.com)";
+  }
+}
 
     // Set or clear error
     setErrors((prev) => ({
