@@ -521,7 +521,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     } catch (err) {
       setErrors((prev) => ({ ...prev, [name]: 'Failed to read file' }));
     }
-  };
+  }; 
 
   // ✅ Clear handler (X button click)
   const handleClearFile = (name, inputRef) => {
