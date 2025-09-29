@@ -17,6 +17,7 @@ import {
   CCol,
   CCard,
   CCardBody,
+  CBadge
 } from '@coreui/react'
 import { BASE_URL, ClinicAllData } from '../../baseUrl'
 import { AppointmentData, getBookingBy_ClinicId } from './AppointmentAPI'
