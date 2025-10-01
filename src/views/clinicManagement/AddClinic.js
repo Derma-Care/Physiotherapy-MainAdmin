@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import FileInput from './FileInput'
 import {
   CCard,
   CCardHeader,
@@ -32,12 +33,26 @@ import FileInputWithRemove from './FileInputWithRemove'
 import { getClinicTimings } from './AddClinicAPI'
 
 const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
-  const navigate = useNavigate()
-  // const hospitalDocumentsRef = useRef(null);
-
-  const hospitalDocumentsRef= useRef(null);
+    const refs = {
+    contractorDocuments: useRef(),
+    hospitalDocuments: useRef(),
+    clinicalEstablishmentCertificate: useRef(),
+    businessRegistrationCertificate: useRef(),
+    // drugLicenseCertificate: useRef(),
+    pharmacistCertificate: useRef(),
+    biomedicalWasteManagementAuth: useRef(),
+    fireSafetyCertificate: useRef(),
+    professionalIndemnityInsurance: useRef(),
+    gstRegistrationCertificate: useRef(),
+    hospitalLogo: useRef(),
+    clinicContract: useRef(),
+    drugLicenceCertificate: useRef(),
+    drugLicenceFormType20_21: useRef(),
+    tradeLicence: useRef(),
+  };
 
   const savedQuestionId = localStorage.getItem("savedQuestionId");
+  const navigate = useNavigate(); // ✅ add this
 
   const [errors, setErrors] = useState({})
   const [backendErrors, setBackendErrors] = ''
@@ -416,125 +431,146 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     }))
   }
   // ✅ File change handler
-  const handleHospitalLogoChange = async (e) => {
-    const file = e.target.files?.[0];
+const handleHospitalLogoChange = async (e) => {
+  const file = e.target.files?.[0];
 
-    if (!file) {
-      setErrors((prev) => ({ ...prev, hospitalLogo: "" }));
-      setFormData((prev) => ({ ...prev, hospitalLogo: null }));
-      return;
-    }
+  if (!file) {
+    setErrors((prev) => ({ ...prev, hospitalLogo: "" }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null, hospitalLogoFileName: null }));
+    return;
+  }
 
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-    const allowedExtensions = ["jpeg", "jpg", "png"];
-    const fileExtension = file.name.split(".").pop().toLowerCase();
+  // Always store the filename for X button
+  setFormData((prev) => ({ ...prev, hospitalLogoFileName: file.name }));
 
-    if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension)) {
-      setErrors((prev) => ({
-        ...prev,
-        hospitalLogo: "Invalid file type (only JPEG, JPG, PNG allowed)",
-      }));
-      setFormData((prev) => ({ ...prev, hospitalLogo: null }));
-      return;
-    }
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+  const allowedExtensions = ["jpeg", "jpg", "png"];
+  const fileExtension = file.name.split(".").pop().toLowerCase();
 
-    const MAX_SIZE = 100 * 1024; // 100 KB
-    if (file.size >= MAX_SIZE) {
-      setErrors((prev) => ({
-        ...prev,
-        hospitalLogo: `File must be < 100 KB`,
-      }));
-      setFormData((prev) => ({ ...prev, hospitalLogo: null }));
-      return;
-    }
+  // Invalid type
+  if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension)) {
+    setErrors((prev) => ({
+      ...prev,
+      hospitalLogo: "Invalid file type (only JPEG, JPG, PNG allowed)",
+    }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null })); // do not store base64
+    return;
+  }
 
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file); // gives "data:image/png;base64,..."
-        reader.onload = () => {
-          const result = reader.result;
-          const pureBase64 = result.split(",")[1]; // ✅ remove "data:image/...;base64,"
-          resolve(pureBase64);
-        };
-        reader.onerror = (err) => reject(err);
-      });
+  const MAX_SIZE = 100 * 1024; // 100 KB
 
-      setFormData((prev) => ({
-        ...prev,
-        hospitalLogo: base64,
-        hospitalLogoFileName:file.name,
-          
-      }));
+  // Invalid size
+  if (file.size >= MAX_SIZE) {
+    setErrors((prev) => ({
+      ...prev,
+      hospitalLogo: "File must be < 100 KB",
+    }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null })); // do not store base64
+    return;
+  }
 
-      setErrors((prev) => ({ ...prev, hospitalLogo: "" }));
-    } catch (err) {
-      setErrors((prev) => ({ ...prev, hospitalLogo: "Failed to read file" }));
-      setFormData((prev) => ({ ...prev, hospitalLogo: null }));
-    }
-  };
+  // Valid file → read base64
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result;
+        const pureBase64 = result.split(",")[1];
+        resolve(pureBase64);
+      };
+      reader.onerror = (err) => reject(err);
+    });
 
-
-
-
-  const handleFileChange = async (e) => {
-    const { name, files } = e.target;
-    if (!files || !files[0]) return;
-
-    const file = files[0];
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'application/zip',
-    ];
-    const allowedExtensions = ['pdf', 'doc', 'docx', 'jpeg', 'jpg', 'png', 'zip'];
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-
-    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-      setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }));
-      return;
-    }
-
-    if (file.size > 102400) {
-      setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }));
-      return;
-    }
-
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = (err) => reject(err);
-      });
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]:base64,   // ✅ only raw base64 string
-
-      }));
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    } catch (err) {
-      setErrors((prev) => ({ ...prev, [name]: 'Failed to read file' }));
-    }
-  }; 
-
-  // ✅ Clear handler (X button click)
-  const handleClearFile = (name, inputRef) => {
-    if (inputRef?.current) {
-      inputRef.current.value = '' // clear actual input
-    }
     setFormData((prev) => ({
       ...prev,
-      [name]: null,
-      [`${name}FileName`]:null,
-    }))
-    setErrors((prev) => ({ ...prev, [name]: '' }))
+      hospitalLogo: base64,
+    }));
+    setErrors((prev) => ({ ...prev, hospitalLogo: "" }));
+  } catch (err) {
+    setErrors((prev) => ({ ...prev, hospitalLogo: "Failed to read file" }));
+    setFormData((prev) => ({ ...prev, hospitalLogo: null }));
   }
+};
+
+
+
+
+const handleFileChange = async (e) => {
+  const { name, files } = e.target;
+
+  // User cancels file selection
+  if (!files || !files[0]) {
+    setFormData((prev) => ({ ...prev, [name]: null, [`${name}FileName`]: null }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+    return;
+  }
+
+  const file = files[0];
+
+  // Always store the filename for X button
+  setFormData((prev) => ({ ...prev, [`${name}FileName`]: file.name }));
+
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'application/zip',
+  ];
+  const allowedExtensions = ['pdf', 'doc', 'docx', 'jpeg', 'jpg', 'png', 'zip'];
+  const fileExtension = file.name.split('.').pop().toLowerCase();
+
+  // Invalid type
+  if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+    setErrors((prev) => ({ ...prev, [name]: 'Invalid file type' }));
+    setFormData((prev) => ({ ...prev, [name]: null })); // do not store base64
+    return;
+  }
+
+  const MAX_SIZE = 100 * 1024; // 100 KB
+
+  // Invalid size
+  if (file.size > MAX_SIZE) {
+    setErrors((prev) => ({ ...prev, [name]: 'File must be < 100 KB' }));
+    setFormData((prev) => ({ ...prev, [name]: null })); // do not store base64
+    return;
+  }
+
+  // Valid file → read base64
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = (err) => reject(err);
+    });
+
+    setFormData((prev) => ({ ...prev, [name]: base64 }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  } catch (err) {
+    setErrors((prev) => ({ ...prev, [name]: 'Failed to read file' }));
+    setFormData((prev) => ({ ...prev, [name]: null }));
+  }
+};
+  
+
+
+  // ✅ Clear handler (X button click)
+const handleClearFile = (name, inputRef) => {
+  if (inputRef?.current) {
+    inputRef.current.value = ""; // clear actual input
+  }
+  setFormData((prev) => ({
+    ...prev,
+    [name]: null,
+    [`${name}FileName`]: null,
+  }));
+  setErrors((prev) => ({ ...prev, [name]: "" }));
+};
+
   const handleProfessionalIndemnityFiles = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -1185,136 +1221,63 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                 {errors.city && <CFormFeedback invalid>{errors.city}</CFormFeedback>}
               </CCol>
 
-              <CCol md={6}>
-                <CTooltip content="Issued by Local Fire Department">
-                  <CFormLabel>
-                    Clinic Contract<span style={{ color: 'red' }}>*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  name="hospitalContract"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.hospitalContract}
-                />
-                {errors.hospitalContract && (
-                  <CFormFeedback invalid>{errors.hospitalContract}</CFormFeedback>
-                )}
-              </CCol>
+       <FileInput
+  label="Clinic Contract"
+  name="hospitalContract"
+  formData={formData}
+  setFormData={setFormData}
+  errors={errors}
+  setErrors={setErrors}
+  inputRef={refs.clinicContract} // ✅ should match ref name
+/>
             </CRow>
-            <CRow className="mb-3">
-              <CCol md={6} className="position-relative">
-                <CFormLabel>
-                  Clinic Logo<span className="text-danger">*</span>
-                </CFormLabel>
-                <div className="position-relative">
-                  <CFormInput
-                    type="file"
-                    name="hospitalLogo"
-                    onChange={handleHospitalLogoChange}
-                    accept=".jpeg,.jpg,.png"
-                    invalid={!!errors.hospitalLogo}
-                    ref={fileInputRef}
-                  />
+          <CRow className="mb-3">
+  <FileInput
+    label="Clinic Logo"
+    name="hospitalLogo"
+    accept=".jpeg,.jpg,.png"
+    formData={formData}
+    setFormData={setFormData}
+    errors={errors}
+    setErrors={setErrors}
+    inputRef={refs.hospitalLogo}
+  />
 
-{formData?.hospitalLogoFileName && (
-                    <CButton
-                      type="button"
-                      size="sm"
-                      color="danger"
-                      className="position-absolute end-0 top-50 translate-middle-y me-2"
-                      style={{ zIndex: 10 }}
-                      onClick={() => handleClearFile("hospitalLogo", fileInputRef)}
-                    >
-                      ✕
-                    </CButton>
-                  )}
-                </div>
-
-                {/* Red error text explicitly */}
-                {errors.hospitalLogo && (
-                  <div style={{ color: 'red', marginTop: '0.25rem', fontSize: '0.875rem' }}>
-                    {errors.hospitalLogo}
-                  </div>
-                )}
-              </CCol>
-              <CCol md={6}>
-                <CTooltip content="Issued by Local Fire Department">
-                  <CFormLabel>
-                    Clinic Documents<span className="text-danger">*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <div className="position-relative">
-                <CFormInput
-                  type="file"
-                  name="hospitalDocuments"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.hospitalDocuments}
-                  ref={hospitalDocumentsRef}
-                />
-                {formData?.hospitalDocuments?.fileName &&(
-                  <CButton
-                  type='button'
-                  size="sm"
-                  color="danger"
-                  className="position-absolute end-0 top-50 translate-middle-y me-2"
-                  style={{zIndex:10}}
-                  onClick={()=>handleClearFile('hospitalDocuments',hospitalDocumentsRef)}
-                  >
-                    X
-                  </CButton>
-                )}
-                </div>
-                {errors.hospitalDocuments && (
-                  <CFormFeedback invalid>{errors.hospitalDocuments}</CFormFeedback>
-                )}
-              </CCol>
-            </CRow>
+  <FileInput
+    label="Clinic Documents"
+    name="hospitalDocuments"
+    accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
+    tooltip="Issued by Local Fire Department"
+    formData={formData}
+    setFormData={setFormData}
+    errors={errors}
+    setErrors={setErrors}
+    inputRef={refs.hospitalDocuments}
+  />
+</CRow>
 
             <CRow className="mb-3">
-              <CCol md={6} className="mb-2">
-                <CTooltip content="Issued by Registrar of Companies or local municipal body">
-                  <CFormLabel>
-                    Clinical Establishment Registration Certificate
-                    <span className="text-danger">*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  name="clinicalEstablishmentCertificate"
-                  id="clinicalReg"
-                  onChange={handleFileChange}   // 🔥 reuse one function
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.clinicalEstablishmentCertificate}
-                />
-                {errors.clinicalEstablishmentCertificate && (
-                  <CFormFeedback invalid>{errors.clinicalEstablishmentCertificate}</CFormFeedback>
-                )}
-              </CCol>
+             <FileInput
+        label="Clinical Establishment Registration Certificate"
+        name="clinicalEstablishmentCertificate"
+        accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
+        formData={formData}
+        setFormData={setFormData}
+        errors={errors}
+        setErrors={setErrors}
+        inputRef={refs.clinicalEstablishmentCertificate}
+      />
 
-              <CCol md={6}>
-                <CTooltip content="Issued by Registrar of Companies or local municipal body">
-                  <CFormLabel>
-                    Business Registration Certificate <span className="text-danger">*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="businessReg"
-                  name="businessRegistrationCertificate"
-                  onChange={handleFileChange}   // 🔥 reuse one handler
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.businessRegistrationCertificate}
-                />
-                {errors.businessRegistrationCertificate && (
-                  <CFormFeedback invalid>
-                    {errors.businessRegistrationCertificate}
-                  </CFormFeedback>
-                )}
-
-              </CCol>
+              <FileInput
+        label="Business Registration Certificate"
+        name="businessRegistrationCertificate"
+        accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
+        formData={formData}
+        setFormData={setFormData}
+        errors={errors}
+        setErrors={setErrors}
+        inputRef={refs.businessRegistrationCertificate}
+      />
             </CRow>
 
             <CRow className="mb-3">
@@ -1341,29 +1304,16 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                 {errors.clinicType && <CFormFeedback invalid>{errors.clinicType}</CFormFeedback>}
               </CCol>
 
-              <CCol>
-                <CTooltip content="Issued by Insurance Companies">
-                  <CFormLabel>
-                    Professional Indemnity Insurance
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="indemnity"
-                  name="professionalIndemnityInsurance"
-                  onChange={handleFileChange} // ✅ single-file handler
-                  accept=".pdf,.doc,.docx,.jpeg,.png" // no `multiple`
-                  invalid={!!errors.professionalIndemnityInsurance}
-                />
-
-                {errors.professionalIndemnityInsurance && (
-                  <CFormFeedback invalid>
-                    {errors.professionalIndemnityInsurance}
-                  </CFormFeedback>
-                )}
-
-
-              </CCol>
+             <FileInput
+  label="Professional Indemnity Insurance"
+  name="professionalIndemnityInsurance"
+  formData={formData}
+  setFormData={setFormData}
+  errors={errors}
+  setErrors={setErrors}
+  inputRef={refs.professionalIndemnityInsurance}
+  required={false}  // <-- makes it optional
+/>
             </CRow>
 
             <CRow className="mb-3">
@@ -1389,131 +1339,76 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                   <CFormFeedback invalid>{errors.medicinesSoldOnSite}</CFormFeedback>
                 )}
               </CCol>
-              <CCol md={6}>
-                <CTooltip content="Issued by State Pollution Control Board (SPCB)">
-                  <CFormLabel>
-                    Biomedical Waste Management Authorization
-                    <span className="text-danger">*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="biomedicalWaste"
-                  name="biomedicalWasteManagementAuth"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.biomedicalWasteManagementAuth}
-                />
-                {errors.biomedicalWasteManagementAuth && (
-                  <CFormFeedback invalid>{errors.biomedicalWasteManagementAuth}</CFormFeedback>
-                )}
-
-              </CCol>
+             <FileInput
+  label="Biomedical Waste Management Authorization"
+  name="biomedicalWasteManagementAuth"
+  tooltip="Issued by State Pollution Control Board (SPCB)"
+  accept=".pdf,.doc,.docx,.jpeg,.png"
+  formData={formData}
+  setFormData={setFormData}
+  errors={errors}
+  setErrors={setErrors}
+  inputRef={refs.biomedicalWasteManagementAuth}
+/>
             </CRow>
 
             {selectedOption === 'Yes' && (
               <CRow className="mb-3">
-                <CCol md={6}>
-                  <CTooltip content="Issued by State Drug Control Department">
-                    <CFormLabel>Drug License Certificate <span className="text-danger">*</span></CFormLabel>
-                  </CTooltip>
-                  <CFormInput
-                    type="file"
-                    id="drugLicenseCertificate"
-                    name="drugLicenseCertificate"
-                    onChange={handleFileChange}   // 🔥 universal handler
-                    accept=".pdf,.doc,.docx,.jpeg,.png"
-                    invalid={!!errors.drugLicenseCertificate}
-                  />
-                  {errors.drugLicenseCertificate && (
-                    <CFormFeedback invalid>{errors.drugLicenseCertificate}</CFormFeedback>
-                  )}
+          <FileInput
+  label="Drug Licence Certificate"
+  name="drugLicenseCertificate"
+  formData={formData}
+  setFormData={setFormData}
+  errors={errors}
+  setErrors={setErrors}
+  inputRef={refs.drugLicenseCertificate}
+/>
 
-                </CCol>
-
-                <CCol md={6}>
-                  <CTooltip content="Issued by State Drug Control Department">
-                    <CFormLabel>DrugLicenseFormType 20/21 <span className="text-danger">*</span></CFormLabel>
-                  </CTooltip>
-                  <CFormInput
-                    type="file"
-                    id="Form20/21"
-                    name="drugLicenseFormType"
-                    onChange={handleFileChange}   // 🔥 reuse one function
-                    accept=".pdf,.doc,.docx,.jpeg,.png"
-                    invalid={!!errors.drugLicenseFormType}
-                  />
-                  {errors.drugLicenseFormType && (
-                    <CFormFeedback invalid>{errors.drugLicenseFormType}</CFormFeedback>
-                  )}
-
-                </CCol>
+             <FileInput
+  label="Drug Licence Form Type 20/21"
+  name="drugLicenseFormType"
+  formData={formData}
+  setFormData={setFormData}
+  errors={errors}
+  setErrors={setErrors}
+  inputRef={refs.drugLicenseFormType}
+/>
               </CRow>
             )}
             <CRow className="mb-3">
-              <CCol md={6}>
-                <CTooltip content="Issued by Local Municipality">
-                  <CFormLabel>
-                    Trade License / Shop & Establishment License
-                    <span className="text-danger">*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  name="tradeLicense"
-                  onChange={handleFileChange}   // 🔥 centralized handler
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.tradeLicense}
-                />
-                {errors.tradeLicense && (
-                  <CFormFeedback invalid>{errors.tradeLicense}</CFormFeedback>
-                )}
+            <FileInput
+  label="Trade Licence / Shop & Establishment Certificate"
+  name="tradeLicense"
+  formData={formData}
+  setFormData={setFormData}
+  errors={errors}
+  setErrors={setErrors}
+  inputRef={refs.tradeLicence}
+/>
 
-              </CCol>
-
-              <CCol md={6}>
-                <CTooltip content="Issued by Local Fire Department">
-                  <CFormLabel>
-                    Fire Safety Certificate
-                    <span className="text-danger">*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="fireSafety"
-                  name="fireSafetyCertificate"
-                  onChange={handleFileChange}   // 🔥 centralized handler
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.fireSafetyCertificate}
-                />
-                {errors.fireSafetyCertificate && (
-                  <CFormFeedback invalid>{errors.fireSafetyCertificate}</CFormFeedback>
-                )}
-
-              </CCol>
+             <FileInput
+        label="Fire Safety Certificate"
+        name="fireSafetyCertificate"
+        accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
+        formData={formData}
+        setFormData={setFormData}
+        errors={errors}
+        setErrors={setErrors}
+        inputRef={refs.fireSafetyCertificate}
+      />
             </CRow>
 
             <CRow className="mb-3">
-              <CCol md={6}>
-                <CTooltip content="Issued by GST Department">
-                  <CFormLabel>
-                    GST Registration Certificate
-                    <span className="text-danger">*</span>
-                  </CFormLabel>
-                </CTooltip>
-                <CFormInput
-                  type="file"
-                  id="gstCert"
-                  name="gstRegistrationCertificate"
-                  onChange={handleFileChange}   // 🔥 centralized handler
-                  accept=".pdf,.doc,.docx,.jpeg,.png"
-                  invalid={!!errors.gstRegistrationCertificate}
-                />
-                {errors.gstRegistrationCertificate && (
-                  <CFormFeedback invalid>{errors.gstRegistrationCertificate}</CFormFeedback>
-                )}
-
-              </CCol>
+              <FileInput
+        label="GST Registration Certificate"
+        name="gstRegistrationCertificate"
+        accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
+        formData={formData}
+        setFormData={setFormData}
+        errors={errors}
+        setErrors={setErrors}
+        inputRef={refs.gstRegistrationCertificate}
+      />
 
               <CCol md={6}>
                 <CTooltip content="NABH Accreditation / Aesthetic Procedure Training Certificate">
