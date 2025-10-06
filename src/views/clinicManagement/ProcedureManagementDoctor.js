@@ -750,7 +750,7 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
       minTimeUnit: '',
       status: '',
       subServiceImage: '',
-      subSubServiceImage:'',
+      subServiceImageFile:'',
       viewDescription: '',
       consentFormType: '',
       procedureQA: [],
@@ -800,8 +800,8 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
     try {
       let base64ImageToSend = ''
 
-      if (newService.subServiceImageFile) {
-        const fullBase64String = await toBase64(newService.subServiceImageFile)
+      if (newService.serviceImageFile) {
+        const fullBase64String = await toBase64(newService.serviceImageFile)
         base64ImageToSend = fullBase64String.split(',')[1]
       } else if (newService.subServiceImage?.startsWith('data:')) {
         base64ImageToSend = newService.subServiceImage.split(',')[1]
