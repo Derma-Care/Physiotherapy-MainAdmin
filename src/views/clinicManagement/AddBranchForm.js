@@ -353,7 +353,7 @@ const endIndex = Math.min(indexOfLastItem, filteredBranches.length)
             </div>
           ) : (
             <CTable striped hover responsive>
-              <CTableHead>
+              <CTableHead className="pink-table">
                 <CTableRow>
                   <CTableHeaderCell>S.No</CTableHeaderCell>
                   <CTableHeaderCell>Branch Name</CTableHeaderCell>
@@ -363,7 +363,7 @@ const endIndex = Math.min(indexOfLastItem, filteredBranches.length)
                   <CTableHeaderCell>Actions</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
-            <CTableBody>
+            <CTableBody className='pink-table'>
   {paginatedBranches.length > 0 ? (
     paginatedBranches.map((branch, index) => (
       <CTableRow key={branch.branchId}>
