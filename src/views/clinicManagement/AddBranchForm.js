@@ -39,7 +39,8 @@ import {
   deleteBranchById,
   fetchBranchByBranchId
 } from './AddBranchAPI'; // Import the API function
-import DataTable from 'react-data-table-component';0
+import DataTable from 'react-data-table-component';
+import { Edit2, Eye, Trash2 } from 'lucide-react'
 const AddBranchForm = ({ clinicId }) => {
   const navigate = useNavigate()
 
@@ -372,24 +373,25 @@ const endIndex = Math.min(indexOfLastItem, filteredBranches.length)
         <CTableDataCell>{branch.address}</CTableDataCell>
         <CTableDataCell><CBadge color="secondary">{branch.city}</CBadge></CTableDataCell>
         <CTableDataCell>{branch.contactNumber}</CTableDataCell>
-       <CTableDataCell>
+       <CTableDataCell className="text-end">
+        <div className="d-flex justify-content-end gap-2">
   {/* View button always available */}
-  <CButton
-    color="primary"
-    size="sm"
-    className="me-2"
+  <button
+    className="actionBtn"
     onClick={() => navigate(`/branch-details/${branch.branchId}`)}
+    title="View"
   >
-    View
-  </CButton>
+    <Eye size={18} />
+  </button>
 
   {/* Only show Edit/Delete if NOT the first branch */}
   {index !== 0 && (
     <>
-      <CButton color="warning" size="sm" className="me-2" onClick={() => handleEdit(branch)}>Edit</CButton>
-      <CButton color="danger" size="sm" onClick={() => { setDeletingBranch(branch); setDeleteModalVisible(true); }}>Delete</CButton>
+      <button className="actionBtn" title="Edit" onClick={() => handleEdit(branch)}><Edit2 size={18} /></button>
+      <button className="actionBtn" title="Delete" onClick={() => { setDeletingBranch(branch); setDeleteModalVisible(true); }}><Trash2 size={18} /></button>
     </>
   )}
+  </div>
 </CTableDataCell>
 
       </CTableRow>
