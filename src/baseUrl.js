@@ -1,14 +1,14 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
-const ipUrl = 'localhost'
-//const ipUrl = '13.127.106.17'
-export const BASE_URL = `http://${ipUrl}:8081`
-export const CLINIC_ADMIN_URL = `http://${ipUrl}:8080`
+// const ipUrl = 'localhost'
+const ipUrl = '3.6.119.57:9090'
+export const BASE_URL = `http://${ipUrl}`
+export const CLINIC_ADMIN_URL = `http://${ipUrl}`
 export const MainAdmin_URL = `${BASE_URL}/admin`
-export const Procedure_URL=`http://${ipUrl}:8081`
+export const Procedure_URL=`http://${ipUrl}`
 // export let wifiUrl = '192.168.1.7'
 
 // export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
-export const Booking_service_Url = `http://${ipUrl}:8083/api`
+export const Booking_service_Url = `http://${ipUrl}/api`
 
 // export const BOOKING_SERVICE_URL = `http://${ipUrl}:8087/api/v1`
 // export const BASE_URLS = `http://${ipUrl}:8080/api/v1`
@@ -16,7 +16,7 @@ export const Booking_service_Url = `http://${ipUrl}:8083/api`
 export const SERVICE_URL = `admin/updateByServiceId`
 
 //sub-service
-export const subService_URL = `http://${ipUrl}:8081/admin`
+export const subService_URL = `http://${ipUrl}/admin`
 export const ADD_SERVICE = 'addService'
 export const GET_ALL_SERVICES = 'getAllServices'
 export const DELETE_SERVICE_URL = `deleteService`
