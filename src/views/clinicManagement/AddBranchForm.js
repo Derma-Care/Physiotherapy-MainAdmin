@@ -338,19 +338,32 @@ const AddBranchForm = ({ clinicId }) => {
           {/* Search and Filter Controls */}
           <CRow className="mb-3">
             <CCol md={6}>
-              <CInputGroup>
-                <CInputGroupText>Search</CInputGroupText>
+              <CInputGroup
+                className="rounded"
+                style={{
+                  border: "1px solid #7e3a93",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                }}
+              >
+                <CInputGroupText className="bg-light text-dark border-0">
+                  Search
+                </CInputGroupText>
                 <CFormInput
+                  className="border-0"
                   placeholder="Search by name, address, or city"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </CInputGroup>
             </CCol>
+
+
             <CCol md={6}>
               <CInputGroup>
-                <CInputGroupText>Filter by City</CInputGroupText>
+                <CInputGroupText style={{ border: "1px solid #7e3a93" }}>Filter by City</CInputGroupText>
                 <CFormSelect
+                  style={{ border: "1px solid #7e3a93" }}
                   value={filterCity}
                   onChange={(e) => setFilterCity(e.target.value)}
                 >

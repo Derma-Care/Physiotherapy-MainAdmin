@@ -113,8 +113,8 @@ const ClinicManagement = ({ service, onBack }) => {
       <CCardHeader>
         <div className="d-flex justify-content-between align-items-center">
           <h2 className="mb-0">{service?.categoryName} Clinics</h2>
-          <CButton  color="secondary"
-                        style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={handleAddClinic}>
+          <CButton color="secondary"
+            style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={handleAddClinic}>
             Add Clinic
           </CButton>
         </div>
@@ -125,6 +125,7 @@ const ClinicManagement = ({ service, onBack }) => {
           <div className="col-4 mx-2">
             <CFormInput
               type="text"
+              style={{ border: "1px solid #7e3a93" }}
               placeholder="Search by full name, mobile, or email"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -133,6 +134,7 @@ const ClinicManagement = ({ service, onBack }) => {
           <div className="col-md-4 ">
             <select
               className="form-select"
+              style={{ border: "1px solid #7e3a93" }}
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
             >

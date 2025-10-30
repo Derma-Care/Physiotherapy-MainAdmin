@@ -420,8 +420,8 @@ const CategoryManagement = () => {
       <CCardHeader>
         <div className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0">Categories</h5>
-          <CButton  color="secondary"
-                        style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setModalVisible(true)}>
+          <CButton color="secondary"
+            style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setModalVisible(true)}>
             Add Category
           </CButton>
         </div>
@@ -434,77 +434,78 @@ const CategoryManagement = () => {
             <CInputGroup style={{ width: '300px' }}>
               <CFormInput
                 type="text"
+                style={{ border: "1px solid #7e3a93" }}
                 placeholder="Search by Category Name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
 
-              <CInputGroupText>
+              <CInputGroupText style={{ border: "1px solid #7e3a93" }}>
                 <CIcon icon={cilSearch} />
               </CInputGroupText>
             </CInputGroup>
           </div>
         </CForm>
 
-      <CTable striped hover responsive>
-  <CTableHead className="pink-table">
-    <CTableRow>
-      <CTableHeaderCell className="text-center">S.No</CTableHeaderCell>
-      <CTableHeaderCell>Category Name</CTableHeaderCell>
-      <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
-    </CTableRow>
-  </CTableHead>
+        <CTable striped hover responsive>
+          <CTableHead className="pink-table">
+            <CTableRow>
+              <CTableHeaderCell className="text-center">S.No</CTableHeaderCell>
+              <CTableHeaderCell>Category Name</CTableHeaderCell>
+              <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
+            </CTableRow>
+          </CTableHead>
 
-  <CTableBody className="pink-table">
-    {currentItems.length > 0 ? (
-      currentItems.map((category, index) => (
-        <CTableRow key={category.categoryId}>
-          <CTableDataCell className="text-center">
-            {(currentPage - 1) * itemsPerPage + index + 1}
-          </CTableDataCell>
+          <CTableBody className="pink-table">
+            {currentItems.length > 0 ? (
+              currentItems.map((category, index) => (
+                <CTableRow key={category.categoryId}>
+                  <CTableDataCell className="text-center">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </CTableDataCell>
 
-          <CTableDataCell>{category.categoryName}</CTableDataCell>
+                  <CTableDataCell>{category.categoryName}</CTableDataCell>
 
-          <CTableDataCell className="text-center">
-            <div className="d-flex justify-content-center align-items-center gap-2">
-              <button
-                className="actionBtn view"
-                onClick={() => setViewCategory(category)}
-                title="View"
-              >
-                <Eye size={18} />
-              </button>
+                  <CTableDataCell className="text-center">
+                    <div className="d-flex justify-content-center align-items-center gap-2">
+                      <button
+                        className="actionBtn view"
+                        onClick={() => setViewCategory(category)}
+                        title="View"
+                      >
+                        <Eye size={18} />
+                      </button>
 
-              <button
-                className="actionBtn edit"
-                onClick={() => handleCategoryEdit(category)}
-                title="Edit"
-              >
-                <Edit2 size={18} />
-              </button>
+                      <button
+                        className="actionBtn edit"
+                        onClick={() => handleCategoryEdit(category)}
+                        title="Edit"
+                      >
+                        <Edit2 size={18} />
+                      </button>
 
-              <button
-                className="actionBtn delete"
-                onClick={() => handleCategoryDelete(category.categoryId)}
-                title="Delete"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </CTableDataCell>
-        </CTableRow>
-      ))
-    ) : (
-      <CTableRow>
-        <CTableDataCell colSpan={3} className="text-center text-muted">
-          {searchQuery
-            ? 'No matching categories found.'
-            : 'No categories available.'}
-        </CTableDataCell>
-      </CTableRow>
-    )}
-  </CTableBody>
-</CTable>
+                      <button
+                        className="actionBtn delete"
+                        onClick={() => handleCategoryDelete(category.categoryId)}
+                        title="Delete"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </CTableDataCell>
+                </CTableRow>
+              ))
+            ) : (
+              <CTableRow>
+                <CTableDataCell colSpan={3} className="text-center text-muted">
+                  {searchQuery
+                    ? 'No matching categories found.'
+                    : 'No categories available.'}
+                </CTableDataCell>
+              </CTableRow>
+            )}
+          </CTableBody>
+        </CTable>
 
 
         {/* Pagination */}

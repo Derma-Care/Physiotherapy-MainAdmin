@@ -256,21 +256,21 @@ const AppointmentManagement = () => {
                 checked={statusFilters.includes('Pending')}
               /> */}
             <CFormCheck
-              style={{ color: 'var(--color-black)' }}
+              style={{ color: 'var(--color-black)',border:"1px solid #7e3a93" }}
               label="Confirmed"
               value="Confirmed"
               onChange={handleStatusChange}
               checked={statusFilters.includes('Confirmed')}
             />
             <CFormCheck
-              style={{ color: 'var(--color-black)' }}
+              style={{ color: 'var(--color-black)',border:"1px solid #7e3a93" }}
               label="Active"
               value="In-Progress"
               onChange={handleStatusChange}
               checked={statusFilters.includes('In-Progress')}
             />
             <CFormCheck
-              style={{ color: 'var(--color-black)' }}
+              style={{ color: 'var(--color-black)',border:"1px solid #7e3a93" }}
               label="Completed"
               value="Completed"
               onChange={handleStatusChange}
@@ -301,7 +301,7 @@ const AppointmentManagement = () => {
           >
             <select
               className="form-select"
-              style={{ minWidth: '180px', flexShrink: 0 }}
+              style={{ minWidth: '180px', flexShrink: 0 ,border:"1px solid #7e3a93"}}
               value={selectedHospitalId}
               onChange={(e) => {
                 const clinicId = e.target.value

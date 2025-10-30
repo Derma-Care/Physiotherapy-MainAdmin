@@ -455,22 +455,31 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         ...prev,
         hospitalLogo: "Invalid file type (only JPEG, JPG, PNG allowed)",
       }));
-      setFormData((prev) => ({ ...prev, hospitalLogo: null })); // do not store base64
+      setFormData((prev) => ({ ...prev, hospitalLogo: null }));
       return;
     }
 
-    const MIN_SIZE = 500 * 1024; // 500 KB
     const MAX_SIZE = 1 * 1024 * 1024; // 1 MB
 
-    if (file.size < MIN_SIZE || file.size > MAX_SIZE) {
+    // Invalid size (greater than 1 MB)
+    if (file.size > MAX_SIZE) {
       setErrors((prev) => ({
         ...prev,
-        hospitalLogo: "File size must be between 500 KB and 1 MB",
+        hospitalLogo: "File size must be less than or equal to 1 MB",
       }));
-      setFormData((prev) => ({ ...prev, hospitalLogo: null })); // do not store base64
+      setFormData((prev) => ({ ...prev, hospitalLogo: null }));
       return;
     }
 
+    // (Optional) Prevent empty 0 KB files — uncomment if you want to block empty uploads
+    // if (file.size === 0) {
+    //   setErrors((prev) => ({
+    //     ...prev,
+    //     hospitalLogo: "File cannot be empty",
+    //   }));
+    //   setFormData((prev) => ({ ...prev, hospitalLogo: null }));
+    //   return;
+    // }
 
     // Valid file → read base64
     try {
@@ -495,8 +504,6 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       setFormData((prev) => ({ ...prev, hospitalLogo: null }));
     }
   };
-
-
 
 
   const handleFileChange = async (e) => {
@@ -533,19 +540,27 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       return;
     }
 
-    const MIN_SIZE = 150 * 1024; // 150 KB
     const MAX_SIZE = 250 * 1024; // 250 KB
 
-    // Invalid size
-    if (file.size < MIN_SIZE || file.size > MAX_SIZE) {
+    // Invalid size (greater than 250 KB)
+    if (file.size > MAX_SIZE) {
       setErrors((prev) => ({
         ...prev,
-        [name]: 'File size must be between 150 KB and 250 KB',
+        [name]: 'File size must be less than or equal to 250 KB',
       }));
       setFormData((prev) => ({ ...prev, [name]: null })); // do not store base64
       return;
     }
 
+    // (Optional) Prevent truly empty files — you can uncomment this if needed
+    // if (file.size === 0) {
+    //   setErrors((prev) => ({
+    //     ...prev,
+    //     [name]: 'File cannot be empty',
+    //   }));
+    //   setFormData((prev) => ({ ...prev, [name]: null }));
+    //   return;
+    // }
 
     // Valid file → read base64
     try {
@@ -563,8 +578,6 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       setFormData((prev) => ({ ...prev, [name]: null }));
     }
   };
-
-
 
   // ✅ Clear handler (X button click)
   const handleClearFile = (name, inputRef) => {
@@ -649,21 +662,20 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       'image/png',
       'application/zip',
     ]
-    const MIN_SIZE_BYTES = 150 * 1024; // 150 KB
-    const MAX_SIZE_BYTES = 250 * 1024; // 250 KB
+
+    const MAX_SIZE_BYTES = 250 * 1024 // 250 KB
 
     // Validate each selected file
     for (let file of selectedFiles) {
       if (!allowedTypes.includes(file.type)) {
-        setErrors(prev => ({ ...prev, [fieldName]: 'Invalid file type' }));
-        return;
+        setErrors(prev => ({ ...prev, [fieldName]: 'Invalid file type' }))
+        return
       }
-      if (file.size < MIN_SIZE_BYTES || file.size > MAX_SIZE_BYTES) {
-        setErrors(prev => ({ ...prev, [fieldName]: 'File size must be between 150 KB and 250 KB' }));
-        return;
+      if (file.size > MAX_SIZE_BYTES) {
+        setErrors(prev => ({ ...prev, [fieldName]: 'File size must be less than or equal to 250 KB' }))
+        return
       }
     }
-
 
     // Convert files to raw Base64
     const base64Files = await Promise.all(
@@ -672,8 +684,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
           const reader = new FileReader()
           reader.readAsDataURL(file)
           reader.onload = () => {
-            // Strip the prefix: "data:application/pdf;base64,"
-            const rawBase64 = reader.result.split(',')[1]
+            const rawBase64 = reader.result.split(',')[1] // Remove "data:application/pdf;base64,"
             resolve({ name: file.name, base64: rawBase64 })
           }
           reader.onerror = err => reject(err)
@@ -690,7 +701,6 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
     setErrors(prev => ({ ...prev, [fieldName]: '' }))
   }
-
 
   const normalizeWebsite = (url) => {
     // If starts with www. or does not have protocol, prepend https://
@@ -730,6 +740,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
     fetchDoctors()
   }, [])
+
   useEffect(() => {
     const storedConsultation = localStorage.getItem('consultationExpiration')
     if (storedConsultation) {
@@ -1816,8 +1827,8 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
               )}
             </CRow>
 
-            <CModal visible={showNabhModal} onClose={() => setShowNabhModal(false)} size="lg"  className="custom-modal"
-        backdrop="static">
+            <CModal visible={showNabhModal} onClose={() => setShowNabhModal(false)} size="lg" className="custom-modal"
+              backdrop="static">
               <CModalHeader>
                 <CModalTitle>NABH Questionnaire</CModalTitle>
               </CModalHeader>

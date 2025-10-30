@@ -528,17 +528,18 @@ const ServiceManagement = () => {
           <div className="d-flex" style={{ gap: '1rem' }}>
             <CInputGroup style={{ width: '300px' }}>
               <CFormInput
+                style={{ border: "1px solid #7e3a93" }}
                 placeholder="Search Service / Category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <CInputGroupText>
+              <CInputGroupText style={{ border: "1px solid #7e3a93" }}>
                 <CIcon icon={cilSearch} />
               </CInputGroupText>
             </CInputGroup>
 
-            <CButton  color="secondary"
-                          style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setModalVisible(true)}>
+            <CButton color="secondary"
+              style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setModalVisible(true)}>
               + Add Service
             </CButton>
           </div>

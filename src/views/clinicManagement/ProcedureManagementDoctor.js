@@ -13,11 +13,11 @@ import {
   CModalBody,
   CModalFooter,
   CRow,
-  CListGroup,
+  CBadge,
   CCol,
   CFormSelect,
-  CHeader,
-  CListGroupItem,
+  CCardBody,
+  CCard,
   CFormLabel,
 } from '@coreui/react'
 import DataTable from 'react-data-table-component'
@@ -1050,9 +1050,9 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
               placeholder="Search by Procedure Name, Category"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ height: '40px' }}
+              style={{ height: '40px', border: "1px solid #7e3a93" }}
             />
-            <CInputGroupText style={{ height: '40px' }}>
+            <CInputGroupText style={{ height: '40px', border: "1px solid #7e3a93" }}>
               <CIcon icon={cilSearch} />
             </CInputGroupText>
           </CInputGroup>
@@ -1069,239 +1069,159 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
       </div>
 
       {viewService && (
-        <CModal visible={!!viewService} onClose={() => setViewService(null)} size="xl" className="custom-modal"
-          backdrop="static">
-          <CModalHeader>
-            <CModalTitle className="w-100 text-center text-info fs-4">
+        <CModal
+          visible={!!viewService}
+          onClose={() => setViewService(null)}
+          size="xl"
+          backdrop="static"
+          className="procedure-modal"
+        >
+          <CModalHeader className="justify-content-center bg-light border-bottom">
+            <CModalTitle className="text-primary fw-bold fs-4">
               Procedure Details
             </CModalTitle>
           </CModalHeader>
-          <CModalBody>
-            <CRow className="mb-3">
-              <CCol sm={6}>
-                <strong>Procedure Name:</strong>
-                <div>{viewService.subServiceName}</div>
-              </CCol>
-              <CCol sm={6}>
-                <strong>Procedure ID:</strong>
-                <div>{viewService.subServiceId}</div>
-              </CCol>
-            </CRow>
-            <CRow className="mb-3">
-              <CCol sm={6}>
-                <strong>Service Name:</strong>
-                <div>{viewService.serviceName}</div>
-              </CCol>
-              <CCol sm={6}>
-                <strong>Service Id:</strong>
 
-                <div>{viewService.serviceId}</div>
-              </CCol>
-            </CRow>
+          <CModalBody className="p-4">
+            {/* Basic Info */}
+            <CCard className="shadow-sm mb-4 border-0">
+              <CCardBody>
+                <h6 className="text-info fw-semibold mb-3">Basic Information</h6>
+                <CRow className="gy-3">
+                  <CCol sm={6}>
+                    <strong>Procedure Name:</strong> {viewService.subServiceName}
 
-            <CRow className="mb-3">
-              <CCol sm={6}>
-                <strong>Category Name:</strong>
-                <div>{viewService.categoryName}</div>
-              </CCol>
-              <CCol sm={6}>
-                <strong>Category Id:</strong>
-                <div>{viewService.categoryId}</div>
-              </CCol>
-              <CCol sm={6}>
-                <strong>Consent Form Type:</strong>
-                <div>{consentFormTypeLabels[viewService.consentFormType] || 'N/A'}</div>
-              </CCol>
-            </CRow>
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>Procedure ID:</strong> {viewService.subServiceId}
 
-            <CRow className="mb-3">
-              <CCol sm={6}>
-                <strong>Status:</strong>
-                <div>{viewService.status}</div>
-              </CCol>
-            </CRow>
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>Service Name:</strong> {viewService.serviceName}
 
-            <hr />
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>Service ID:</strong> {viewService.serviceId}
 
-            <CRow className="mb-3">
-              <CCol sm={4}>
-                <strong>Price:</strong>
-                <div>₹ {Math.round(viewService.price)}</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Discount %:</strong>
-                <div>{Math.round(viewService.discountPercentage)}%</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Discount Amount:</strong>
-                <div>₹ {Math.round(viewService.discountAmount)}</div>
-              </CCol>
-            </CRow>
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>Category Name:</strong> {viewService.categoryName}
 
-            <CRow className="mb-3">
-              <CCol sm={4}>
-                <strong>Discounted Cost:</strong>
-                <div>₹ {Math.round(viewService.discountedCost)}</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Tax %:</strong>
-                <div>{Math.round(viewService.taxPercentage)}%</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Tax Amount:</strong>
-                <div>₹ {Math.round(viewService.taxAmount)}</div>
-              </CCol>
-            </CRow>
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>Category ID:</strong> {viewService.categoryId}
 
-            <CRow className="mb-3">
-              <CCol sm={4}>
-                <strong>Platform Fee %:</strong>
-                <div>{Math.round(viewService.platformFeePercentage)}%</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Platform Fee:</strong>
-                <div>₹ {Math.round(viewService.platformFee)}</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Clinic Pay:</strong>
-                <div>₹ {Math.round(viewService.clinicPay)}</div>
-              </CCol>
-            </CRow>
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>Consent Form Type:</strong> {consentFormTypeLabels[viewService.consentFormType] || "N/A"}
 
-            <CRow className="mb-3">
-              <CCol sm={4}>
-                <strong>GST:</strong>
-                <div>₹ {Math.round(viewService.gst)}</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Consultation Fee:</strong>
-                <div>₹ {viewService.consultationFee}</div>
-              </CCol>
-              <CCol sm={4}>
-                <strong>Final Cost:</strong>
-                <div>₹ {Math.round(viewService.finalCost)}</div>
-              </CCol>
-            </CRow>
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>Status:</strong>  <CBadge color={viewService.status === "Active" ? "success" : "secondary"}>
+                      {viewService.status}
+                    </CBadge>
 
-            <CRow className="mb-3">
-              <CCol sm={4}>
-                <strong>Service Time:</strong>
-                <div>{formatMinutes(viewService.minTime)}</div>
-              </CCol>
-            </CRow>
+                  </CCol>
+                </CRow>
+              </CCardBody>
+            </CCard>
 
-            <hr />
+            {/* Pricing Info */}
+            <CCard className="shadow-sm mb-4 border-0">
+              <CCardBody>
+                <h6 className="text-info fw-semibold mb-3">Pricing & Fees</h6>
+                <CRow className="gy-3">
+                  <CCol sm={4}><strong>Price:</strong> ₹ {viewService.price ? Math.round(viewService.price) : '—'}</CCol>
+                  <CCol sm={4}><strong>Discount %:</strong> {viewService.discountPercentage ? Math.round(viewService.discountPercentage) + '%' : '—'}</CCol>
+                  <CCol sm={4}><strong>Discount Amount:</strong> ₹ {viewService.discountAmount ? Math.round(viewService.discountAmount) : '—'}</CCol>
+                  <CCol sm={4}><strong>Discounted Cost:</strong> ₹ {viewService.discountedCost ? Math.round(viewService.discountedCost) : '—'}</CCol>
+                  <CCol sm={4}><strong>Tax %:</strong> {viewService.taxPercentage ? Math.round(viewService.taxPercentage) + '%' : '—'}</CCol>
+                  <CCol sm={4}><strong>Tax Amount:</strong> ₹ {viewService.taxAmount ? Math.round(viewService.taxAmount) : '—'}</CCol>
+                  <CCol sm={4}><strong>Platform Fee %:</strong> {viewService.platformFeePercentage ? Math.round(viewService.platformFeePercentage) + '%' : '—'}</CCol>
+                  <CCol sm={4}><strong>Platform Fee:</strong> ₹ {viewService.platformFee ? Math.round(viewService.platformFee) : '—'}</CCol>
+                  <CCol sm={4}><strong>Clinic Pay:</strong> ₹ {viewService.clinicPay ? Math.round(viewService.clinicPay) : '—'}</CCol>
+                  <CCol sm={4}><strong>GST:</strong> ₹ {viewService.gst ? Math.round(viewService.gst) : '—'}</CCol>
+                  <CCol sm={4}><strong>Consultation Fee:</strong> ₹ {viewService.consultationFee ?? '—'}</CCol>
+                  <CCol sm={4}><strong>Final Cost:</strong> ₹ {viewService.finalCost ? Math.round(viewService.finalCost) : '—'}</CCol>
+                  <CCol sm={4}><strong>Service Time:</strong> {viewService.minTime ? formatMinutes(viewService.minTime) : '—'}</CCol>
+                </CRow>
+              </CCardBody>
+            </CCard>
 
-            <CRow className="mb-3">
-              <CCol sm={12}>
-                <strong className="mb-3">Pre-Procedure QA:</strong>
-                {Array.isArray(viewService.preProcedureQA) &&
-                  viewService.preProcedureQA.length > 0 ? (
-                  viewService.preProcedureQA.map((qa, index) => {
-                    const question = Object.keys(qa)[0]
-                    const answers = qa[question]
-                    console.log('my view service', viewService)
-                    return (
-                      <div key={index} style={{ marginBottom: '10px' }}>
-                        <strong>{question}</strong>
-                        <ul>
-                          {answers.map((ans, i) => (
-                            <li key={i}>{ans}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div>No Pre-Procedure Q&A available</div>
-                )}
-              </CCol>
-            </CRow>
 
-            <CRow className="mb-3">
-              <CCol sm={12}>
-                <strong className="mb-3">Procedure QA:</strong>
-                {Array.isArray(viewService.procedureQA) && viewService.procedureQA.length > 0 ? (
-                  viewService.procedureQA.map((qa, index) => {
-                    const question = Object.keys(qa)[0]
-                    const answers = qa[question]
-                    return (
-                      <div key={index} style={{ marginBottom: '10px' }}>
-                        <strong>{question}</strong>
-                        <ul>
-                          {answers.map((ans, i) => (
-                            <li key={i}>{ans}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div>No Procedure Q&A available</div>
-                )}
-              </CCol>
-            </CRow>
+            {/* Q&A Sections */}
+            {["preProcedureQA", "procedureQA", "postProcedureQA"].map((qaType, i) => {
+              const titles = {
+                preProcedureQA: "Pre-Procedure Q&A",
+                procedureQA: "Procedure Q&A",
+                postProcedureQA: "Post-Procedure Q&A",
+              };
+              const qaData = viewService[qaType];
 
-            <CRow className="mb-3">
-              <CCol sm={12}>
-                <strong className="mb-3">Post-Procedure QA:</strong>
-                {Array.isArray(viewService.postProcedureQA) &&
-                  viewService.postProcedureQA.length > 0 ? (
-                  viewService.postProcedureQA.map((qa, index) => {
-                    const question = Object.keys(qa)[0]
-                    const answers = qa[question]
-                    return (
-                      <div key={index} style={{ marginBottom: '10px' }}>
-                        <strong>{question}</strong>
-                        <ul>
-                          {answers.map((ans, i) => (
-                            <li key={i}>{ans}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <div>No Post-Procedure Q&A available</div>
-                )}
-              </CCol>
-            </CRow>
-
-            <hr />
-
-            <CRow>
-              <CCol sm={6}>
-                <strong>Sub Service Image:</strong>
-                {viewService.subServiceImage ? (
-                  <div className="mt-2">
-                    <img
-                      src={`data:image/png;base64,${viewService.subServiceImage}`}
-                      alt="Service"
-                      style={{ width: '100%', maxWidth: '250px', borderRadius: '8px' }}
-                    />
-
-                    {previewImage && (
-                      <img src={previewImage} alt="Preview" height="80" className="mt-2" />
+              return (
+                <CCard key={i} className="shadow-sm mb-4 border-0">
+                  <CCardBody>
+                    <h6 className="text-info fw-semibold mb-3">{titles[qaType]}</h6>
+                    {Array.isArray(qaData) && qaData.length > 0 ? (
+                      qaData.map((qa, index) => {
+                        const question = Object.keys(qa)[0];
+                        const answers = qa[question];
+                        return (
+                          <div key={index} className="mb-2">
+                            <strong>{question}</strong>
+                            <ul className="ms-3">
+                              {answers.map((ans, i) => (
+                                <li key={i}>{ans}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-muted fst-italic">No Q&A available</div>
                     )}
-                  </div>
-                ) : (
-                  <div>No image available</div>
-                )}
-              </CCol>
-              <CCol sm={6}>
-                <strong>View Description:</strong>
-                <div>{viewService.viewDescription}</div>
-              </CCol>
-            </CRow>
+                  </CCardBody>
+                </CCard>
+              );
+            })}
+
+            {/* Image & Description */}
+            <CCard className="shadow-sm border-0">
+              <CCardBody>
+                <h6 className="text-info fw-semibold mb-3">Additional Details</h6>
+                <CRow>
+                  <CCol sm={6}>
+                    <strong>Sub Service Image:</strong>
+                    <div className="mt-2">
+                      {viewService.subServiceImage ? (
+                        <img
+                          src={`data:image/png;base64,${viewService.subServiceImage}`}
+                          alt="Service"
+                          className="img-fluid rounded border"
+                          style={{ maxWidth: "250px" }}
+                        />
+                      ) : (
+                        <div className="text-muted">No image available</div>
+                      )}
+                    </div>
+                  </CCol>
+                  <CCol sm={6}>
+                    <strong>View Description:</strong>
+                    <div className="mt-2">{viewService.viewDescription || "N/A"}</div>
+                  </CCol>
+                </CRow>
+              </CCardBody>
+            </CCard>
           </CModalBody>
 
-          <CModalFooter>
-            <CButton color="secondary" onClick={() => setViewService(null)}>
+          <CModalFooter className="justify-content-center border-top bg-light">
+            <CButton color="secondary" variant="outline" onClick={() => setViewService(null)}>
               Close
             </CButton>
           </CModalFooter>
         </CModal>
       )}
+
 
       <CModal
         visible={modalVisible}
@@ -1692,7 +1612,7 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
               table: {
                 style: {
                   backgroundColor: '#fff',
-                
+
                 },
               },
               headRow: {
@@ -1706,14 +1626,14 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
                   color: '#7e3a93',
                   fontWeight: '600',
                   fontSize: '0.95rem',
-        
-                
+
+
                 },
               },
-             
+
               cells: {
                 style: {
-                  
+
                   fontSize: '0.9rem',
                   color: '#7e3a93',
                   padding: '12px 14px',

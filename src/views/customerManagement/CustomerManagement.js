@@ -437,11 +437,12 @@ const CustomerManagement = () => {
                 <CInputGroup>
                   <CFormInput
                     type="text"
+                    style={{ border: "1px solid #7e3a93" }}
                     placeholder="Search by name, mobile, or email"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                  <CInputGroupText>
+                  <CInputGroupText style={{ border: "1px solid #7e3a93" }}>
                     <CIcon icon={cilSearch} />
                   </CInputGroupText>
                 </CInputGroup>
@@ -449,8 +450,8 @@ const CustomerManagement = () => {
             </div>
 
             <div className="col-md-3 d-flex justify-content-end">
-              <CButton  color="secondary"
-                            style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setIsAdding(true)}>
+              <CButton color="secondary"
+                style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setIsAdding(true)}>
                 Add New Customer
               </CButton>
             </div>
