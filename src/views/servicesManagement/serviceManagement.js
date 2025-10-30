@@ -22,7 +22,7 @@ import {
   CTableBody,
   CTableDataCell,
   CPagination,
-  CPaginationItem,
+  CPaginationItem, CCardBody,
   CSpinner,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
@@ -35,6 +35,7 @@ import Select from 'react-select'
 import { cilXCircle } from '@coreui/icons'
 import LoadingIndicator from '../../Utils/loader'
 import { Edit2, Eye, Trash2 } from 'lucide-react'
+import { COLORS } from '../../Constant/Themes'
 
 const ServiceManagement = () => {
   const fileInputRef = useRef(null);
@@ -536,7 +537,8 @@ const ServiceManagement = () => {
               </CInputGroupText>
             </CInputGroup>
 
-            <CButton color="primary" onClick={() => setModalVisible(true)}>
+            <CButton  color="secondary"
+                          style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setModalVisible(true)}>
               + Add Service
             </CButton>
           </div>
@@ -551,11 +553,11 @@ const ServiceManagement = () => {
             <CTable striped hover responsive>
               <CTableHead className='pink-table'>
                 <CTableRow>
-                  <CTableHeaderCell style={{ width: '80px' }}>S.No</CTableHeaderCell>
+                  <CTableHeaderCell >S.No</CTableHeaderCell>
                   <CTableHeaderCell>Service Name</CTableHeaderCell>
                   <CTableHeaderCell>Category Name</CTableHeaderCell>
                   <CTableHeaderCell>Description</CTableHeaderCell>
-                  <CTableHeaderCell style={{ width: '80px' }}>Actions</CTableHeaderCell>
+                  <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody className='pink-table'>
@@ -566,14 +568,11 @@ const ServiceManagement = () => {
                       <CTableDataCell>{service.serviceName}</CTableDataCell>
                       <CTableDataCell>{service.categoryName}</CTableDataCell>
                       <CTableDataCell>{service.description || 'N/A'}</CTableDataCell>
-                      <CTableDataCell className="text-end">
-
-                        <div className="d-flex justify-content-end gap-2  ">
-
+                      <CTableDataCell className="text-center">
+                        <div className="d-flex justify-content-center align-items-center gap-2">
                           <button
                             // color="primary"
                             className="actionBtn"
-
                             onClick={() => handleViewService(service.serviceId)}
                             title="View"
                           >
@@ -581,18 +580,14 @@ const ServiceManagement = () => {
                           </button>
 
                           <button
-
                             className="actionBtn"
-
                             onClick={() => handleServiceEdit(service)}
                             title="Edit"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button
-
                             className="actionBtn"
-                            size="sm"
                             onClick={() => handleServiceDelete(service.serviceId)}
                             title="Delete"
                           >
@@ -829,36 +824,80 @@ const ServiceManagement = () => {
         </CModal>
 
         {/* View Service Modal */}
-        <CModal visible={viewModalVisible} onClose={() => setViewModalVisible(false)}>
-          <CModalHeader closeButton>
-            <CModalTitle>Service Details</CModalTitle>
+        <CModal
+          visible={viewModalVisible}
+          onClose={() => setViewModalVisible(false)}
+          size="lg"
+          backdrop="static"
+          className="service-details-modal"
+        >
+          <CModalHeader className="bg-info text-white text-center justify-content-center">
+            <CModalTitle className="fw-bold fs-4" style={{ color: "white" }}>
+              <i className="bi bi-info-circle me-2" ></i> Service Details
+            </CModalTitle>
           </CModalHeader>
-          <CModalBody>
+
+          <CModalBody className="bg-light">
             {selectedService ? (
-              <>
-                <p><strong>Service Name : </strong>{selectedService.serviceName}</p>
-                <p><strong>Category Name : </strong>{selectedService.categoryName}</p>
-                <p><strong>Description : </strong>{selectedService.description || 'N/A'}</p>
-                {selectedService.serviceImage && (
-                  <div className="text-center my-3">
-                    <img
-                      src={`data:image/jpeg;base64,${selectedService.serviceImage}`}
-                      alt={selectedService.serviceName}
-                      style={{ maxWidth: "100%", borderRadius: "8px" }}
-                    />
-                  </div>
-                )}
-              </>
+              <div className="p-3">
+                <CCard className="shadow-sm border-0 rounded-4 overflow-hidden">
+                  {selectedService.serviceImage && (
+                    <div className="text-center bg-white py-3 border-bottom">
+                      <img
+                        src={`data:image/jpeg;base64,${selectedService.serviceImage}`}
+                        alt={selectedService.serviceName}
+                        style={{
+                          maxWidth: "180px",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                        }}
+                      />
+                    </div>
+                  )}
+                  <CCardBody>
+                    <CRow className="gy-3">
+                      <CCol sm={6}>
+                        <p className="mb-1 text-secondary fw-semibold">Service Name</p>
+                        <p className="fs-6 fw-bold text-dark">
+                          {selectedService.serviceName}
+                        </p>
+                      </CCol>
+                      <CCol sm={6}>
+                        <p className="mb-1 text-secondary fw-semibold">Category</p>
+                        <p className="fs-6 fw-bold text-dark">
+                          {selectedService.categoryName}
+                        </p>
+                      </CCol>
+                      <CCol xs={12}>
+                        <p className="mb-1 text-secondary fw-semibold">Description</p>
+                        <p className="fs-6 text-dark">
+                          {selectedService.description || "N/A"}
+                        </p>
+                      </CCol>
+                    </CRow>
+                  </CCardBody>
+                </CCard>
+              </div>
             ) : (
-              <p>No details available</p>
+              <div className="text-center py-4 text-muted">
+                <i className="bi bi-exclamation-triangle fs-3 text-warning"></i>
+                <p className="mt-2">No details available</p>
+              </div>
             )}
           </CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" onClick={() => setViewModalVisible(false)}>
+
+          <CModalFooter className="justify-content-center">
+            <CButton
+              color="light"
+              className="px-4 py-2 border-0 shadow-sm"
+              style={{ backgroundColor: '#6c757d', color: 'white', borderRadius: '8px' }}
+              onClick={() => setViewModalVisible(false)}
+            >
               Close
             </CButton>
           </CModalFooter>
         </CModal>
+
 
         {/* Edit Service Modal */}
         <CModal

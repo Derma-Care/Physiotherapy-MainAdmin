@@ -1,5 +1,6 @@
 import { element } from 'prop-types'
 import React from 'react'
+import Payouts from './views/Payouts/Payout'
 // import AddDoctors from './views/clinicManagement/AddDoctors'
 
 const Login = React.lazy(() => import('./views/pages/login/Login'))
@@ -100,6 +101,7 @@ const routes = [
   { path: '/reassign-Appointment', name: 'Reassign Appointment', element: ReassignAppointment },
 
   { path: '/ads-management', name: 'Ads Management', element: AdsManagement },
+  { path: '/payouts', name: 'Payouts', element: Payouts },
   { path: '/ads-service-management', name: 'Ads Management', element: AdsServiceManagement },
   { path: '/provider-management/:id', name: 'Patient View Details', element: PatientViewDetails },
 

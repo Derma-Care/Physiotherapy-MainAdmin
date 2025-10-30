@@ -170,12 +170,34 @@ const BranchDetails = () => {
     <CCard className="mt-4">
       <ToastContainer />
       {/* Header */}
-      <CCardHeader className="d-flex justify-content-between align-items-center">
-        <h3 className="mb-0">Branch Details</h3>
-        <CButton color="secondary" onClick={() => navigate(-1)}>
-          Back
-        </CButton>
-      </CCardHeader>
+      <div className="bg-info text-white p-3 d-flex justify-content-between align-items-center rounded">
+        {/* Left section: Booking ID and Status */}
+        <div>
+          <h5 className="mb-1 text" style={{ color: "white" }}>Branch Details</h5>
+        </div>
+
+        <div className="d-flex gap-2">
+          <CButton
+            size="sm"
+            style={{
+              background: '#fff',
+              color: '#00838F',
+              border: 'none',
+              fontWeight: '600',
+              borderRadius: '8px',
+              padding: '6px 14px',
+            }}
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </CButton>
+          {/* Optional Delete */}
+          {/* <CButton color="danger" size="sm" onClick={handleConfirmDelete} disabled={isDeleting}>
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </CButton> */}
+        </div>
+      </div>
+
       <CCardBody>
         {/* Navigation Tabs */}
         <CNav variant="tabs">

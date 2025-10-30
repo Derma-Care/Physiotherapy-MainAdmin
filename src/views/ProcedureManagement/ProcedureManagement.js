@@ -23,7 +23,7 @@ import {
   CForm,
   CCardHeader,
   CInputGroup,
-  CInputGroupText,
+  CInputGroupText, CCardBody
 } from '@coreui/react'
 import Select from 'react-select'
 import CIcon from '@coreui/icons-react'
@@ -38,6 +38,7 @@ import { postSubService, getAllSubServices, deleteSubServiceData, getSubServiceI
 import { getServiceByCategoryId } from '../servicesManagement/ServiceAPI'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 import { Edit2, Eye, Trash2 } from 'lucide-react'
+import { COLORS } from '../../Constant/Themes'
 
 const ProcedureManagement = () => {
   const [category, setCategory] = useState([])
@@ -442,7 +443,8 @@ const ProcedureManagement = () => {
               </CInputGroupText>
             </CInputGroup>
             <CButton
-              color="primary"
+         color="secondary"
+                       style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }}
               onClick={() => {
                 setEditMode(false)
                 setEditSubServiceId(null)
@@ -471,11 +473,11 @@ const ProcedureManagement = () => {
             <CTable striped hover responsive>
               <CTableHead className="pink-table">
                 <CTableRow>
-                  <CTableHeaderCell style={{ width: '120px' }}>S.No</CTableHeaderCell>
+                  <CTableHeaderCell >S.No</CTableHeaderCell>
                   <CTableHeaderCell>Procedure</CTableHeaderCell>
                   <CTableHeaderCell>Category</CTableHeaderCell>
                   <CTableHeaderCell>Service</CTableHeaderCell>
-                  <CTableHeaderCell className="text-end">Actions</CTableHeaderCell>
+                  <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody className="pink-table">
@@ -486,8 +488,8 @@ const ProcedureManagement = () => {
                       <CTableDataCell>{row.name}</CTableDataCell>
                       <CTableDataCell>{row.category}</CTableDataCell>
                       <CTableDataCell>{row.service}</CTableDataCell>
-                      <CTableDataCell className="text-end">
-                        <div className="d-flex justify-content-end gap-2">
+                      <CTableDataCell className="text-center">
+                        <div className="d-flex justify-content-center align-items-center gap-2">
                           <button
                             className="actionBtn"
                             onClick={() => handleViewService(row.id)} // ✅ pass row.id directly
@@ -828,35 +830,77 @@ const ProcedureManagement = () => {
           </CForm>
         </CModal>
         {/* View Sub Service Modal */}
-        <CModal visible={viewModalVisible} onClose={() => setViewModalVisible(false)}>
-          <CModalHeader>
-            <CModalTitle>Sub Service Details</CModalTitle>
+        <CModal
+          visible={viewModalVisible}
+          onClose={() => setViewModalVisible(false)}
+          size="lg"
+          backdrop="static"
+          className="custom-modal"
+        >
+          <CModalHeader className="bg-info text-white justify-content-center">
+            <CModalTitle className="fs-4 fw-bold text-center" style={{ color: "white" }}>
+              Sub Service Details
+            </CModalTitle>
           </CModalHeader>
-          <CModalBody>
+
+          <CModalBody className="p-4">
             {selectSubService?.subServices?.length > 0 ? (
-              selectSubService.subServices.map((item) => (
-                <div key={item.subServiceId} style={{ marginBottom: '1rem' }}>
-                  <p>
-                    <strong>Category Name:</strong> {selectSubService.categoryName || '-'}
-                  </p>
-                  <p>
-                    <strong>Sub Service Name:</strong> {item.subServiceName || '-'}
-                  </p>
-                  <p>
-                    <strong>Service Name:</strong> {item.serviceName || '-'}
-                  </p>
-                </div>
+              selectSubService.subServices.map((item, index) => (
+                <CCard
+                  key={item.subServiceId}
+                  className="mb-4 border-0 shadow-sm rounded-3"
+                  style={{ backgroundColor: '#f9fafb' }}
+                >
+                  <CCardBody>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <h6
+                        className="fw-semibold mb-0"
+                        style={{ color: '#7e3a93' }}
+                      >
+                        {index + 1}. {item.subServiceName || 'Unnamed Sub Service'}
+                      </h6>
+                      <span className="badge bg-light text-dark border">
+                        ID: {item.subServiceId}
+                      </span>
+                    </div>
+
+                    <hr />
+
+                    <CRow>
+                      <CCol sm={6} className="mb-3">
+                        <strong className="text-secondary">Category Name:</strong>
+                        <div className="mt-1 text-dark">
+                          {selectSubService.categoryName || '-'}
+                        </div>
+                      </CCol>
+                      <CCol sm={6} className="mb-3">
+                        <strong className="text-secondary">Service Name:</strong>
+                        <div className="mt-1 text-dark">{item.serviceName || '-'}</div>
+                      </CCol>
+                    </CRow>
+                  </CCardBody>
+                </CCard>
               ))
             ) : (
-              <p>No sub-services found</p>
+              <div className="text-center text-muted py-4">
+                <i className="bi bi-info-circle me-2"></i>
+                No sub-services found.
+              </div>
             )}
           </CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" onClick={() => setViewModalVisible(false)}>
+
+          <CModalFooter className="justify-content-center">
+            <CButton
+              color="light"
+              className="px-4 py-2 border-0 shadow-sm"
+              onClick={() => setViewModalVisible(false)}
+              style={{ backgroundColor: '#6c757d', color: 'white', borderRadius: '8px' }}
+            >
               Close
             </CButton>
           </CModalFooter>
         </CModal>
+
 
         {showDeleteModal && (
           <ConfirmationModal

@@ -25,6 +25,7 @@ import {
   CModalFooter,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
+import { Edit2, Eye, Trash2 } from 'lucide-react'
 import { cilSearch } from '@coreui/icons'
 import {
   CustomerData,
@@ -35,6 +36,7 @@ import {
 } from './CustomerAPI'
 import { ToastContainer, toast } from 'react-toastify'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
+import { COLORS } from '../../Constant/Themes'
 
 const CustomerManagement = () => {
   const navigate = useNavigate()
@@ -44,7 +46,7 @@ const CustomerManagement = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage]=useState(5)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const [isAdding, setIsAdding] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -64,13 +66,13 @@ const CustomerManagement = () => {
   })
 
   const getISODate = (date) => date.toISOString().split('T')[0]
-  const indexOfLastItem=currentPage * itemsPerPage;
-  const indexOfFirstItem=indexOfLastItem-itemsPerPage;
-  const currentItems=filteredData.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
 
-  const handlePerChange=(page)=>{
-    if(page>=1 && page<=totalPages){
+  const handlePerChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
       setCurrentPage(page)
     }
   }
@@ -326,12 +328,12 @@ const CustomerManagement = () => {
       await deleteCustomerData(customerIdToDelete)
       toast.success('Customer deleted successfully')
 
-  setCustomerData((prev) =>
-      prev.filter((c) => c.mobileNumber !== customerIdToDelete)
-    )
-    setFilteredData((prev) =>
-      prev.filter((c) => c.mobileNumber !== customerIdToDelete)
-    )
+      setCustomerData((prev) =>
+        prev.filter((c) => c.mobileNumber !== customerIdToDelete)
+      )
+      setFilteredData((prev) =>
+        prev.filter((c) => c.mobileNumber !== customerIdToDelete)
+      )
     } catch (error) {
       console.error('Delete failed:', error)
       toast.error('Failed to delete customer')
@@ -343,7 +345,7 @@ const CustomerManagement = () => {
   // ConfirmationModal.jsx
   const ConfirmationModal = ({ isVisible, message, onConfirm, onCancel }) => {
     return (
-      <CModal visible={isVisible} onClose={onCancel}  className="custom-modal"
+      <CModal visible={isVisible} onClose={onCancel} className="custom-modal"
         backdrop="static">
         <CModalHeader>
           <CModalTitle>Confirm Deletion</CModalTitle>
@@ -447,7 +449,8 @@ const CustomerManagement = () => {
             </div>
 
             <div className="col-md-3 d-flex justify-content-end">
-              <CButton className="btn btn-primary w-auto" onClick={() => setIsAdding(true)}>
+              <CButton  color="secondary"
+                            style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setIsAdding(true)}>
                 Add New Customer
               </CButton>
             </div>
@@ -461,56 +464,59 @@ const CustomerManagement = () => {
             <div style={centeredMessageStyle}>No Customer Data Found</div>
           ) : (
             <>
-             
-              <CTable hover striped responsive>
-                <CTableHead>
+
+              <CTable striped hover responsive>
+                <CTableHead className='pink-table'>
                   <CTableRow>
                     <CTableHeaderCell>S.No</CTableHeaderCell>
                     <CTableHeaderCell>Full Name</CTableHeaderCell>
                     <CTableHeaderCell>Mobile Number</CTableHeaderCell>
                     <CTableHeaderCell>Gender</CTableHeaderCell>
                     <CTableHeaderCell>Date Of Birth</CTableHeaderCell>
-                    <CTableHeaderCell>Actions</CTableHeaderCell>
+                    <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
                   </CTableRow>
                 </CTableHead>
-            
-                    <CTableBody>
-                       
+
+                <CTableBody className='pink-table'>
                   {currentItems.map((customer, index) => (
                     <CTableRow key={customer.mobileNumber || index}>
-                      {/* ✅ serial number across all pages */}
-                      <CTableDataCell>{indexOfFirstItem + index + 1}</CTableDataCell>
+                      <CTableDataCell>
+                        {indexOfFirstItem + index + 1}
+                      </CTableDataCell>
                       <CTableDataCell>{customer?.fullName || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.mobileNumber || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.gender || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.dateOfBirth || '-'}</CTableDataCell>
-                      <CTableDataCell>
-                        <CButton
-                          color="primary"
-                          size="sm"
-                          onClick={() => handleCustomerViewDetails(customer?.mobileNumber)}
-                        >
-                          View
-                        </CButton>
-                        <CButton
-                          className="ms-3 text-white"
-                          color="warning"
-                          size="sm"
-                          onClick={() => handleEditCustomer(customer?.mobileNumber)}
-                        >
-                          Edit
-                        </CButton>
-                        <CButton
-                          className="ms-3 text-white"
-                          color="danger"
-                          size="sm"
-                          onClick={() => {
-                            setCustomerIdToDelete(customer?.mobileNumber)
-                            setIsModalVisible(true)
-                          }}
-                        >
-                          Delete
-                        </CButton>
+
+                      <CTableDataCell className="text-center">
+                        <div className="d-flex justify-content-center gap-2">
+                          <button
+                            className="actionBtn"
+                            onClick={() => handleCustomerViewDetails(customer?.mobileNumber)}
+                            title="View"
+                          >
+                            <Eye size={18} />
+                          </button>
+
+                          <button
+                            className="actionBtn"
+                            onClick={() => handleEditCustomer(customer?.mobileNumber)}
+                            title="Edit"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+
+                          <button
+                            className="actionBtn"
+                            onClick={() => {
+                              setCustomerIdToDelete(customer?.mobileNumber)
+                              setIsModalVisible(true)
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
 
                         <ConfirmationModal
                           isVisible={isModalVisible}
@@ -527,7 +533,7 @@ const CustomerManagement = () => {
                 </CTableBody>
               </CTable>
 
-               {filteredData.length > 0 && (
+              {filteredData.length > 0 && (
                 <div className="d-flex justify-content-between align-items-center mt-3">
                   {/* Rows per page dropdown */}
                   <div>
@@ -599,7 +605,7 @@ const CustomerManagement = () => {
                   value={formData.fullName}
                   onChange={handleInputChange}
                   invalid={!!formErrors.fullName}
-                  style={{textTransform:"capitalize"}}
+                  style={{ textTransform: "capitalize" }}
                 />
                 {formErrors.fullName && (
                   <div className="text-danger small">{formErrors.fullName}</div>
@@ -698,17 +704,17 @@ const CustomerManagement = () => {
                   value={formData.referCode}
                   onChange={handleInputChange}
                 />
-                {formErrors.referCode &&(
+                {formErrors.referCode && (
                   <div className="text-danger">{formErrors.referCode}</div>
                 )}
               </CCol>
             </CRow>
 
             <div className="d-flex justify-content-end">
-               <CButton
+              <CButton
                 type="submit"
                 color="success"
-                style={{ backgroundColor: 'var(--color-black)', color: 'white', border: 'none', marginRight:'5px'}}
+                style={{ backgroundColor: 'var(--color-black)', color: 'white', border: 'none', marginRight: '5px' }}
               >
                 {isEditing ? 'Update' : 'Submit'}
               </CButton>

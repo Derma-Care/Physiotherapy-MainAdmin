@@ -6,7 +6,7 @@ import { ClinicAllData } from '../../baseUrl'
 import { BASE_URL } from '../../baseUrl'
 import { ClipLoader } from 'react-spinners'
 import { useNavigate, useLocation } from 'react-router-dom'
-
+import { Eye } from 'lucide-react'
 import {
   CCard,
   CCardBody,
@@ -24,6 +24,7 @@ import {
   CFormSelect,
 } from '@coreui/react'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
+import { COLORS } from '../../Constant/Themes'
 
 const ClinicManagement = ({ service, onBack }) => {
   const navigate = useNavigate()
@@ -73,10 +74,10 @@ const ClinicManagement = ({ service, onBack }) => {
 
       const filteredClinics = filterCategory
         ? clinicList.filter(
-            (clinic) =>
-              Array.isArray(clinic.hospitalCategory) &&
-              clinic.hospitalCategory.some((cat) => cat.categoryId === filterCategory),
-          )
+          (clinic) =>
+            Array.isArray(clinic.hospitalCategory) &&
+            clinic.hospitalCategory.some((cat) => cat.categoryId === filterCategory),
+        )
         : clinicList
 
       setClinics(filteredClinics)
@@ -112,7 +113,8 @@ const ClinicManagement = ({ service, onBack }) => {
       <CCardHeader>
         <div className="d-flex justify-content-between align-items-center">
           <h2 className="mb-0">{service?.categoryName} Clinics</h2>
-          <CButton color="primary" onClick={handleAddClinic}>
+          <CButton  color="secondary"
+                        style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={handleAddClinic}>
             Add Clinic
           </CButton>
         </div>
@@ -148,45 +150,48 @@ const ClinicManagement = ({ service, onBack }) => {
 
         {error && <p className="text-center text-danger">{error}</p>}
 
-        <CTable hover responsive>
-          <CTableHead className="pink-table">
+        <CTable striped hover responsive>
+          <CTableHead className='pink-table'>
             <CTableRow>
               <CTableHeaderCell>S.No</CTableHeaderCell>
               <CTableHeaderCell>Clinic Name</CTableHeaderCell>
               <CTableHeaderCell>Contact Number</CTableHeaderCell>
               <CTableHeaderCell>Email Address</CTableHeaderCell>
               <CTableHeaderCell>City</CTableHeaderCell>
-              <CTableHeaderCell>Actions</CTableHeaderCell>
+              <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
             </CTableRow>
           </CTableHead>
 
-          <CTableBody className="pink-table">
+          <CTableBody className='pink-table' >
             {currentItems?.length > 0
               ? currentItems.map((clinic, index) => (
-                  <CTableRow key={clinic?.id || index}>
-                    <CTableDataCell>{indexOfFirstItem + index + 1}</CTableDataCell>
-                    <CTableDataCell>{clinic?.name}</CTableDataCell>
-                    <CTableDataCell>{clinic?.contactNumber}</CTableDataCell>
-                    <CTableDataCell>{clinic?.emailAddress}</CTableDataCell>
-                    <CTableDataCell>{clinic?.city}</CTableDataCell>
-                    <CTableDataCell>
-                      <CButton
-                        color="primary"
-                        size="sm"
+                <CTableRow key={clinic?.id || index}>
+                  <CTableDataCell>{indexOfFirstItem + index + 1}</CTableDataCell>
+                  <CTableDataCell>{clinic?.name}</CTableDataCell>
+                  <CTableDataCell>{clinic?.contactNumber}</CTableDataCell>
+                  <CTableDataCell>{clinic?.emailAddress}</CTableDataCell>
+                  <CTableDataCell>{clinic?.city}</CTableDataCell>
+                  <CTableDataCell className="text-center">
+                    <div className="d-flex justify-content-center gap-2">
+                      <button
+                        className="actionBtn"
                         onClick={() => navigate(`/clinic-Management/${clinic.hospitalId}`)}
+                        title="View"
                       >
-                        View
-                      </CButton>
-                    </CTableDataCell>
-                  </CTableRow>
-                ))
+                        <Eye size={18} />
+                      </button>
+                    </div>
+                  </CTableDataCell>
+
+                </CTableRow>
+              ))
               : !loading && (
-                  <CTableRow>
-                    <CTableDataCell colSpan="6" className="text-center">
-                      No clinics found
-                    </CTableDataCell>
-                  </CTableRow>
-                )}
+                <CTableRow>
+                  <CTableDataCell colSpan="6" className="text-center">
+                    No clinics found
+                  </CTableDataCell>
+                </CTableRow>
+              )}
           </CTableBody>
         </CTable>
 
