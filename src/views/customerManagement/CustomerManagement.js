@@ -37,6 +37,7 @@ import {
 import { ToastContainer, toast } from 'react-toastify'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 import { COLORS } from '../../Constant/Themes'
+import LoadingIndicator from '../../Utils/loader'
 
 const CustomerManagement = () => {
   const navigate = useNavigate()
@@ -342,28 +343,7 @@ const CustomerManagement = () => {
       setCustomerIdToDelete(null)
     }
   }
-  // ConfirmationModal.jsx
-  const ConfirmationModal = ({ isVisible, message, onConfirm, onCancel }) => {
-    return (
-      <CModal visible={isVisible} onClose={onCancel} className="custom-modal"
-        backdrop="static">
-        <CModalHeader>
-          <CModalTitle>Confirm Deletion</CModalTitle>
-        </CModalHeader>
-        <CModalBody>
-          <p>{message}</p>
-        </CModalBody>
-        <CModalFooter>
-          <CButton color="danger" onClick={onConfirm}>
-            Confirm
-          </CButton>
-          <CButton color="secondary" onClick={onCancel}>
-            Cancel
-          </CButton>
-        </CModalFooter>
-      </CModal>
-    )
-  }
+  
   const validateForm = () => {
     const errors = {}
 
@@ -458,14 +438,21 @@ const CustomerManagement = () => {
           </CRow>
 
           {loading ? (
-            <div style={centeredMessageStyle}>Loading...</div>
+            <CTable striped hover responsive>
+              <CTableHead className='pink-table'>
+                <CTableRow>
+                  <CTableHeaderCell colSpan={6} className="text-center">
+                    <LoadingIndicator message="Loading customer data..." />
+                  </CTableHeaderCell>
+                </CTableRow>
+              </CTableHead>
+            </CTable>
           ) : error ? (
             <div style={centeredMessageStyle}>{error}</div>
           ) : filteredData.length === 0 ? (
             <div style={centeredMessageStyle}>No Customer Data Found</div>
           ) : (
             <>
-
               <CTable striped hover responsive>
                 <CTableHead className='pink-table'>
                   <CTableRow>
@@ -481,18 +468,16 @@ const CustomerManagement = () => {
                 <CTableBody className='pink-table'>
                   {currentItems.map((customer, index) => (
                     <CTableRow key={customer.mobileNumber || index}>
-                      <CTableDataCell>
-                        {indexOfFirstItem + index + 1}
-                      </CTableDataCell>
+                      <CTableDataCell>{indexOfFirstItem + index + 1}</CTableDataCell>
                       <CTableDataCell>{customer?.fullName || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.mobileNumber || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.gender || '-'}</CTableDataCell>
                       <CTableDataCell>{customer?.dateOfBirth || '-'}</CTableDataCell>
 
                       <CTableDataCell className="text-center">
-                        <div className="d-flex justify-content-center gap-2">
+                        <div className="d-flex justify-content-center align-items-center gap-2">
                           <button
-                            className="actionBtn"
+                            className="actionBtn view"
                             onClick={() => handleCustomerViewDetails(customer?.mobileNumber)}
                             title="View"
                           >
@@ -500,7 +485,7 @@ const CustomerManagement = () => {
                           </button>
 
                           <button
-                            className="actionBtn"
+                            className="actionBtn edit"
                             onClick={() => handleEditCustomer(customer?.mobileNumber)}
                             title="Edit"
                           >
@@ -508,7 +493,7 @@ const CustomerManagement = () => {
                           </button>
 
                           <button
-                            className="actionBtn"
+                            className="actionBtn delete"
                             onClick={() => {
                               setCustomerIdToDelete(customer?.mobileNumber)
                               setIsModalVisible(true)
@@ -519,7 +504,7 @@ const CustomerManagement = () => {
                           </button>
                         </div>
 
-                        <ConfirmationModal
+                         <ConfirmationModal
                           isVisible={isModalVisible}
                           message="Are you sure you want to delete this customer?"
                           onConfirm={confirmDeleteCustomer}
@@ -527,7 +512,7 @@ const CustomerManagement = () => {
                             setIsModalVisible(false)
                             setCustomerIdToDelete(null)
                           }}
-                        />
+                        /> 
                       </CTableDataCell>
                     </CTableRow>
                   ))}
@@ -543,7 +528,7 @@ const CustomerManagement = () => {
                       value={itemsPerPage}
                       onChange={(e) => {
                         setItemsPerPage(Number(e.target.value))
-                        setCurrentPage(1) // reset to first page
+                        setCurrentPage(1)
                       }}
                       style={{ width: '80px', display: 'inline-block' }}
                     >
@@ -590,6 +575,7 @@ const CustomerManagement = () => {
               )}
             </>
           )}
+
         </>
       ) : (
         <>
@@ -695,6 +681,7 @@ const CustomerManagement = () => {
                   <option value="">Select</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
+                  <option value="Female">Others</option>
                 </CFormSelect>
                 {formErrors.gender && <div className="text-danger small">{formErrors.gender}</div>}
               </CCol>

@@ -45,7 +45,8 @@ import {
 } from '../../baseUrl'
 import ProcedureQA from './QASection'
 import { Edit2, Eye, Trash2, View } from 'lucide-react'
-import ConfirmationModal from '../../components/ConfirmationModal'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
+
 
 const ProcedureManagementDoctor = ({ clinicId }) => {
   const [searchQuery, setSearchQuery] = useState('')
@@ -1606,6 +1607,8 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
             columns={columns}
             data={filteredData.length > 0 ? filteredData : service}
             pagination
+            paginationPerPage={5} // 👈 Default number of rows per page
+            paginationRowsPerPageOptions={[5, 10, 15, 20, 30, 40, 50]} // 👈 Dropdown options
             highlightOnHover
             pointerOnHover
             customStyles={{

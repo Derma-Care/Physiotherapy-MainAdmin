@@ -195,7 +195,7 @@ const ServiceManagement = () => {
 
           <ConfirmationModal
             isVisible={isModalVisible}
-            message="Are you sure you want to delete this service?"
+            message="Are you sure you want to delete this doctor?"
             onConfirm={handleConfirmDelete}
             onCancel={handleCancelDelete}
           />

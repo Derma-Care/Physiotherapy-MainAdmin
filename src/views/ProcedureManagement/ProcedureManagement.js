@@ -39,6 +39,7 @@ import { getServiceByCategoryId } from '../servicesManagement/ServiceAPI'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 import { Edit2, Eye, Trash2 } from 'lucide-react'
 import { COLORS } from '../../Constant/Themes'
+import LoadingIndicator from '../../Utils/loader'
 
 const ProcedureManagement = () => {
   const [category, setCategory] = useState([])
@@ -67,7 +68,7 @@ const ProcedureManagement = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const [newService, setNewService] = useState({
     categoryName: '',
@@ -466,7 +467,7 @@ const ProcedureManagement = () => {
         </CCardHeader>
 
         {loading ? (
-          <div>Loading...</div>
+           <LoadingIndicator message="Fetching Procedure Details, Please wait..." />
         ) : error ? (
           <div>{error}</div>
         ) : (
@@ -902,11 +903,10 @@ const ProcedureManagement = () => {
           </CModalFooter>
         </CModal>
 
-
         {showDeleteModal && (
           <ConfirmationModal
             isVisible={showDeleteModal}
-            message="Are you sure you want to delete this service?"
+            message="Are you sure you want to delete this procedure?"
             onConfirm={handleConfirmDelete}
             onCancel={() => setShowDeleteModal(false)}
           />

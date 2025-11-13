@@ -41,6 +41,7 @@ import {
 } from './CategoryAPI'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 import { COLORS } from '../../Constant/Themes'
+import LoadingIndicator from '../../Utils/loader'
 
 const CategoryManagement = () => {
   const fileInputRef = useRef(null)
@@ -75,7 +76,7 @@ const CategoryManagement = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const fetchData = async () => {
     setLoading(true)
@@ -446,70 +447,74 @@ const CategoryManagement = () => {
             </CInputGroup>
           </div>
         </CForm>
+        {loading ? (
+          <LoadingIndicator message="Fetching Categories, please wait..." />
+        ) : error ? (
+          <div>{error}</div>
+        ) : (
+          <CTable striped hover responsive>
+            <CTableHead className="pink-table">
+              <CTableRow>
+                <CTableHeaderCell className="text-center">S.No</CTableHeaderCell>
+                <CTableHeaderCell>Category Name</CTableHeaderCell>
+                <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
 
-        <CTable striped hover responsive>
-          <CTableHead className="pink-table">
-            <CTableRow>
-              <CTableHeaderCell className="text-center">S.No</CTableHeaderCell>
-              <CTableHeaderCell>Category Name</CTableHeaderCell>
-              <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
-            </CTableRow>
-          </CTableHead>
+            <CTableBody className="pink-table">
+              {currentItems.length > 0 ? (
+                currentItems.map((category, index) => (
+                  <CTableRow key={category.categoryId}>
+                    <CTableDataCell className="text-center">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </CTableDataCell>
 
-          <CTableBody className="pink-table">
-            {currentItems.length > 0 ? (
-              currentItems.map((category, index) => (
-                <CTableRow key={category.categoryId}>
-                  <CTableDataCell className="text-center">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </CTableDataCell>
+                    <CTableDataCell>{category.categoryName}</CTableDataCell>
 
-                  <CTableDataCell>{category.categoryName}</CTableDataCell>
+                    <CTableDataCell className="text-center">
+                      <div className="d-flex justify-content-center align-items-center gap-2">
+                        <button
+                          className="actionBtn view"
+                          onClick={() => setViewCategory(category)}
+                          title="View"
+                        >
+                          <Eye size={18} />
+                        </button>
 
-                  <CTableDataCell className="text-center">
-                    <div className="d-flex justify-content-center align-items-center gap-2">
-                      <button
-                        className="actionBtn view"
-                        onClick={() => setViewCategory(category)}
-                        title="View"
-                      >
-                        <Eye size={18} />
-                      </button>
+                        <button
+                          className="actionBtn edit"
+                          onClick={() => handleCategoryEdit(category)}
+                          title="Edit"
+                        >
+                          <Edit2 size={18} />
+                        </button>
 
-                      <button
-                        className="actionBtn edit"
-                        onClick={() => handleCategoryEdit(category)}
-                        title="Edit"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-
-                      <button
-                        className="actionBtn delete"
-                        onClick={() => handleCategoryDelete(category.categoryId)}
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                        <button
+                          className="actionBtn delete"
+                          onClick={() => handleCategoryDelete(category.categoryId)}
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </CTableDataCell>
+                  </CTableRow>
+                ))
+              ) : (
+                <CTableRow>
+                  <CTableDataCell colSpan={3} className="text-center text-muted">
+                    {searchQuery
+                      ? 'No matching categories found.'
+                      : 'No categories available.'}
                   </CTableDataCell>
                 </CTableRow>
-              ))
-            ) : (
-              <CTableRow>
-                <CTableDataCell colSpan={3} className="text-center text-muted">
-                  {searchQuery
-                    ? 'No matching categories found.'
-                    : 'No categories available.'}
-                </CTableDataCell>
-              </CTableRow>
-            )}
-          </CTableBody>
-        </CTable>
-
+              )}
+            </CTableBody>
+          </CTable>
+        )}
 
         {/* Pagination */}
-        {filteredData.length > itemsPerPage && (
+        {filteredData.length && (
           <div className="d-flex justify-content-between align-items-center mt-3">
             <div>
               <span className="me-2">Rows per page:</span>

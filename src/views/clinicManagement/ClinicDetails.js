@@ -67,7 +67,7 @@ const ClinicDetails = () => {
   const [showBranchForm, setShowBranchForm] = useState(false)
   const tabList = ['Basic Details', 'ADrug License Certificatedditional Details', 'Branches', 'Procedures']
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const documentFields = [
     ['', 'drugLicenseCertificate'],
     ['Drug License Form Type', 'drugLicenseFormType'],

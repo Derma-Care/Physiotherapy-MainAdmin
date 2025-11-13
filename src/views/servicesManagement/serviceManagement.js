@@ -36,6 +36,7 @@ import { cilXCircle } from '@coreui/icons'
 import LoadingIndicator from '../../Utils/loader'
 import { Edit2, Eye, Trash2 } from 'lucide-react'
 import { COLORS } from '../../Constant/Themes'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 const ServiceManagement = () => {
   const fileInputRef = useRef(null);
@@ -52,7 +53,7 @@ const ServiceManagement = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [serviceIdToDelete, setServiceIdToDelete] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const [selectedService, setSelectedService] = useState(null)
   const [viewModalVisible, setViewModalVisible] = useState(false)
 
@@ -546,7 +547,7 @@ const ServiceManagement = () => {
         </CCardHeader>
 
         {loading ? (
-          <div>Loading...</div>
+          <LoadingIndicator message="Fetching services, please wait..." />
         ) : error ? (
           <div>{error}</div>
         ) : (
@@ -1094,24 +1095,13 @@ const ServiceManagement = () => {
             </CButton>
           </CModalFooter>
         </CModal>
+        <ConfirmationModal
+          isVisible={isModalVisible}
+          message="Are you sure you want to delete this service?"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
 
-        {/* Delete Confirmation Modal */}
-        <CModal visible={isModalVisible} onClose={handleCancelDelete}>
-          <CModalHeader>
-            <CModalTitle>Confirm Delete</CModalTitle>
-          </CModalHeader>
-          <CModalBody>
-            Are you sure you want to delete this service?
-          </CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" onClick={handleCancelDelete}>
-              Cancel
-            </CButton>
-            <CButton color="danger" onClick={handleConfirmDelete}>
-              Delete
-            </CButton>
-          </CModalFooter>
-        </CModal>
       </CCard>
     </div>
   )

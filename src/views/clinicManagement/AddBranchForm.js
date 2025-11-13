@@ -20,7 +20,7 @@ import {
   CTableHeaderCell,
   CTableBody,
   CTableDataCell,
-  CBadge,
+  CBadge, CPagination, CPaginationItem,
   CSpinner,
   CAlert,
   CInputGroup,
@@ -41,6 +41,7 @@ import {
 } from './AddBranchAPI'; // Import the API function
 import DataTable from 'react-data-table-component';
 import { Edit2, Eye, Trash2 } from 'lucide-react'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete';
 const AddBranchForm = ({ clinicId }) => {
   const navigate = useNavigate()
 
@@ -450,65 +451,60 @@ const AddBranchForm = ({ clinicId }) => {
             </CTable>
           )}
         </CCardBody>
-        <CCardFooter className="d-flex justify-content-between align-items-center">
-          <div className="text-muted">
-            Showing {startIndex + 1}-{endIndex} of {filteredBranches.length} branches
-          </div>
 
-          {/* Rows Per Page Dropdown */}
-          <div className="d-flex align-items-center">
-            <span className="me-2">Rows per page:</span>
-            <CFormSelect
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value))
-                setCurrentPage(1) // ✅ Reset to first page on change
-              }}
-              style={{ width: '80px' }}
-            >
-              {[5, 10, 20, 50].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </CFormSelect>
-          </div>
-
-          {/* Pagination Buttons */}
-          <div>
-            <CButton
-              color="secondary"
-              size="sm"
-              className="me-2"
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </CButton>
-
-            {/* Page Numbers */}
-            {[...Array(totalPages)].map((_, index) => (
-              <CButton
-                key={index}
-                color={currentPage === index + 1 ? 'primary' : 'secondary'}
-                size="sm"
-                className="me-1"
-                onClick={() => setCurrentPage(index + 1)}
+        {filteredBranches.length && (
+          <div className="d-flex justify-content-between align-items-center mt-3">
+            <div>
+              <span className="me-2" style={{marginLeft:"20px"}}>Rows per page:</span>
+              <CFormSelect
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                style={{ width: '80px', display: 'inline-block' }}
               >
-                {index + 1}
-              </CButton>
-            ))}
-
-            <CButton
-              color="secondary"
-              size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages || totalPages === 0}
-            >
-              Next
-            </CButton>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </CFormSelect>
+            </div>
+            <div>
+              <span className="me-3">
+                Showing {indexOfFirstItem + 1} to{' '}
+                {Math.min(indexOfLastItem, filteredBranches.length)} of{' '}
+                {filteredBranches.length} entries
+              </span>
+              <CPagination>
+                <CPaginationItem
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </CPaginationItem>
+                {[...Array(totalPages)].map((_, i) => (
+                  <CPaginationItem
+                    key={i + 1}
+                    active={i + 1 === currentPage}
+                    onClick={() => setCurrentPage(i + 1)}
+                  >
+                    {i + 1}
+                  </CPaginationItem>
+                ))}
+                <CPaginationItem
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </CPaginationItem>
+              </CPagination>
+            </div>
           </div>
-        </CCardFooter>
+        )}
+
       </CCard>
 
       {/* Add/Edit Branch Modal */}
@@ -721,25 +717,22 @@ const AddBranchForm = ({ clinicId }) => {
           </CButton>
         </CModalFooter>
       </CModal>
-
-      {/* Delete Confirmation Modal */}
-      <CModal visible={deleteModalVisible} onClose={() => setDeleteModalVisible(false)} className="custom-modal"
-        backdrop="static">
-        <CModalHeader closeButton>
-          <CModalTitle>Confirm Delete</CModalTitle>
-        </CModalHeader>
-        <CModalBody>
-          Are you sure you want to delete the branch "{deletingBranch?.branchName}"? This action cannot be undone.
-        </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={() => setDeleteModalVisible(false)}>
-            Cancel
-          </CButton>
-          <CButton color="danger" onClick={handleDelete} disabled={loading}>
-            {loading ? 'Deleting...' : 'Delete'}
-          </CButton>
-        </CModalFooter>
-      </CModal>
+      <ConfirmationModal
+        isVisible={deleteModalVisible}
+        title="Confirm Delete"
+        message={
+          <>
+            Are you sure you want to delete the branch{' '}
+            <strong>{deletingBranch?.branchName}</strong>? This action cannot be undone.
+          </>
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModalVisible(false)}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="danger"
+        loading={loading}
+      />
     </div>
   );
 };

@@ -25,6 +25,7 @@ import {
 } from '@coreui/react'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import { COLORS } from '../../Constant/Themes'
+import LoadingIndicator from '../../Utils/loader'
 
 const ClinicManagement = ({ service, onBack }) => {
   const navigate = useNavigate()
@@ -38,7 +39,7 @@ const ClinicManagement = ({ service, onBack }) => {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const handleAddClinic = () => {
     navigate('/add-clinic', {
@@ -126,7 +127,7 @@ const ClinicManagement = ({ service, onBack }) => {
             <CFormInput
               type="text"
               style={{ border: "1px solid #7e3a93" }}
-              placeholder="Search by full name, mobile, or email"
+              placeholder="Search by Clinic Name, Mobile, or Email"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -151,7 +152,11 @@ const ClinicManagement = ({ service, onBack }) => {
         </div>
 
         {error && <p className="text-center text-danger">{error}</p>}
-
+ {loading ? (
+         <LoadingIndicator message="Fetching Clinic Details, please wait..." />
+        ) : error ? (
+          <div>{error}</div>
+        ) : (
         <CTable striped hover responsive>
           <CTableHead className='pink-table'>
             <CTableRow>
@@ -196,7 +201,7 @@ const ClinicManagement = ({ service, onBack }) => {
               )}
           </CTableBody>
         </CTable>
-
+  )}
         {/* Pagination Controls */}
         {filteredClinics.length > 0 && (
           <div className="d-flex justify-content-between align-items-center mt-3">
@@ -251,12 +256,12 @@ const ClinicManagement = ({ service, onBack }) => {
         )}
       </CCardBody>
 
-      {loading && (
+      {/* {loading && (
         <div className="text-center">
           <ClipLoader color="#3498db" loading={loading} size={50} />
           <p>Loading...</p>
         </div>
-      )}
+      )} */}
     </CCard>
   )
 }

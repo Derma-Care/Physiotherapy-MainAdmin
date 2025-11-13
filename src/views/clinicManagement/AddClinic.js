@@ -1015,21 +1015,22 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                   value={formData.name || ""}
                   onChange={(e) => {
                     const { name, value } = e.target;
-                    setFormData((prev) => ({ ...prev, [name]: value }));  // <-- save the value
+                    setFormData((prev) => ({ ...prev, [name]: value }));
 
-                    // validate dynamically
                     const error =
                       !value.trim()
                         ? "Clinic name is required"
-                        : !/^[a-zA-Z\s]{2,50}$/.test(value)
-                          ? "Clinic name must contain only letters (2–50 chars)"
-                          : "";
+                        : value.length < 2
+                          ? "Clinic name must be at least 2 characters"
+                          : value.length > 100
+                            ? "Clinic name cannot exceed 100 characters"
+                            : "";
 
                     setErrors((prev) => ({ ...prev, [name]: error || undefined }));
                   }}
-                  onKeyDown={preventNumberInput}
                   invalid={!!errors.name}
                 />
+
                 {errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
               </CCol>
               <CCol md={6}>
