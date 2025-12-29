@@ -467,7 +467,7 @@ const ProcedureManagement = () => {
         </CCardHeader>
 
         {loading ? (
-           <LoadingIndicator message="Fetching Procedure Details, Please wait..." />
+          <LoadingIndicator message="Fetching Procedure Details, Please wait..." />
         ) : error ? (
           <div>{error}</div>
         ) : (
@@ -675,65 +675,67 @@ const ProcedureManagement = () => {
                         color="success"
                         className="text-white"
                         onClick={() => {
-                          const trimmedInput = subServiceInput.trim()
+                          const trimmedInput = subServiceInput.trim();
                           let errorMsg = '';
+
                           if (!trimmedInput) {
                             errorMsg = 'Procedure name is required.';
-                          } else if (!/^[A-Za-z0-9\s]+$/.test(trimmedInput)) {
-                            errorMsg = 'Procedure name can only contain letters, numbers, and spaces.';
                           } else if (/^\d+$/.test(trimmedInput)) {
                             errorMsg = 'Procedure name cannot contain only numbers.';
                           } else if (trimmedInput.length < 3) {
                             errorMsg = 'Procedure name must be at least 3 characters long.';
                           }
+
                           if (errorMsg) {
                             setErrors((prev) => ({ ...prev, subService: errorMsg }));
                             return;
                           }
 
                           const selectedService = serviceOptions.find(
-                            (s) => s.serviceId === newService.serviceId,
-                          )
+                            (s) => s.serviceId === newService.serviceId
+                          );
 
                           if (!selectedService) {
                             toast.warn('Please select a service first!', {
                               position: 'top-right',
                               autoClose: 2000,
-                            })
-                            return
+                            });
+                            return;
                           }
 
                           const newEntry = {
                             serviceName: selectedService.serviceName,
                             subServiceName: trimmedInput,
-                          }
+                          };
 
                           if (
                             selectedSubServices.some(
                               (sub) =>
                                 sub.serviceName === newEntry.serviceName &&
-                                sub.subServiceName === newEntry.subServiceName,
+                                sub.subServiceName === newEntry.subServiceName
                             )
                           ) {
                             toast.warn('Procedure already added for this service!', {
                               position: 'top-right',
                               autoClose: 2000,
-                            })
-                            return
+                            });
+                            return;
                           }
 
                           setSelectedSubServices((prev) => {
-                            const updated = [...prev, newEntry]
+                            const updated = [...prev, newEntry];
                             if (updated.length > 0) {
-                              setErrors((prevErrors) => ({ ...prevErrors, subService: '' }))
+                              setErrors((prevErrors) => ({ ...prevErrors, subService: '' }));
                             }
-                            return updated
-                          })
-                          setSubServiceInput('')
+                            return updated;
+                          });
+
+                          setSubServiceInput('');
                         }}
                       >
                         Add
                       </CButton>
+
                     </div>
                   )}
 
@@ -743,37 +745,35 @@ const ProcedureManagement = () => {
                         placeholder="Edit Procedure"
                         value={selectedSubServices[0]?.subServiceName || ''}
                         onChange={(e) => {
-                          const value = e.target.value
+                          const value = e.target.value;
                           const trimmedValue = value.trim();
                           let errorMsg = '';
 
                           if (!trimmedValue) {
                             errorMsg = 'Procedure name is required.';
-                          } else if (!/^[A-Za-z0-9\s]+$/.test(trimmedValue)) {
-                            errorMsg = 'Procedure name can only contain letters, numbers, and spaces.';
-                          } else if (/^\d+$/.test(trimmedValue)) {
+                          }
+                          // ❌ Removed symbol restriction so ANY characters are allowed
+                          else if (/^\d+$/.test(trimmedValue)) {
                             errorMsg = 'Procedure name cannot contain only numbers.';
                           } else if (trimmedValue.length < 3) {
                             errorMsg = 'Procedure name must be at least 3 characters long.';
                           }
+
                           setErrors((prev) => ({ ...prev, subService: errorMsg }));
 
                           setSelectedSubServices([
                             { ...selectedSubServices[0], subServiceName: value },
-                          ])
-                          // Clear error while typing
-                          // if (value.trim() !== '') {
-                          //   setErrors((prev) => ({ ...prev, subService: '' }))
-                          // }
+                          ]);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleSubmit()
+                            e.preventDefault();
+                            handleSubmit();
                           }
                         }}
                         invalid={!!errors.subService}
                       />
+
                       {errors.subService && <div className="text-danger mt-1">{errors.subService}</div>}
                     </>
                   )}

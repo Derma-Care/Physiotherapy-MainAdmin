@@ -343,16 +343,21 @@ const CustomerManagement = () => {
       setCustomerIdToDelete(null)
     }
   }
-  
+
   const validateForm = () => {
     const errors = {}
 
     // Full Name Validation
     if (!formData.fullName.trim()) {
-      errors.fullName = 'Full Name is required'
+      errors.fullName = 'Full Name is required';
     } else if (/\d/.test(formData.fullName)) {
-      errors.fullName = 'Name should not contain numbers'
+      errors.fullName = 'Numbers are not allowed in Full Name';
+    } else if (!/^[A-Za-z.\s]+$/.test(formData.fullName)) {
+      errors.fullName = 'Only letters, spaces, and dots are allowed';
+    } else if (formData.fullName.trim().length < 3) {
+      errors.fullName = 'Full Name must be at least 3 characters long';
     }
+
 
     // Mobile Number Validation
     if (!formData.mobileNumber.trim()) {
@@ -504,7 +509,7 @@ const CustomerManagement = () => {
                           </button>
                         </div>
 
-                         <ConfirmationModal
+                        <ConfirmationModal
                           isVisible={isModalVisible}
                           message="Are you sure you want to delete this customer?"
                           onConfirm={confirmDeleteCustomer}
@@ -512,7 +517,7 @@ const CustomerManagement = () => {
                             setIsModalVisible(false)
                             setCustomerIdToDelete(null)
                           }}
-                        /> 
+                        />
                       </CTableDataCell>
                     </CTableRow>
                   ))}
@@ -593,7 +598,19 @@ const CustomerManagement = () => {
                   onChange={handleInputChange}
                   invalid={!!formErrors.fullName}
                   style={{ textTransform: "capitalize" }}
+                  onKeyDown={(e) => {
+                    if (/\d/.test(e.key)) {   // ❌ Block number keys
+                      e.preventDefault();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    if (/\d/.test(e.clipboardData.getData('text'))) {
+                      e.preventDefault();    // ❌ Prevent pasting numbers
+                      toast.error("Numbers are not allowed in Full Name");
+                    }
+                  }}
                 />
+
                 {formErrors.fullName && (
                   <div className="text-danger small">{formErrors.fullName}</div>
                 )}

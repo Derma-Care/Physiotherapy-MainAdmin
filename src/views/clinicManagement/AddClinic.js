@@ -197,23 +197,18 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     }
   }
 
-
-
-
-  const websiteRegex = /^(https?:\/\/)[\w\-]+(\.[\w\-]+)+[/#?]?.*$/
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
-
-
-
 
   const validateForm = () => {
     const newErrors = {}
 
     // Hospital Name
     if (!formData.name?.trim()) {
-      newErrors.name = 'Clinic name is required'
-    } else if (!/^[a-zA-Z\s]{2,50}$/.test(formData.name)) {
-      newErrors.name = 'Clinic name must contain only letters'
+      newErrors.name = "Clinic name is required";
+    } else if (!/^[A-Za-z\s.&-]{2,50}$/.test(formData.name)) {
+      newErrors.name = "Clinic name can contain only letters, spaces, dots, hyphens, and '&'";
+    } else if (/\d/.test(formData.name)) {
+      newErrors.name = "Numbers are not allowed in Clinic Name";
     }
 
     // Address validation
@@ -356,13 +351,17 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     }
 
     if (!formData.website.trim()) {
-      newErrors.website = 'Website is required.'
+      newErrors.website = "Website is required.";
     } else {
-      const cleanedWebsite = formData.website.replace(/\s+/g, '') // remove all spaces
-      if (!websiteRegex.test(normalizeWebsite(cleanedWebsite))) {
-        newErrors.website = 'Website must start with http:// or https:// and be a valid URL'
+      const cleanedWebsite = formData.website.trim().replace(/\s+/g, ""); // remove spaces
+      const normalizedURL = normalizeWebsite(cleanedWebsite);
+
+      if (!websiteRegex.test(normalizedURL)) {
+        newErrors.website =
+          "Website must start with http:// or https:// and be a valid URL (e.g., https://example.com)";
       }
     }
+
 
     if (!formData.subscription || formData.subscription.trim() === '') {
       newErrors.subscription = 'Please select a subscription type'
@@ -702,13 +701,15 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     setErrors(prev => ({ ...prev, [fieldName]: '' }))
   }
 
+  const websiteRegex = /^(https?:\/\/)(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
+
   const normalizeWebsite = (url) => {
-    // If starts with www. or does not have protocol, prepend https://
+    // If user forgets http:// or https://, add it automatically
     if (!/^https?:\/\//i.test(url)) {
-      return 'https://' + url
+      return "https://" + url;
     }
-    return url
-  }
+    return url;
+  };
   console.log('submit button clicked')
 
   const convertFileToBase64 = (file) => {
@@ -1015,21 +1016,44 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                   value={formData.name || ""}
                   onChange={(e) => {
                     const { name, value } = e.target;
+
+                    // Update state
                     setFormData((prev) => ({ ...prev, [name]: value }));
 
-                    const error =
-                      !value.trim()
-                        ? "Clinic name is required"
-                        : value.length < 2
-                          ? "Clinic name must be at least 2 characters"
-                          : value.length > 100
-                            ? "Clinic name cannot exceed 100 characters"
-                            : "";
+                    let error = "";
+
+                    // Validation Rules
+                    if (!value.trim()) {
+                      error = "Clinic name is required";
+                    } else if (/\d/.test(value)) {
+                      error = "Numbers are not allowed in Clinic Name";
+                    } else if (!/^[A-Za-z\s.&-]+$/.test(value)) {
+                      error = "Only letters, spaces, '.', '-', and '&' are allowed";
+                    } else if (value.trim().length < 2) {
+                      error = "Clinic name must be at least 2 characters";
+                    } else if (value.trim().length > 100) {
+                      error = "Clinic name cannot exceed 100 characters";
+                    }
 
                     setErrors((prev) => ({ ...prev, [name]: error || undefined }));
                   }}
+                  onKeyDown={(e) => {
+                    // Prevent typing numbers
+                    if (/\d/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // Prevent pasting numbers
+                    if (/\d/.test(e.clipboardData.getData("text"))) {
+                      e.preventDefault();
+                      toast.error("Numbers are not allowed in Clinic Name");
+                    }
+                  }}
+                  style={{ textTransform: "capitalize" }}
                   invalid={!!errors.name}
                 />
+
 
                 {errors.name && <CFormFeedback invalid>{errors.name}</CFormFeedback>}
               </CCol>
@@ -1105,7 +1129,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                   invalid={!!errors.website}
                 />
                 {errors.website && (
-                  <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.website}</div>
+                  <CFormFeedback invalid>{errors.website}</CFormFeedback>
                 )}
 
               </CCol>
