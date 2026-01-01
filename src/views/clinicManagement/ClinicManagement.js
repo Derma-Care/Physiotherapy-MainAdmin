@@ -152,56 +152,56 @@ const ClinicManagement = ({ service, onBack }) => {
         </div>
 
         {error && <p className="text-center text-danger">{error}</p>}
- {loading ? (
-         <LoadingIndicator message="Fetching Clinic Details, please wait..." />
+        {loading ? (
+          <LoadingIndicator message="Fetching Clinic Details, please wait..." />
         ) : error ? (
           <div>{error}</div>
         ) : (
-        <CTable striped hover responsive>
-          <CTableHead className='pink-table'>
-            <CTableRow>
-              <CTableHeaderCell>S.No</CTableHeaderCell>
-              <CTableHeaderCell>Clinic Name</CTableHeaderCell>
-              <CTableHeaderCell>Contact Number</CTableHeaderCell>
-              <CTableHeaderCell>Email Address</CTableHeaderCell>
-              <CTableHeaderCell>City</CTableHeaderCell>
-              <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
-            </CTableRow>
-          </CTableHead>
+          <CTable striped hover responsive>
+            <CTableHead className='pink-table'>
+              <CTableRow>
+                <CTableHeaderCell>S.No</CTableHeaderCell>
+                <CTableHeaderCell>Clinic Name</CTableHeaderCell>
+                <CTableHeaderCell>Contact Number</CTableHeaderCell>
+                <CTableHeaderCell>Email Address</CTableHeaderCell>
+                <CTableHeaderCell>City</CTableHeaderCell>
+                <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
 
-          <CTableBody className='pink-table' >
-            {currentItems?.length > 0
-              ? currentItems.map((clinic, index) => (
-                <CTableRow key={clinic?.id || index}>
-                  <CTableDataCell>{indexOfFirstItem + index + 1}</CTableDataCell>
-                  <CTableDataCell>{clinic?.name}</CTableDataCell>
-                  <CTableDataCell>{clinic?.contactNumber}</CTableDataCell>
-                  <CTableDataCell>{clinic?.emailAddress}</CTableDataCell>
-                  <CTableDataCell>{clinic?.city}</CTableDataCell>
-                  <CTableDataCell className="text-center">
-                    <div className="d-flex justify-content-center gap-2">
-                      <button
-                        className="actionBtn"
-                        onClick={() => navigate(`/clinic-Management/${clinic.hospitalId}`)}
-                        title="View"
-                      >
-                        <Eye size={18} />
-                      </button>
-                    </div>
-                  </CTableDataCell>
+            <CTableBody className='pink-table' >
+              {currentItems?.length > 0
+                ? currentItems.map((clinic, index) => (
+                  <CTableRow key={clinic?.id || index}>
+                    <CTableDataCell>{indexOfFirstItem + index + 1}</CTableDataCell>
+                    <CTableDataCell>{clinic?.name}</CTableDataCell>
+                    <CTableDataCell>{clinic?.contactNumber}</CTableDataCell>
+                    <CTableDataCell>{clinic?.emailAddress}</CTableDataCell>
+                    <CTableDataCell>{clinic?.city}</CTableDataCell>
+                    <CTableDataCell className="text-center">
+                      <div className="d-flex justify-content-center gap-2">
+                        <button
+                          className="actionBtn"
+                          onClick={() => navigate(`/clinic-Management/${clinic.hospitalId}`)}
+                          title="View"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </div>
+                    </CTableDataCell>
 
-                </CTableRow>
-              ))
-              : !loading && (
-                <CTableRow>
-                  <CTableDataCell colSpan="6" className="text-center">
-                    No clinics found
-                  </CTableDataCell>
-                </CTableRow>
-              )}
-          </CTableBody>
-        </CTable>
-  )}
+                  </CTableRow>
+                ))
+                : !loading && (
+                  <CTableRow>
+                    <CTableDataCell colSpan="6" className="text-center">
+                      No clinics found
+                    </CTableDataCell>
+                  </CTableRow>
+                )}
+            </CTableBody>
+          </CTable>
+        )}
         {/* Pagination Controls */}
         {filteredClinics.length > 0 && (
           <div className="d-flex justify-content-between align-items-center mt-3">
