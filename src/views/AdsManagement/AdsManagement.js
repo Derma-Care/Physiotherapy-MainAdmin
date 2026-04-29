@@ -1,134 +1,170 @@
 import React, { useState } from 'react'
 import {
-  CNav,
-  CNavItem,
-  CNavLink,
-  CTabContent,
-  CTabPane,
-  CCard,
-  CCardBody,
-  CCardHeader,
+  CNav, CNavItem, CNavLink,
+  CTabContent, CTabPane,
 } from '@coreui/react'
+import {
+  LayoutDashboard, Stethoscope, Building2,
+  Monitor, PanelRight,
+} from 'lucide-react'
+
+const TABS = [
+  { id: 1, label: 'Dashboard Ads',      icon: LayoutDashboard, accent: '#185fa5', bg: '#e6f1fb', border: '#b5d4f4' },
+  { id: 2, label: 'Service Ads',        icon: Stethoscope,      accent: '#1D9E75', bg: '#E1F5EE', border: '#9FE1CB' },
+  { id: 3, label: 'Clinic Ads',         icon: Building2,        accent: '#BA7517', bg: '#FAEEDA', border: '#FAC775' },
+  { id: 4, label: 'Doctor Web Ads',     icon: Monitor,          accent: '#534AB7', bg: '#EEEDFE', border: '#CECBF6' },
+  { id: 5, label: 'Doctor Web Vertical',icon: PanelRight,       accent: '#993556', bg: '#FBEAF0', border: '#F4C0D1' },
+]
 
 const AdsManagement = () => {
   const [activeKey, setActiveKey] = useState(1)
+  const active = TABS.find(t => t.id === activeKey)
 
   return (
-    <CCard className="shadow-sm border-0">
-      <CCardHeader className="bg-primary text-white fw-bold text-center">
-        Advertisement Management
-      </CCardHeader>
-      <CCardBody>
-        {/* Navigation Tabs */}
-        <CNav variant="tabs" role="tablist" className="mb-3">
-          <CNavItem>
-            <CNavLink
-              active={activeKey === 1}
-              onClick={() => setActiveKey(1)}
-              className="cursor-pointer"
-            >
-              Dashboard Ads
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink
-              active={activeKey === 2}
-              onClick={() => setActiveKey(2)}
-              className="cursor-pointer"
-            >
-              Service Ads
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink
-              active={activeKey === 3}
-              onClick={() => setActiveKey(3)}
-              className="cursor-pointer"
-            >
-              Clinic Ads
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink
-              active={activeKey === 4}
-              onClick={() => setActiveKey(4)}
-              className="cursor-pointer"
-            >
-              Doctor Web Ads
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink
-              active={activeKey === 5}
-              onClick={() => setActiveKey(5)}
-              className="cursor-pointer"
-            >
-              Doctor Web Vertical
-            </CNavLink>
-          </CNavItem>
-        </CNav>
+    <div style={{ padding: '1.25rem' }}>
 
-        {/* Tabs Content */}
-        <CTabContent>
-          {/* Tab 1: Dashboard Ads */}
-          <CTabPane visible={activeKey === 1}>
-            <CCard className="border-light shadow-sm">
-              <CCardBody>
-                <h5 className="fw-bold text-primary mb-3">Dashboard Ads</h5>
-                <p>
-                  Manage all advertisements displayed on the main dashboard here.
-                </p>
-                {/* Add your table or upload section here */}
-              </CCardBody>
-            </CCard>
-          </CTabPane>
+      {/* ── Page header ───────────────────────── */}
+      <div className="am-page-header">
+        <div>
+          <h1 className="am-page-title">Advertisement Management</h1>
+          <p className="am-page-sub">Manage all ad placements across the platform</p>
+        </div>
+        <div className="am-header-badge">
+          {TABS.length} Channels
+        </div>
+      </div>
 
-          {/* Tab 2: Service Ads */}
-          <CTabPane visible={activeKey === 2}>
-            <CCard className="border-light shadow-sm">
-              <CCardBody>
-                <h5 className="fw-bold text-success mb-3">Service Ads</h5>
-                <p>
-                  Upload and manage ads specific to services shown in the app.
-                </p>
-              </CCardBody>
-            </CCard>
-          </CTabPane>
+      {/* ── Tabs ──────────────────────────────── */}
+      <div className="am-tabs">
+        {TABS.map(({ id, label, icon: Icon, accent, bg, border }) => (
+          <button
+            key={id}
+            className={`am-tab${activeKey === id ? ' active' : ''}`}
+            style={activeKey === id
+              ? { background: accent, borderColor: accent, color: '#fff' }
+              : {}}
+            onClick={() => setActiveKey(id)}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        ))}
+      </div>
 
-          {/* Tab 3: Clinic Ads */}
-          <CTabPane visible={activeKey === 3}>
-            <CCard className="border-light shadow-sm">
-              <CCardBody>
-                <h5 className="fw-bold text-warning mb-3">Clinic Ads</h5>
-                <p>View and manage all clinic-related promotional content.</p>
-              </CCardBody>
-            </CCard>
-          </CTabPane>
+      {/* ── Tab content (children injected) ───── */}
+      <div className="am-tab-panel">
+        {/* Replace each placeholder with your real component, e.g.: */}
+        {/* {activeKey === 2 && <ServiceAdvertisement />} */}
 
-          {/* Tab 4: Doctor Web Ads */}
-          <CTabPane visible={activeKey === 4}>
-            <CCard className="border-light shadow-sm">
-              <CCardBody>
-                <h5 className="fw-bold text-info mb-3">Doctor Web Ads</h5>
-                <p>Manage advertisements shown on the Doctor Web interface.</p>
-              </CCardBody>
-            </CCard>
-          </CTabPane>
+        <div className="am-placeholder" style={{ borderColor: active.border, background: active.bg }}>
+          <div className="am-placeholder-icon" style={{ color: active.accent }}>
+            {React.createElement(active.icon, { size: 32 })}
+          </div>
+          <p className="am-placeholder-label" style={{ color: active.accent }}>{active.label}</p>
+          <p className="am-placeholder-hint">Replace this block with your tab component.</p>
+        </div>
+      </div>
 
-          {/* Tab 5: Doctor Web Vertical */}
-          <CTabPane visible={activeKey === 5}>
-            <CCard className="border-light shadow-sm">
-              <CCardBody>
-                <h5 className="fw-bold text-danger mb-3">Doctor Web Vertical</h5>
-                <p>
-                  Manage vertical ad banners displayed on Doctor Web pages.
-                </p>
-              </CCardBody>
-            </CCard>
-          </CTabPane>
-        </CTabContent>
-      </CCardBody>
-    </CCard>
+      {/* ── Styles ────────────────────────────── */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+        .am-page-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 1.25rem;
+        }
+        .am-page-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 22px;
+          font-weight: 700;
+          color: #0c447c;
+          margin: 0 0 4px;
+        }
+        .am-page-sub {
+          font-size: 13px;
+          color: #888780;
+          margin: 0;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .am-header-badge {
+          background: #e6f1fb;
+          border: 0.5px solid #b5d4f4;
+          color: #185fa5;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          padding: 5px 12px;
+          border-radius: 20px;
+          white-space: nowrap;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .am-tabs {
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
+          background: #fff;
+          border: 0.5px solid #d0dce9;
+          border-radius: 12px;
+          padding: 4px;
+          margin-bottom: 1rem;
+          box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+        }
+        .am-tab {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border: 0.5px solid transparent;
+          border-radius: 9px;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: #5f5e5a;
+          background: transparent;
+          cursor: pointer;
+          transition: all 0.15s;
+          white-space: nowrap;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .am-tab:hover:not(.active) { background: #f1efe8; color: #2c2c2a; }
+        .am-tab.active { font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .am-tab-panel {
+          background: #fff;
+          border: 0.5px solid #d0dce9;
+          border-radius: 14px;
+          padding: 1.5rem;
+          box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+          min-height: 300px;
+        }
+        .am-placeholder {
+          border: 1.5px dashed;
+          border-radius: 12px;
+          padding: 3rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          text-align: center;
+        }
+        .am-placeholder-icon { opacity: 0.7; }
+        .am-placeholder-label {
+          font-family: 'Syne', sans-serif;
+          font-size: 15px;
+          font-weight: 600;
+          margin: 0;
+        }
+        .am-placeholder-hint {
+          font-size: 12px;
+          color: #888780;
+          margin: 0;
+          font-family: 'DM Sans', sans-serif;
+        }
+      `}</style>
+    </div>
   )
 }
 

@@ -1,156 +1,205 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import CIcon from '@coreui/icons-react'
-import { cilStar } from '@coreui/icons'
-import { CFormSwitch } from '@coreui/react' // <-- import this for the toggle switch
+import { CFormSwitch } from '@coreui/react'
 import { toast } from 'react-toastify'
-import { updateDoctorAvailability } from './DoctorAPI' // Adjust path accordingly
+import { updateDoctorAvailability } from './DoctorAPI'
+import { Stethoscope } from 'lucide-react'
 
 const DoctorCard = ({ doctor, branchId }) => {
   const navigate = useNavigate()
-  const [availability, setAvailability] = useState(doctor.doctorAvailabilityStatus || false)
+  const [availability, setAvailability] = useState(doctor?.doctorAvailabilityStatus ?? false)
 
   if (!doctor) return null
 
-  const handleToggle = async (e) => {
-    const value = e.target.checked
-    setAvailability(value) // Optimistic update
-
-    const success = await updateDoctorAvailability(doctor.doctorId, value)
+  const handleToggle = async () => {
+    const newValue = !availability
+    setAvailability(newValue)
+    const success = await updateDoctorAvailability(doctor.doctorId, newValue)
     if (success) {
-      toast.success(`Availability set to ${value ? 'Available' : 'Not Available'}`)
+      toast.success(`Availability set to ${newValue ? 'Available' : 'Not Available'}`)
     } else {
       toast.error('Failed to update availability')
-      setAvailability(!value) // revert change if failed
+      setAvailability(!newValue)
     }
   }
 
   return (
-    <div className="doctor-card">
-      {/* Left: Avatar */}
-      <div className="doctor-avatar">
-        <img
-          src={doctor.doctorPicture}
-          alt={`Photo of Dr. ${doctor.doctorName || 'Doctor'}`}
-          onError={(e) => {
-            if (e.target.src !== window.location.origin + '/default-avatar.png') {
-              e.target.src = '/default-avatar.png'
-            }
-          }}
-        />
-      </div>
-
-      {/* Middle: Doctor Info */}
-      <div className="doctor-info">
-        <h2>
-          {doctor.doctorName}, {doctor.qualification}
-        </h2>
-        <p className="speciality">{doctor.specialization}</p>
-        <p>{doctor.experience} Years of experience</p>
-
-        {/* ✅ Availability toggle placed right under experience */}
-        <div className="availability-toggle d-flex align-items-center gap-2 mt-2">
-          <label
-            htmlFor={`availability-${doctor.doctorId}`}
-            className="fw-bold mb-0 text-info"
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            Doctor Availability
-          </label>
-          <CFormSwitch
-            id={`availability-${doctor.doctorId}`}
-            checked={availability}
-            onChange={handleToggle}
-            color="info"
+    <>
+      <div className="dc-card">
+        {/* ── Avatar ─────────────────────────── */}
+        <div className="dc-avatar-wrap">
+          <img
+            src={doctor.doctorPicture}
+            alt={`Dr. ${doctor.doctorName || 'Doctor'}`}
+            className="dc-avatar"
+            onError={(e) => {
+              if (e.target.src !== window.location.origin + '/default-avatar.png')
+                e.target.src = '/default-avatar.png'
+            }}
           />
+        </div>
+
+        {/* ── Info ───────────────────────────── */}
+        <div className="dc-info">
+          <h2 className="dc-name">
+            {doctor.doctorName}
+            {doctor.qualification ? `, ${doctor.qualification}` : ''}
+          </h2>
+          <p className="dc-speciality">{doctor.specialization}</p>
+          <p className="dc-exp">
+            <span className="dc-exp-badge">{doctor.experience} yrs</span> experience
+          </p>
+
+          {/* Availability toggle */}
+          <div className="dc-availability">
+            <span className="dc-avail-label">Availability</span>
+            <CFormSwitch
+              id={`availability-${doctor.doctorId}`}
+              checked={availability}
+              onChange={handleToggle}
+              color="info"
+            />
+            <span className={`dc-avail-badge ${availability ? 'available' : 'unavailable'}`}>
+              {availability ? 'Available' : 'Not Available'}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Action panel ───────────────────── */}
+        <div className="dc-action-panel">
+          <div className="dc-doctor-icon">
+            <Stethoscope size={22} />
+          </div>
+          <p className="dc-id-label">
+            <span className="dc-id-text">{doctor.doctorId}</span>
+          </p>
+          <button
+            className="dc-view-btn"
+            onClick={() => navigate(`/doctor/${doctor.doctorId}`, { state: { doctor, branchId } })}
+            aria-label={`View details of Dr. ${doctor.doctorName}`}
+          >
+            View Details
+          </button>
         </div>
       </div>
 
-      {/* Right: Actions */}
-      <div className="doctor-action d-flex flex-column align-items-center gap-2 p-2 border rounded shadow-sm">
-        <button
-          className="btn btn-info w-100"
-          onClick={() => navigate(`/doctor/${doctor.doctorId}`, { state: { doctor, branchId } })}
-          aria-label={`View details of Dr. ${doctor.doctorName}`}
-        >
-          View Details
-        </button>
-        <p className="mb-0 text-muted">
-          <strong>ID:</strong> {doctor.doctorId}
-        </p>
-      </div>
-
-      {/* Styles */}
       <style>{`
-        .doctor-card {
+        .dc-card {
           display: flex;
           align-items: flex-start;
-          padding: 20px;
-          border: 1px solid #eee;
-          border-radius: 12px;
-          margin-bottom: 20px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-          background-color: #fff;
-          gap: 20px;
+          gap: 18px;
+          padding: 18px 20px;
+          background: #fff;
+          border: 0.5px solid #d0dce9;
+          border-radius: 14px;
+          margin-bottom: 14px;
+          box-shadow: 0 2px 8px rgba(24,95,165,0.06);
+          transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .dc-card:hover {
+          box-shadow: 0 4px 18px rgba(24,95,165,0.13);
+          border-color: #b5d4f4;
         }
 
-        .doctor-avatar img {
-          width: 100px;
-          height: 100px;
+        /* Avatar */
+        .dc-avatar-wrap {
+          flex-shrink: 0;
+          width: 88px; height: 88px;
           border-radius: 50%;
-          object-fit: cover;
-          outline: 2px solid grey;
-          padding: 5px;
+          border: 2.5px solid #185fa5;
+          padding: 3px;
+          background: #e6f1fb;
+          overflow: hidden;
+        }
+        .dc-avatar {
+          width: 100%; height: 100%;
+          border-radius: 50%; object-fit: cover;
         }
 
-        .doctor-info {
-          flex-grow: 1;
-          padding: 0 20px;
+        /* Info */
+        .dc-info { flex-grow: 1; padding: 0 6px; }
+        .dc-name {
+          font-size: 16px; font-weight: 700;
+          color: #0c447c; margin: 0 0 3px;
+        }
+        .dc-speciality {
+          font-size: 13px; color: #185fa5;
+          font-weight: 500; margin: 0 0 4px;
+        }
+        .dc-exp {
+          font-size: 12px; color: #6b7280;
+          margin: 0 0 10px;
+          display: flex; align-items: center; gap: 6px;
+        }
+        .dc-exp-badge {
+          background: #e6f1fb; color: #185fa5;
+          border: 0.5px solid #b5d4f4;
+          border-radius: 20px; font-size: 11px;
+          font-weight: 700; padding: 2px 8px;
         }
 
-        .doctor-info h2 {
-          color: #007bff;
-          font-size: 18px;
-          margin: 0 0 4px;
+        /* Availability */
+        .dc-availability {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .dc-avail-label {
+          font-size: 12px; font-weight: 600; color: #374151;
+        }
+        .dc-avail-badge {
+          border-radius: 20px; font-size: 11px;
+          font-weight: 600; padding: 2px 10px;
+          border: 0.5px solid;
+        }
+        .dc-avail-badge.available {
+          background: #eaf3de; color: #3b6d11; border-color: #c0dd97;
+        }
+        .dc-avail-badge.unavailable {
+          background: #f3f4f6; color: #6b7280; border-color: #d1d5db;
         }
 
-        .speciality {
-          margin: 6px 0;
-          color: #555;
-        }
-
-        .doctor-action {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          padding: 12px;
-          border: 1px solid #ddd;
+        /* Action panel */
+        .dc-action-panel {
+          display: flex; flex-direction: column; align-items: center; gap: 10px;
+          padding: 14px 16px;
+          background: #f7fafd;
+          border: 0.5px solid #d0dce9;
           border-radius: 12px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-          min-width: 180px;
-          max-width: 220px;
-          background-color: #f9f9f9;
+          min-width: 150px; max-width: 180px;
+          flex-shrink: 0;
         }
-
-        .doctor-action button {
-          background-color: #007bff;
-          color: white;
-          border: none;
-          padding: 8px 14px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 500;
-          width: 100%;
+        .dc-doctor-icon {
+          width: 40px; height: 40px; border-radius: 50%;
+          background: #e6f1fb; color: #185fa5;
+          display: flex; align-items: center; justify-content: center;
         }
+        .dc-id-label {
+          font-size: 11px; color: #6b7280; text-align: center; margin: 0;
+        }
+        .dc-id-text {
+          font-weight: 600; color: #185fa5; font-size: 11px;
+          background: #e6f1fb; border: 0.5px solid #b5d4f4;
+          border-radius: 20px; padding: 2px 8px; display: inline-block;
+        }
+        .dc-view-btn {
+          background: #185fa5; color: #fff;
+          border: none; padding: 8px 16px;
+          border-radius: 8px; cursor: pointer;
+          font-weight: 600; font-size: 13px;
+          width: 100%; text-align: center;
+          box-shadow: 0 2px 8px rgba(24,95,165,0.2);
+          transition: background 0.15s, transform 0.1s;
+        }
+        .dc-view-btn:hover  { background: #0c447c; }
+        .dc-view-btn:active { transform: scale(0.97); }
 
-        .doctor-action button:hover {
-          background-color: #0056b3;
+        @media (max-width: 600px) {
+          .dc-card { flex-direction: column; align-items: center; text-align: center; }
+          .dc-availability { justify-content: center; }
+          .dc-action-panel { width: 100%; max-width: 100%; }
         }
       `}</style>
-    </div>
+    </>
   )
 }
 
-
-export default DoctorCard   
+export default DoctorCard

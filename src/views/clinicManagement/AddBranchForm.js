@@ -1,166 +1,165 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
-  CRow,
-  CCol,
-  CButton,
-  CModal,
-  CModalHeader,
-  CModalTitle,
-  CModalBody,
-  CModalFooter,
-  CForm,
-  CFormInput,
-  CCard,
-  CCardHeader,
-  CCardBody,
-  CCardFooter,
-  CTable,
-  CTableHead,
-  CTableRow,
-  CTableHeaderCell,
-  CTableBody,
-  CTableDataCell,
-  CBadge, CPagination, CPaginationItem,
-  CSpinner,
-  CAlert,
-  CInputGroup,
-  CFormSelect,
-  CInputGroupText,
-  CFormTextarea,
-} from '@coreui/react';
-import { useNavigate, useParams } from 'react-router-dom'
-
+  CRow, CCol, CSpinner,
+  CModal, CModalHeader, CModalBody, CModalFooter,
+  CTable, CTableHead, CTableRow, CTableHeaderCell,
+  CTableBody, CTableDataCell,
+} from '@coreui/react'
+import { useNavigate } from 'react-router-dom'
 import {
-  fetchAllBranches,
+  fetchBranchById, createNewBranch, updateBranchData,
+  deleteBranchById, fetchBranchByBranchId,
+} from './AddBranchAPI'
+import { Edit2, Eye, Trash2, Search, X, Plus, ChevronLeft, ChevronRight, GitBranch } from 'lucide-react'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
-  fetchBranchById,
-  createNewBranch,
-  updateBranchData,
-  deleteBranchById,
-  fetchBranchByBranchId
-} from './AddBranchAPI'; // Import the API function
-import DataTable from 'react-data-table-component';
-import { Edit2, Eye, Trash2 } from 'lucide-react'
-import { ConfirmationModal } from '../../Utils/ConfirmationDelete';
+/* ── shared styles ── */
+const inp = (hasErr, disabled) => ({
+  width: '100%', padding: '8px 12px',
+  border: `1.5px solid ${hasErr ? '#ef4444' : '#e5e7eb'}`,
+  borderRadius: '8px', fontSize: '13px', color: '#374151',
+  background: disabled ? '#f9fafb' : '#fff',
+  outline: 'none', transition: 'border-color 0.2s', fontFamily: 'inherit',
+})
+
+const lbl = {
+  fontSize: '12px', fontWeight: '600',
+  color: '#374151', marginBottom: '5px', display: 'block',
+}
+
+const errTxt = { color: '#ef4444', fontSize: '11px', marginTop: '4px' }
+
+const Field = ({ label, required, error, children }) => (
+  <div>
+    <label style={lbl}>
+      {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
+    </label>
+    {children}
+    {error && <div style={errTxt}>{error}</div>}
+  </div>
+)
+
+const SectionBar = ({ text }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+    <span style={{ width: '3px', height: '18px', background: '#185fa5', borderRadius: '2px', flexShrink: 0 }} />
+    <span style={{ fontSize: '13px', fontWeight: '700', color: '#0c447c' }}>{text}</span>
+  </div>
+)
+
 const AddBranchForm = ({ clinicId }) => {
   const navigate = useNavigate()
 
-  const [branches, setBranches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [editingBranch, setEditingBranch] = useState(null);
-  const [deletingBranch, setDeletingBranch] = useState(null);
-  const [viewingBranch, setViewingBranch] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCity, setFilterCity] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [validationErrors, setValidationErrors] = useState({});
-  const [formData, setFormData] = useState({
+  const [branches, setBranches]           = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [submitLoading, setSubmitLoading] = useState(false)
+  const [error, setError]                 = useState('')
+  const [success, setSuccess]             = useState('')
+  const [modalVisible, setModalVisible]   = useState(false)
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  const [editingBranch, setEditingBranch] = useState(null)
+  const [deletingBranch, setDeletingBranch] = useState(null)
+  const [searchTerm, setSearchTerm]       = useState('')
+  const [filterCity, setFilterCity]       = useState('')
+  const [validationErrors, setValidationErrors] = useState({})
+  const [itemsPerPage, setItemsPerPage]   = useState(5)
+  const [currentPage, setCurrentPage]     = useState(1)
+
+  const initialForm = {
     clinicId: clinicId || '',
-    branchName: '',
-    address: '',
-    city: '',
-    contactNumber: '',
-    email: '',
-    latitude: '',
-    longitude: '',
-    virtualClinicTour: '',
-  });
-  const [itemsPerPage, setItemsPerPage] = useState(5)
-  const [currentPage, setCurrentPage] = useState(1)
-  // Load branches on component mount
-  useEffect(() => {
-    loadBranches();
-  }, []);
-  React.useEffect(() => {
-    if (clinicId) {
-      setFormData(prev => ({ ...prev, clinicId }));
-    }
-  }, [clinicId]);
+    branchName: '', address: '', city: '',
+    contactNumber: '', email: '',
+    latitude: '', longitude: '', virtualClinicTour: '',
+  }
+  const [formData, setFormData] = useState(initialForm)
+
+  /* ── load ── */
+  useEffect(() => { loadBranches() }, [])
+  useEffect(() => { if (clinicId) setFormData((p) => ({ ...p, clinicId })) }, [clinicId])
+  useEffect(() => { setCurrentPage(1) }, [searchTerm, filterCity])
+
   const loadBranches = async () => {
     try {
-      setLoading(true);
-      const response = await fetchBranchById(clinicId);
+      setLoading(true)
+      const res = await fetchBranchById(clinicId)
+      setBranches(Array.isArray(res.data) ? res.data : [])
+      setError('')
+    } catch { setError('Failed to load branches.') }
+    finally { setLoading(false) }
+  }
 
-      // Extract the array from API response
-      const branchArray = Array.isArray(response.data) ? response.data : [];
-      setBranches(branchArray);
+  const flash = (setter, msg) => { setter(msg); setTimeout(() => setter(''), 3000) }
 
-      setError('');
-    } catch (err) {
-      setError('Failed to load branches. Please try again.');
-      console.error('Error loading branches:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filterCity]);
-
+  /* ── form change ── */
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setValidationErrors((prevErrors) => {
-      if (!prevErrors[name]) return prevErrors;
-      const { [name]: removedError, ...rest } = prevErrors;
-      return rest;
-    })
-  };
+    const { name, value } = e.target
+    setFormData((p) => ({ ...p, [name]: value }))
+    setValidationErrors((p) => { const u = { ...p }; delete u[name]; return u })
+  }
 
+  /* ── validation ── */
+  const validateForm = () => {
+    const errs = {}
+    if (!formData.branchName || !/^.{3,50}$/.test(formData.branchName.trim()) || !/[A-Za-z]/.test(formData.branchName))
+      errs.branchName = 'Branch Name must be 3–50 characters and contain at least one letter.'
+    if (!formData.clinicId || !/^\d{1,10}$/.test(String(formData.clinicId).trim()))
+      errs.clinicId = 'Clinic ID must be 1–10 digits.'
+    if (!formData.address || formData.address.trim().length < 5 || formData.address.trim().length > 500 || !/[A-Za-z]/.test(formData.address))
+      errs.address = 'Address must be 5–500 characters and contain at least one letter.'
+    if (!formData.city || !/^[A-Za-z\s]{2,50}$/.test(formData.city.trim()))
+      errs.city = 'City must be 2–50 letters and spaces only.'
+    if (!formData.contactNumber || !/^[1-9][0-9]{9}$/.test(formData.contactNumber.trim()))
+      errs.contactNumber = 'Must be exactly 10 digits and cannot start with 0.'
+    if (!formData.email) errs.email = 'Email is required.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errs.email = 'Invalid email format.'
+    const lat = parseFloat(formData.latitude)
+    if (!formData.latitude) errs.latitude = 'Latitude is required.'
+    else if (isNaN(lat) || lat < -90 || lat > 90) errs.latitude = 'Must be between -90 and 90.'
+    const lng = parseFloat(formData.longitude)
+    if (!formData.longitude) errs.longitude = 'Longitude is required.'
+    else if (isNaN(lng) || lng < -180 || lng > 180) errs.longitude = 'Must be between -180 and 180.'
+    if (formData.virtualClinicTour?.trim()) {
+      if (!/^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/.test(formData.virtualClinicTour.trim()))
+        errs.virtualClinicTour = 'Must be a valid URL starting with http:// or https://'
+    }
+    setValidationErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
+  /* ── submit ── */
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return
     try {
-      setLoading(true);
+      setSubmitLoading(true)
       if (editingBranch) {
-        await updateBranchData(editingBranch.branchId, formData);
-        setSuccess('Branch updated successfully!');
+        await updateBranchData(editingBranch.branchId, formData)
+        flash(setSuccess, 'Branch updated successfully!')
       } else {
-        await createNewBranch(formData);
-        setSuccess('Branch created successfully!');
+        await createNewBranch(formData)
+        flash(setSuccess, 'Branch created successfully!')
       }
-      setTimeout(() => setSuccess(''), 3000);
+      setModalVisible(false)
+      resetForm()
+      loadBranches()
+    } catch (err) {
+      flash(setError, `Error ${editingBranch ? 'updating' : 'creating'} branch: ${err.message}`)
+    } finally { setSubmitLoading(false) }
+  }
 
-      setModalVisible(false);
-      resetForm();
-      loadBranches();
-    } catch (error) {
-      setError(`Error ${editingBranch ? 'updating' : 'creating'} branch: ${error.message}`);
-      console.error(`Error ${editingBranch ? 'updating' : 'creating'} branch:`, error);
-      setTimeout(() => setError(''), 3000);
-
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  /* ── delete ── */
   const handleDelete = async () => {
     try {
-      setLoading(true);
-      await deleteBranchById(deletingBranch.branchId);
-      setTimeout(() => setSuccess(''), 3000);
-
-      setSuccess('Branch deleted successfully!');
-      setDeleteModalVisible(false);
-      loadBranches();
-    } catch (error) {
-      setError(`Error deleting branch: ${error.message}`);
-      console.error('Error deleting branch:', error);
-      setTimeout(() => setError(''), 3000);
-
-    } finally {
-      setLoading(false);
-    }
-  };
+      setSubmitLoading(true)
+      await deleteBranchById(deletingBranch.branchId)
+      flash(setSuccess, 'Branch deleted successfully!')
+      setDeleteModalVisible(false)
+      loadBranches()
+    } catch (err) {
+      flash(setError, `Error deleting branch: ${err.message}`)
+    } finally { setSubmitLoading(false) }
+  }
 
   const handleEdit = (branch) => {
-    console.log('Editing branch:', branch)
-    setEditingBranch(branch);
+    setEditingBranch(branch)
     setFormData({
       clinicId: formData.clinicId || '',
       branchName: branch.branchName || '',
@@ -171,559 +170,415 @@ const AddBranchForm = ({ clinicId }) => {
       latitude: branch.latitude || '',
       longitude: branch.longitude || '',
       virtualClinicTour: branch.virtualClinicTour || '',
-    });
-    setModalVisible(true);
-  };
-
-  const handleView = async (branchId) => {
-    try {
-      setLoading(true);
-      const branch = await fetchBranchByBranchId(branchId);
-      setViewingBranch(branch.data);
-      setViewModalVisible(true);
-    } catch (error) {
-      setError('Error fetching branch details');
-      console.error('Error fetching branch:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })
+    setValidationErrors({})
+    setModalVisible(true)
+  }
 
   const handleAddNew = () => {
-    setEditingBranch(null);
-    resetForm();
-    setModalVisible(true);
-  };
+    setEditingBranch(null)
+    resetForm()
+    setValidationErrors({})
+    setModalVisible(true)
+  }
 
-  const resetForm = () => {
-    setFormData({
-      clinicId: clinicId || '',
-      branchName: '',
-      address: '',
-      city: '',
-      contactNumber: '',
-      email: '',
-      latitude: '',
-      longitude: '',
-      virtualClinicTour: '',
-    });
-  };
-  const validateForm = () => {
-    const errors = {};
-
-    // Branch Name
-    if (
-      !formData.branchName ||
-      !/^.{3,50}$/.test(formData.branchName.trim()) ||
-      !/[A-Za-z]/.test(formData.branchName)
-    ) {
-      errors.branchName = "Branch Name must be 3-50 characters long and contain at least one letter.";
-    }
-
-    // Clinic ID
-    if (!formData.clinicId || !/^\d{1,10}$/.test(formData.clinicId.trim())) {
-      errors.clinicId = "Clinic ID must be 1-10 digits.";
-    }
-
-    // Address: must contain at least one letter
-    if (
-      !formData.address ||
-      formData.address.trim().length < 5 ||
-      formData.address.trim().length > 500 ||
-      !/[A-Za-z]/.test(formData.address)
-    ) {
-      errors.address = "Address must be 5-500 characters and contain at least one letter.";
-    }
-
-    // City
-    if (!formData.city || !/^[A-Za-z\s]{2,50}$/.test(formData.city.trim())) {
-      errors.city = "City must be 2-50 letters and spaces only.";
-    }
-
-    // Contact Number
-    if (!formData.contactNumber || !/^[1-9][0-9]{9}$/.test(formData.contactNumber.trim())) {
-      errors.contactNumber = "Contact Number must be exactly 10 digits and cannot start with 0.";
-    }
-
-    // Email
-    if (!formData.email) {
-      errors.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      errors.email = "Invalid email format.";
-    }
-
-    // Latitude
-    const lat = parseFloat(formData.latitude);
-    if (!formData.latitude) {
-      errors.latitude = "Latitude is required.";
-    } else if (isNaN(lat)) {
-      errors.latitude = "Latitude must be a number.";
-    } else if (lat < -90 || lat > 90) {
-      errors.latitude = "Latitude must be between -90 and 90.";
-    }
-
-    // Longitude
-    const lng = parseFloat(formData.longitude);
-    if (!formData.longitude) {
-      errors.longitude = "Longitude is required.";
-    } else if (isNaN(lng)) {
-      errors.longitude = "Longitude must be a number.";
-    } else if (lng < -180 || lng > 180) {
-      errors.longitude = "Longitude must be between -180 and 180.";
-    }
-
-    // ✅ Virtual Tour: must start with http:// or https:// only if filled
-
-    if (formData.virtualClinicTour && formData.virtualClinicTour.trim() !== "") {
-      const urlPattern = /^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/;
-      if (!urlPattern.test(formData.virtualClinicTour.trim())) {
-        errors.virtualClinicTour = "Virtual Clinic Tour must be a valid URL starting with http:// or https://";
-      }
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-
-
-
+  const resetForm = () => setFormData(initialForm)
 
   const handleCloseModal = () => {
-    setModalVisible(false);
-    setEditingBranch(null);
-    resetForm();
-  };
+    setModalVisible(false)
+    setEditingBranch(null)
+    resetForm()
+    setValidationErrors({})
+  }
 
-  // Filter branches based on search term and city filter
-  const filteredBranches = branches.filter(branch => {
-    const matchesSearch = branch.branchName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      branch.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      branch.city?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCity = filterCity ? branch.city === filterCity : true;
-    return matchesSearch && matchesCity;
-  });
+  /* ── filter + paginate ── */
+  const filteredBranches = branches.filter((b) => {
+    const q = searchTerm.toLowerCase()
+    const matchSearch = b.branchName?.toLowerCase().includes(q) ||
+      b.address?.toLowerCase().includes(q) ||
+      b.city?.toLowerCase().includes(q)
+    const matchCity = filterCity ? b.city === filterCity : true
+    return matchSearch && matchCity
+  })
 
-
-  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfLastItem  = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const paginatedBranches = filteredBranches.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filteredBranches.length / itemsPerPage)
-  const startIndex = indexOfFirstItem
-  const endIndex = Math.min(indexOfLastItem, filteredBranches.length)
-  // Get unique cities for filter dropdown
-  const cities = [...new Set(branches.map(branch => branch.city).filter(city => city))];
+  const cities = [...new Set(branches.map((b) => b.city).filter(Boolean))]
+
+  const handlePageChange = (p) => { if (p >= 1 && p <= totalPages) setCurrentPage(p) }
+  const getPaginationPages = () =>
+    Array.from({ length: totalPages }, (_, i) => i + 1)
+      .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+      .reduce((acc, p, idx, arr) => {
+        if (idx > 0 && p - arr[idx - 1] > 1) acc.push('…')
+        acc.push(p)
+        return acc
+      }, [])
 
   return (
     <div>
+      <style>{`
+        .abf-table thead th {
+          background: #185fa5 !important; color: #fff !important;
+          font-size: 12px; font-weight: 600; padding: 12px 14px;
+          border: none; letter-spacing: 0.3px;
+        }
+        .abf-table tbody tr { font-size: 13px; transition: background 0.15s; }
+        .abf-table tbody tr:hover { background: #eef4fb !important; }
+        .abf-table tbody td { padding: 11px 14px; vertical-align: middle; border-color: #f0f0f0; color: #374151; }
+        .abf-action-btn {
+          width: 30px; height: 30px; border-radius: 7px;
+          border: 1.5px solid transparent; background: transparent;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: all 0.2s;
+        }
+        .abf-action-btn.view   { border-color: #185fa5; color: #185fa5; }
+        .abf-action-btn.view:hover   { background: #185fa5; color: #fff; }
+        .abf-action-btn.edit   { border-color: #f9a825; color: #f9a825; }
+        .abf-action-btn.edit:hover   { background: #f9a825; color: #fff; }
+        .abf-action-btn.delete { border-color: #ef4444; color: #ef4444; }
+        .abf-action-btn.delete:hover { background: #ef4444; color: #fff; }
+        .abf-page-btn {
+          height: 32px; min-width: 32px; padding: 0 10px;
+          border-radius: 8px; border: 1.5px solid #e5e7eb;
+          background: #fff; color: #374151; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: all 0.2s;
+          display: inline-flex; align-items: center; justify-content: center;
+          gap: 4px; white-space: nowrap;
+        }
+        .abf-page-btn:hover:not(:disabled):not(.active) { border-color: #185fa5; color: #185fa5; background: #eef4fb; }
+        .abf-page-btn.active { background: #185fa5; color: #fff; border-color: #185fa5; }
+        .abf-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .abf-input:focus { border-color: #185fa5 !important; box-shadow: 0 0 0 3px rgba(24,95,165,0.10); }
+      `}</style>
 
-      <CCard>
-        <CCardHeader className='d-flex justify-content-between'>
-          <h3>Branch Management</h3>
-          <CButton color="primary" onClick={handleAddNew}>
-            Add New Branch
-          </CButton>
-        </CCardHeader>
-        <CCardBody>
-          {error && (
-            <CAlert color="danger" onDismiss={() => setError('')}>
-              {error}
-            </CAlert>
+      {/* ── toast alerts ── */}
+      {error && (
+        <div style={{
+          background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px',
+          padding: '10px 14px', marginBottom: '14px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          fontSize: '13px', color: '#b91c1c',
+        }}>
+          {error}
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c' }}><X size={14} /></button>
+        </div>
+      )}
+      {success && (
+        <div style={{
+          background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px',
+          padding: '10px 14px', marginBottom: '14px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          fontSize: '13px', color: '#166534',
+        }}>
+          {success}
+          <button onClick={() => setSuccess('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#166534' }}><X size={14} /></button>
+        </div>
+      )}
+
+      {/* ── Page header ── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px',
+      }}>
+        <div>
+          <h6 style={{ margin: 0, color: '#185fa5', fontWeight: '700', fontSize: '15px' }}>Branch Management</h6>
+          <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>
+            {filteredBranches.length} branch{filteredBranches.length !== 1 ? 'es' : ''} found
+          </p>
+        </div>
+        <button
+          onClick={handleAddNew}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '7px',
+            padding: '8px 18px', borderRadius: '10px',
+            background: '#185fa5', color: '#fff', border: 'none',
+            fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(24,95,165,0.28)', transition: 'background 0.15s',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.background = '#0c447c')}
+          onMouseOut={(e) => (e.currentTarget.style.background = '#185fa5')}
+        >
+          <Plus size={15} /> Add New Branch
+        </button>
+      </div>
+
+      {/* ── Search + Filter bar ── */}
+      <div style={{
+        background: '#fff', borderRadius: '14px', padding: '14px 18px',
+        marginBottom: '16px', boxShadow: '0 2px 12px rgba(24,95,165,0.07)',
+        border: '1px solid #e8eef5', display: 'flex', gap: '12px',
+        alignItems: 'center', flexWrap: 'wrap',
+      }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+          <Search size={14} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+          <input
+            className="abf-input"
+            type="text"
+            placeholder="Search by name, address, or city..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ ...inp(false, false), paddingLeft: '34px' }}
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')}
+              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}>
+              <X size={13} />
+            </button>
           )}
-          {success && (
-            <CAlert color="success" onDismiss={() => setSuccess('')}>
-              {success}
-            </CAlert>
-          )}
+        </div>
+        <select
+          className="abf-input"
+          value={filterCity}
+          onChange={(e) => setFilterCity(e.target.value)}
+          style={{ ...inp(false, false), minWidth: '160px' }}
+        >
+          <option value="">All Cities</option>
+          {cities.map((city) => <option key={city} value={city}>{city}</option>)}
+        </select>
+      </div>
 
-          {/* Search and Filter Controls */}
-          <CRow className="mb-3">
-            <CCol md={6}>
-              <CInputGroup
-                className="rounded"
-                style={{
-                  border: "1px solid #7e3a93",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                }}
-              >
-                <CInputGroupText className="bg-light text-dark border-0">
-                  Search
-                </CInputGroupText>
-                <CFormInput
-                  className="border-0"
-                  placeholder="Search by name, address, or city"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </CInputGroup>
-            </CCol>
-
-
-            <CCol md={6}>
-              <CInputGroup>
-                <CInputGroupText style={{ border: "1px solid #7e3a93" }}>Filter by City</CInputGroupText>
-                <CFormSelect
-                  style={{ border: "1px solid #7e3a93" }}
-                  value={filterCity}
-                  onChange={(e) => setFilterCity(e.target.value)}
-                >
-                  <option value="">All Cities</option>
-                  {cities.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </CFormSelect>
-              </CInputGroup>
-            </CCol>
-          </CRow>
-
-          {/* Branches Table */}
-          {loading ? (
-            <div className="text-center">
-              <CSpinner />
-            </div>
-          ) : (
-            <CTable striped hover responsive>
-              <CTableHead className="pink-table text-center">
+      {/* ── Table card ── */}
+      <div style={{
+        background: '#fff', borderRadius: '14px', overflow: 'hidden',
+        boxShadow: '0 2px 12px rgba(24,95,165,0.08)', border: '1px solid #e8eef5',
+      }}>
+        {loading ? (
+          <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center' }}>
+            <CSpinner color="primary" />
+          </div>
+        ) : filteredBranches.length === 0 ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+            <GitBranch size={36} color="#b5d4f4" style={{ marginBottom: '10px' }} />
+            <p style={{ margin: 0 }}>No branches found.</p>
+          </div>
+        ) : (
+          <>
+            <CTable className="abf-table mb-0" hover responsive>
+              <CTableHead>
                 <CTableRow>
-                  <CTableHeaderCell>S.No</CTableHeaderCell>
-                  <CTableHeaderCell>Branch Name</CTableHeaderCell>
-                  <CTableHeaderCell>Address</CTableHeaderCell>
-                  <CTableHeaderCell>City</CTableHeaderCell>
-                  <CTableHeaderCell>Contact</CTableHeaderCell>
-                  <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
+                  {['S.No', 'Branch Name', 'Address', 'City', 'Contact', 'Actions'].map((h) => (
+                    <CTableHeaderCell key={h} className={h === 'Actions' ? 'text-center' : ''}>{h}</CTableHeaderCell>
+                  ))}
                 </CTableRow>
               </CTableHead>
-              <CTableBody className='pink-table'>
-                {paginatedBranches.length > 0 ? (
-                  paginatedBranches.map((branch, index) => (
-                    <CTableRow key={branch.branchId}>
-                      <CTableDataCell className="text-center">{startIndex + index + 1}</CTableDataCell>
-                      <CTableDataCell className="text-center">{branch.branchName}</CTableDataCell>
-                      <CTableDataCell className="text-center">{branch.address}</CTableDataCell>
-                      <CTableDataCell className="text-center"><CBadge color="secondary">{branch.city}</CBadge></CTableDataCell>
-                      <CTableDataCell className="text-center">{branch.contactNumber}</CTableDataCell>
-                      <CTableDataCell className="text-center">
-                        <div className="d-flex justify-content-center align-items-center gap-2">
-                          <button
-                            className="actionBtn view"
-                            onClick={() => navigate(`/branch-details/${branch.branchId}`)}
-                            title="View"
-                          >
-                            <Eye size={18} />
-                          </button>
-
-                          {index !== 0 && (
-                            <>
-                              <button
-                                className="actionBtn edit"
-                                title="Edit"
-                                onClick={() => handleEdit(branch)}
-                              >
-                                <Edit2 size={18} />
-                              </button>
-
-                              <button
-                                className="actionBtn delete"
-                                title="Delete"
-                                onClick={() => {
-                                  setDeletingBranch(branch)
-                                  setDeleteModalVisible(true)
-                                }}
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </CTableDataCell>
-
-                    </CTableRow>
-                  ))
-                ) : (
-                  <CTableRow>
-                    <CTableDataCell colSpan="6" className="text-center">
-                      No branches found
+              <CTableBody>
+                {paginatedBranches.map((branch, index) => (
+                  <CTableRow key={branch.branchId}>
+                    <CTableDataCell style={{ color: '#9ca3af', fontWeight: '600', fontSize: '12px' }}>
+                      {indexOfFirstItem + index + 1}
+                    </CTableDataCell>
+                    <CTableDataCell style={{ fontWeight: '500' }}>{branch.branchName}</CTableDataCell>
+                    <CTableDataCell style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {branch.address}
+                    </CTableDataCell>
+                    <CTableDataCell>
+                      <span style={{
+                        padding: '2px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600',
+                        background: '#e6f1fb', color: '#0c447c',
+                      }}>{branch.city}</span>
+                    </CTableDataCell>
+                    <CTableDataCell>{branch.contactNumber}</CTableDataCell>
+                    <CTableDataCell className="text-center">
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
+                        <button className="abf-action-btn view" title="View"
+                          onClick={() => navigate(`/branch-details/${branch.branchId}`)}>
+                          <Eye size={14} />
+                        </button>
+                        {index !== 0 && (
+                          <>
+                            <button className="abf-action-btn edit" title="Edit"
+                              onClick={() => handleEdit(branch)}>
+                              <Edit2 size={14} />
+                            </button>
+                            <button className="abf-action-btn delete" title="Delete"
+                              onClick={() => { setDeletingBranch(branch); setDeleteModalVisible(true) }}>
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </CTableDataCell>
                   </CTableRow>
-                )}
+                ))}
               </CTableBody>
             </CTable>
-          )}
-        </CCardBody>
 
-        {filteredBranches.length && (
-          <div className="d-flex justify-content-between align-items-center mt-3">
-            <div>
-              <span className="me-2" style={{marginLeft:"20px"}}>Rows per page:</span>
-              <CFormSelect
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value))
-                  setCurrentPage(1)
-                }}
-                style={{ width: '80px', display: 'inline-block' }}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </CFormSelect>
-            </div>
-            <div>
-              <span className="me-3">
-                Showing {indexOfFirstItem + 1} to{' '}
-                {Math.min(indexOfLastItem, filteredBranches.length)} of{' '}
-                {filteredBranches.length} entries
-              </span>
-              <CPagination>
-                <CPaginationItem
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </CPaginationItem>
-                {[...Array(totalPages)].map((_, i) => (
-                  <CPaginationItem
-                    key={i + 1}
-                    active={i + 1 === currentPage}
-                    onClick={() => setCurrentPage(i + 1)}
+            {/* ── Pagination ── */}
+            {filteredBranches.length > 0 && (
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '12px 18px', borderTop: '1px solid #f0f0f0',
+                flexWrap: 'wrap', gap: '10px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>Rows per page:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
+                    style={{ padding: '5px 8px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '12px', color: '#374151', cursor: 'pointer', outline: 'none', background: '#fff' }}
                   >
-                    {i + 1}
-                  </CPaginationItem>
-                ))}
-                <CPaginationItem
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(p + 1, totalPages))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </CPaginationItem>
-              </CPagination>
-            </div>
-          </div>
-        )}
-
-      </CCard>
-
-      {/* Add/Edit Branch Modal */}
-      <CModal visible={modalVisible} onClose={handleCloseModal} size="lg" className="custom-modal"
-        backdrop="static">
-        <CModalHeader closeButton>
-          <CModalTitle>{editingBranch ? 'Edit Branch' : 'Add New Branch'}</CModalTitle>
-        </CModalHeader>
-        <CModalBody>
-          <CForm>
-            <CRow>
-              <CCol md={6}>
-                <CFormInput
-                  label="Clinic ID"
-                  name="clinicId"
-                  value={formData.clinicId}  // pre-filled from state
-                  onChange={handleChange}
-                  className="mb-3"
-                  disabled                   // makes it read-only
-                />
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-                  label={
-                    <>
-                      Branch Name <span className="text-danger">*</span>
-                    </>
-                  }
-                  name="branchName"
-                  value={formData.branchName}
-                  onChange={handleChange}
-                  className="mb-3"
-                  required
-                  invalid={!!validationErrors.branchName}
-                />
-                {validationErrors.branchName && (
-                  <div className="text-danger small mb-2">{validationErrors.branchName}</div>
-                )}
-              </CCol>
-            </CRow>
-            <CRow>
-              <CCol md={6}>
-                <CFormInput
-                  label={
-                    <>
-                      Address <span className="text-danger">*</span>
-                    </>
-                  }
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="mb-3"
-                  required
-                  invalid={!!validationErrors.address}
-                />
-                {validationErrors.address && (
-                  <div className="text-danger small mb-2">{validationErrors.address}</div>
-                )
-                }
-              </CCol>
-              <CCol md={6}>
-                <CFormInput
-
-                  label={
-                    <>
-                      City <span className="text-danger">*</span>
-                    </>
-                  }
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="mb-3"
-                  required
-                  invalid={!!validationErrors.city}
-                />
-                {validationErrors.city && (
-                  <div className="text-danger small mb-2">{validationErrors.city}</div>
-                )}
-              </CCol>
-            </CRow>
-            <CRow>
-              <CCol md={6}>
-                <CFormInput
-                  label={
-                    <>
-                      Contact Number <span className="text-danger">*</span>
-                    </>
-                  }
-                  type="text"
-                  name="contactNumber"
-                  value={formData.contactNumber}
-                  onChange={(e) => {
-                    let onlyNums = e.target.value.replace(/[^0-9]/g, ""); // only digits
-                    if (onlyNums.length > 10) {
-                      onlyNums = onlyNums.slice(0, 10); // restrict to 10 digits
-                    }
-                    setFormData((prev) => ({ ...prev, contactNumber: onlyNums }));
-
-                    // ✅ Clear error when typing
-                    setValidationErrors((prevErrors) => {
-                      if (!prevErrors.contactNumber) return prevErrors;
-                      const { contactNumber, ...rest } = prevErrors;
-                      return rest;
-                    });
-                  }}
-                  className="mb-3"
-                  required
-                  invalid={!!validationErrors.contactNumber}
-                />
-                {validationErrors.contactNumber && (
-                  <div className="text-danger small mb-2">{validationErrors.contactNumber}</div>
-                )}
-              </CCol>
-
-              <CCol md={6}>
-                <CFormInput
-                  // label="Email"
-                  label={
-                    <>
-                      Email <span className="text-danger">*</span>
-                    </>
-                  }
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="mb-3"
-                  invalid={!!validationErrors.email}   // ✅ bind error state
-                />
-                {validationErrors.email && (
-                  <div className="text-danger small mb-2">
-                    {validationErrors.email}
-                  </div>
-                )}
-              </CCol>
-
-            </CRow>
-            <CRow>
-              <CCol md={6}>
-                <CFormInput
-                  // label="Latitude"
-                  label={
-                    <>
-                      Latitude <span className="text-danger">*</span>
-                    </>
-                  }
-                  name="latitude"
-                  value={formData.latitude}
-                  onChange={handleChange}
-                  type="number"
-                  className="mb-3"
-                  invalid={!!validationErrors.latitude}   // ✅ bind error state
-                  required
-                />
-                {validationErrors.latitude && (
-                  <div className="text-danger small mb-2">
-                    {validationErrors.latitude}
-                  </div>
-                )}
-              </CCol>
-
-              <CCol md={6}>
-                <CFormInput
-                  // label="Longitude"
-                  label={
-                    <>
-                      Longitude <span className="text-danger"> *</span>
-                    </>
-                  }
-                  name="longitude"
-                  value={formData.longitude}
-                  onChange={handleChange}
-                  className="mb-3"
-                  type="number"                       // ✅ restrict to numeric input
-                  invalid={!!validationErrors.longitude}  // ✅ highlight error if present
-                  required
-                />
-                {validationErrors.longitude && (
-                  <div className="text-danger small mb-2">
-                    {validationErrors.longitude}
-                  </div>
-                )}
-
-              </CCol>
-            </CRow>
-            <CFormInput
-              label="Virtual Clinic Tour"
-              type="url"
-              name="virtualClinicTour"
-              value={formData.virtualClinicTour}
-              onChange={handleChange}
-              className="mb-3"
-              // rows={3}
-              invalid={!!validationErrors.virtualClinicTour}   // ✅ highlight error if present
-            />
-            {validationErrors.virtualClinicTour && (
-              <div className="text-danger small mb-2">
-                {validationErrors.virtualClinicTour}
+                    {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button className="abf-page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
+                    <ChevronLeft size={13} /> Prev
+                  </button>
+                  {getPaginationPages().map((p, i) =>
+                    p === '…' ? (
+                      <span key={`e${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 2px' }}>…</span>
+                    ) : (
+                      <button key={p} className={`abf-page-btn ${currentPage === p ? 'active' : ''}`}
+                        onClick={() => handlePageChange(p)}>{p}</button>
+                    )
+                  )}
+                  <button className="abf-page-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
+                    Next <ChevronRight size={13} />
+                  </button>
+                  <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>
+                    Page <strong style={{ color: '#185fa5' }}>{currentPage}</strong> of{' '}
+                    <strong style={{ color: '#185fa5' }}>{totalPages}</strong>
+                  </span>
+                </div>
               </div>
             )}
+          </>
+        )}
+      </div>
 
-          </CForm>
+      {/* ══ Add / Edit Modal ══ */}
+      <CModal visible={modalVisible} onClose={handleCloseModal} size="lg" backdrop="static">
+        <CModalHeader style={{ background: '#185fa5', borderBottom: 'none', padding: '14px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GitBranch size={16} color="#fff" />
+            </div>
+            <strong style={{ color: '#fff', fontSize: '15px' }}>
+              {editingBranch ? 'Edit Branch' : 'Add New Branch'}
+            </strong>
+          </div>
+        </CModalHeader>
+
+        <CModalBody style={{ padding: '20px 24px', background: '#f7fafd' }}>
+          <SectionBar text="Branch Information" />
+          <CRow className="g-3">
+            <CCol md={6}>
+              <Field label="Clinic ID">
+                <input className="abf-input" style={inp(false, true)} value={formData.clinicId} disabled />
+              </Field>
+            </CCol>
+            <CCol md={6}>
+              <Field label="Branch Name" required error={validationErrors.branchName}>
+                <input className="abf-input" style={inp(!!validationErrors.branchName, false)}
+                  name="branchName" value={formData.branchName}
+                  placeholder="e.g. Downtown Branch"
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={6}>
+              <Field label="Address" required error={validationErrors.address}>
+                <input className="abf-input" style={inp(!!validationErrors.address, false)}
+                  name="address" value={formData.address}
+                  placeholder="Full address"
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={6}>
+              <Field label="City" required error={validationErrors.city}>
+                <input className="abf-input" style={inp(!!validationErrors.city, false)}
+                  name="city" value={formData.city}
+                  placeholder="e.g. Hyderabad"
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={6}>
+              <Field label="Contact Number" required error={validationErrors.contactNumber}>
+                <input className="abf-input" style={inp(!!validationErrors.contactNumber, false)}
+                  name="contactNumber" value={formData.contactNumber}
+                  placeholder="10-digit mobile number" maxLength={10}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 10)
+                    setFormData((p) => ({ ...p, contactNumber: v }))
+                    setValidationErrors((p) => { const u = { ...p }; delete u.contactNumber; return u })
+                  }} />
+              </Field>
+            </CCol>
+            <CCol md={6}>
+              <Field label="Email" required error={validationErrors.email}>
+                <input className="abf-input" type="email"
+                  style={inp(!!validationErrors.email, false)}
+                  name="email" value={formData.email}
+                  placeholder="branch@clinic.com"
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={6}>
+              <Field label="Latitude" required error={validationErrors.latitude}>
+                <input className="abf-input" type="number" step="any"
+                  style={inp(!!validationErrors.latitude, false)}
+                  name="latitude" value={formData.latitude}
+                  placeholder="-90 to 90"
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={6}>
+              <Field label="Longitude" required error={validationErrors.longitude}>
+                <input className="abf-input" type="number" step="any"
+                  style={inp(!!validationErrors.longitude, false)}
+                  name="longitude" value={formData.longitude}
+                  placeholder="-180 to 180"
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={12}>
+              <Field label="Virtual Clinic Tour URL" error={validationErrors.virtualClinicTour}>
+                <input className="abf-input"
+                  style={inp(!!validationErrors.virtualClinicTour, false)}
+                  name="virtualClinicTour" value={formData.virtualClinicTour}
+                  placeholder="https://..."
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+          </CRow>
         </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={handleCloseModal}>
+
+        <CModalFooter style={{ background: '#fff', borderTop: '0.5px solid #d0dce9', padding: '12px 20px', gap: '8px' }}>
+          <button
+            onClick={handleCloseModal}
+            style={{ padding: '8px 18px', borderRadius: '8px', border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}
+          >
             Cancel
-          </CButton>
-          <CButton color="primary" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Submitting...' : (editingBranch ? 'Update' : 'Submit')}
-          </CButton>
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitLoading}
+            style={{
+              padding: '8px 20px', borderRadius: '8px', border: 'none',
+              background: '#185fa5', color: '#fff', fontWeight: '600', fontSize: '13px',
+              cursor: submitLoading ? 'not-allowed' : 'pointer', opacity: submitLoading ? 0.65 : 1,
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            {submitLoading
+              ? <><span className="spinner-border spinner-border-sm" /> Saving...</>
+              : editingBranch ? '✓ Update Branch' : '+ Add Branch'
+            }
+          </button>
         </CModalFooter>
       </CModal>
+
+      {/* ── Delete confirm ── */}
       <ConfirmationModal
         isVisible={deleteModalVisible}
         title="Confirm Delete"
         message={
           <>
-            Are you sure you want to delete the branch{' '}
-            <strong>{deletingBranch?.branchName}</strong>? This action cannot be undone.
+            Are you sure you want to delete branch{' '}
+            <strong style={{ color: '#0c447c' }}>{deletingBranch?.branchName}</strong>?
+            This action cannot be undone.
           </>
         }
         onConfirm={handleDelete}
@@ -731,10 +586,10 @@ const AddBranchForm = ({ clinicId }) => {
         confirmText="Delete"
         cancelText="Cancel"
         confirmColor="danger"
-        loading={loading}
+        loading={submitLoading}
       />
     </div>
-  );
-};
+  )
+}
 
-export default AddBranchForm;
+export default AddBranchForm

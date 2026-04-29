@@ -1,18 +1,20 @@
 import React from 'react'
 import { CSpinner } from '@coreui/react'
 
-const LoadingIndicator = ({ message = 'Loading...' }) => {
+const LoadingIndicator = ({ message = 'Loading...', fullScreen = false }) => {
   return (
     <div
-      className="d-flex justify-content-center align-items-center"
+      className="d-flex flex-column justify-content-center align-items-center"
       style={{
-        height: '50vh', // full screen height
-
-        color: 'var(--color-black)',
+        height: fullScreen ? '100vh' : '50vh',
+        color: '#1B4F8A',   // ✅ your color
+        textAlign: 'center',
       }}
     >
-      <CSpinner size="sm" className="me-2" />
-      <span>{message}</span>
+      <CSpinner size="sm" className="mb-2" style={{ color: '#1B4F8A' }} />
+      <span style={{ fontSize: '0.9rem', fontWeight: 500 ,color: '#1B4F8A'}}>
+        {message}
+      </span>
     </div>
   )
 }

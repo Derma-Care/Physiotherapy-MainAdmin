@@ -5,7 +5,6 @@ import {
   CFormInput,
   CInputGroup,
   CInputGroupText,
-  CButton,
   CModal,
   CModalHeader,
   CFormText,
@@ -23,8 +22,6 @@ import {
 import DataTable from 'react-data-table-component'
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
-import { FaTrash, FaPlus } from 'react-icons/fa'
-
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import {
@@ -36,1625 +33,768 @@ import {
   subServiceData,
   GetSubServices_ByClinicId,
 } from './ProcedureManagementAPI'
-import {
-  // subService_URL,
-  getservice,
-  MainAdmin_URL,
-  getadminSubServicesbyserviceId,
-  BASE_URL,
-} from '../../baseUrl'
+import { getservice, BASE_URL } from '../../baseUrl'
 import ProcedureQA from './QASection'
-import { Edit2, Eye, Trash2, View } from 'lucide-react'
+import { Edit2, Eye, Trash2, Plus, Search } from 'lucide-react'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
+/* ─── Design tokens (hard-coded — no CSS vars for content text) ─── */
+const PRIMARY   = '#1B4F8A'
+const t = {
+  primary:    PRIMARY,
+  text:       '#1e293b',
+  textMuted:  '#64748b',
+  surface:    '#f8fafc',
+  border:     '#e2e8f0',
+  danger:     '#dc2626',
+  success:    '#16a34a',
+  radius:     '10px',
+  radiusSm:   '6px',
+  shadow:     '0 1px 3px rgba(0,0,0,0.07)',
+  shadowMd:   '0 4px 12px rgba(0,0,0,0.08)',
+}
+
+/* ─── Reusable primitives ─── */
+
+const SectionHeading = ({ title }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 14px' }}>
+    <span style={{ width: '4px', height: '18px', borderRadius: '2px', backgroundColor: PRIMARY, flexShrink: 0 }} />
+    <span style={{ fontSize: '12px', fontWeight: '700', color: t.text, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+      {title}
+    </span>
+  </div>
+)
+
+const FieldLabel = ({ children, required }) => (
+  <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '5px' }}>
+    {children}{required && <span style={{ color: t.danger, marginLeft: '3px' }}>*</span>}
+  </label>
+)
+
+const FieldError = ({ msg }) =>
+  msg ? <div style={{ fontSize: '11px', color: t.danger, marginTop: '3px' }}>{msg}</div> : null
+
+const Inp = ({ error, ...props }) => (
+  <input
+    {...props}
+    style={{
+      width: '100%', padding: '7px 10px', fontSize: '13px', boxSizing: 'border-box',
+      border: `1px solid ${error ? t.danger : t.border}`, borderRadius: t.radiusSm,
+      outline: 'none', color: t.text, backgroundColor: '#fff', transition: 'border-color .15s',
+      ...props.style,
+    }}
+    onFocus={e => { e.target.style.borderColor = PRIMARY }}
+    onBlur={e => { e.target.style.borderColor = error ? t.danger : t.border }}
+  />
+)
+
+const Sel = ({ error, children, ...props }) => (
+  <select
+    {...props}
+    style={{
+      width: '100%', padding: '7px 10px', fontSize: '13px', boxSizing: 'border-box',
+      border: `1px solid ${error ? t.danger : t.border}`, borderRadius: t.radiusSm,
+      outline: 'none', color: t.text, backgroundColor: '#fff', appearance: 'auto',
+    }}
+  >
+    {children}
+  </select>
+)
+
+const Btn = ({ children, onClick, type = 'button', variant = 'primary', disabled = false, size = 'md', style = {} }) => {
+  const bg = variant === 'secondary' ? '#e2e8f0'
+    : variant === 'danger'    ? t.danger
+    : variant === 'outline'   ? 'transparent'
+    : PRIMARY
+  const color  = variant === 'secondary' ? t.text : variant === 'outline' ? PRIMARY : '#fff'
+  const border = variant === 'outline' ? `1px solid ${PRIMARY}` : 'none'
+  const pad    = size === 'sm' ? '4px 12px' : '7px 18px'
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} style={{
+      display: 'inline-flex', alignItems: 'center', gap: '5px', padding: pad,
+      borderRadius: t.radiusSm, fontSize: '12px', fontWeight: '600',
+      cursor: disabled ? 'not-allowed' : 'pointer', border, color,
+      backgroundColor: bg, opacity: disabled ? 0.6 : 1,
+      boxShadow: variant !== 'outline' && variant !== 'secondary' ? t.shadow : 'none',
+      transition: 'opacity .15s', ...style,
+    }}
+    onMouseEnter={e => { if (!disabled) e.currentTarget.style.opacity = '0.85' }}
+    onMouseLeave={e => { if (!disabled) e.currentTarget.style.opacity = '1' }}
+    >
+      {children}
+    </button>
+  )
+}
+
+const Divider = () => <hr style={{ border: 'none', borderTop: `1px solid ${t.border}`, margin: '16px 0' }} />
+
+/* ─── helpers ─── */
+const parseQA = (field) => {
+  if (Array.isArray(field)) return field
+  try { return JSON.parse(field || '[]') } catch { return [] }
+}
+const splitMinTime = (minTime = '') => {
+  const parts = String(minTime).trim().split(' ')
+  return { minTimeValue: parts[0] || '', minTimeUnit: parts[1] || 'minutes' }
+}
+const consentFormTypeLabels = { 1: 'Generic ConsentForm', 2: 'Procedure ConsentForm' }
+
+/* ════════════════════════════════════════════════════════════════════ */
 
 const ProcedureManagementDoctor = ({ clinicId }) => {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [service, setService] = useState([])
-  const [category, setCategory] = useState([])
-  const [filteredData, setFilteredData] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [timeInput, setTimeInput] = useState('')
-  const [timeSlots, setTimeSlots] = useState([])
-  const [modalVisible, setModalVisible] = useState(false)
-  const [viewService, setViewService] = useState(null)
-  const [editServiceMode, setEditServiceMode] = useState(false)
-  const [question, setQuestion] = useState('')
-  const [answerInput, setAnswerInput] = useState('')
-  const [answers, setAnswers] = useState([])
-  const [qaList, setQaList] = useState([])
-  const [serviceOptions, setServiceOptions] = useState([])
-  const [subServiceOptions, setSubServiceOptions] = useState([])
+  const [searchQuery,        setSearchQuery]        = useState('')
+  const [service,            setService]            = useState([])
+  const [category,           setCategory]           = useState([])
+  const [filteredData,       setFilteredData]       = useState([])
+  const [loading,            setLoading]            = useState(false)
+  const [error,              setError]              = useState(null)
+  const [modalVisible,       setModalVisible]       = useState(false)
+  const [viewService,        setViewService]        = useState(null)
+  const [serviceOptions,     setServiceOptions]     = useState([])
+  const [subServiceOptions,  setSubServiceOptions]  = useState([])
   const [selectedSubService, setSelectedSubService] = useState('')
-  const [subServiceId, setSubServiceId] = useState('')
-  const [previewImage, setPreviewImage] = useState(null)
+  const [subServiceId,       setSubServiceId]       = useState('')
+  const [modalMode,          setModalMode]          = useState('add')
+  const [isModalVisible,     setIsModalVisible]     = useState(false)
+  const [serviceIdToDelete,  setServiceIdToDelete]  = useState(null)
+  const [errors,             setErrors]             = useState({})
 
-  const [serviceToEdit, setServiceToEdit] = useState({
-    subServiceImage: '',
-    viewImage: '',
-    subServiceName: '',
-    serviceName: '',
-    subServiceImageFile: null,
-  })
-  const [qaPreProcedure, setQaPreProcedure] = useState([])
-  const [qaProcedure, setQaProcedure] = useState([])
-  const [qaPostProcedure, setQaPostProcedure] = useState([])
-
-  const addQuestionAnswer = (section, question, answers) => {
-    const newQA = { question, answers }
-
-    if (section === 'preProcedure') {
-      setQaPreProcedure([...qaPreProcedure, newQA])
-    } else if (section === 'procedure') {
-      setQaProcedure([...qaProcedure, newQA])
-    } else if (section === 'postProcedure') {
-      setQaPostProcedure([...qaPostProcedure, newQA])
-    }
+  const emptyService = {
+    categoryName: '', categoryId: '', serviceName: '', serviceId: '',
+    subServiceId: '', subServiceName: '', price: '', discount: 0, gst: 0,
+    consultationFee: 0, taxPercentage: 0, minTimeValue: '', minTimeUnit: 'minutes',
+    status: '', subServiceImage: '', subServiceImageFile: null,
+    viewImage: '', viewDescription: '', consentFormType: '',
+    platformFeePercentage: 0, procedureQA: [], preProcedureQA: [], postProcedureQA: [], descriptionQA: [],
   }
-  // Mapping for display
-  const consentFormTypeLabels = {
-    1: 'Generic ConsentForm',
-    2: 'Procedure ConsentForm',
+  const [newService, setNewService] = useState(emptyService)
+
+  /* ── fetch ── */
+  const fetchData = async () => {
+    setLoading(true); setError(null)
+    try {
+      const catRes = await CategoryData()
+      if (catRes.data && Array.isArray(catRes.data)) {
+        setCategory(catRes.data.map(c => ({ categoryId: c.categoryId, categoryName: c.categoryName })))
+      }
+      if (clinicId) {
+        const subSvcData = await GetSubServices_ByClinicId(clinicId)
+        setService(Array.isArray(subSvcData) ? subSvcData : [])
+      } else { setService([]) }
+    } catch (err) {
+      console.error(err); setError('Failed to fetch data.')
+    } finally { setLoading(false) }
   }
+  useEffect(() => { fetchData() }, [])
 
-  let descriptionQA = []
-  try {
-    if (typeof service.descriptionQA === 'string') {
-      descriptionQA = JSON.parse(service.descriptionQA)
-    } else {
-      descriptionQA = service.descriptionQA || []
-    }
-  } catch (err) {
-    console.error('Invalid descriptionQA format:', err)
-  }
+  /* ── search ── */
+  useEffect(() => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) { setFilteredData([]); return }
+    setFilteredData(service.filter(item =>
+      item.subServiceName?.toLowerCase().startsWith(q) ||
+      item.serviceName?.toLowerCase().startsWith(q) ||
+      item.categoryName?.toLowerCase().startsWith(q)
+    ))
+  }, [searchQuery, service])
 
-  const [newService, setNewService] = useState({
-    categoryName: '',
-    categoryId: '',
-    serviceName: '',
-    subServiceName: '',
-    subServiceImage: '',
-    serviceId: '',
-    subServiceId: '',
-    viewDescription: '',
-    description: '',
-    price: '',
-    gst: 0,
-    consultationFee: 0,
-    // preProcedure: '',
-    // postProcedure: '',
-    procedureQA: [],
-    preProcedureQA: [],
-    postProcedureQA: [],
-  })
-  const [modalMode, setModalMode] = useState('add') // or 'edit'
-  const [editingIndex, setEditingIndex] = useState(null)
-  const [editingValue, setEditingValue] = useState('')
-  // ✅ Handle Add QA
-  const handleAddQA = (type) => {
-    if (editingValue.trim() === '') return
-    setNewService((prev) => ({
-      ...prev,
-      [type]: [...prev[type], editingValue],
-    }))
-    setEditingValue('')
-  }
-
-  // ✅ Handle Remove QA
-  const handleRemoveQA = (type, index) => {
-    setNewService((prev) => ({
-      ...prev,
-      [type]: prev[type].filter((_, i) => i !== index),
-    }))
-  }
-
-  // ✅ Handle Edit QA (start editing)
-  const handleEditQA = (type, index) => {
-    setEditingIndex({ type, index })
-    setEditingValue(newService[type][index])
-  }
-
-  // ✅ Handle Save Edit QA
-  const handleSaveQA = () => {
-    if (!editingIndex) return
-    const { type, index } = editingIndex
-    setNewService((prev) => {
-      const updated = [...prev[type]]
-      updated[index] = editingValue
-      return { ...prev, [type]: updated }
-    })
-    setEditingIndex(null)
-    setEditingValue('')
-  }
-
-  // ✅ Handle Cancel Edit
-  const handleCancelEdit = () => {
-    setEditingIndex(null)
-    setEditingValue('')
-  }
-
-  // ✅ Save Service (Add / Update)
-  const handleSaveService = () => {
-    const price = Number(newService.price || 0)
-    const discountPercentage = parseFloat(newService.discountPercentage || 0)
-    const taxPercentage = parseFloat(newService.taxPercentage || 0)
-    const gst = parseFloat(newService.gst || 0)
-    const consultationFee = parseFloat(newService.consultationFee || 0)
-
-    // discount calc
-    const discountAmount = (price * discountPercentage) / 100
-    const discountedCost = price - discountAmount
-
-    // tax calc
-    const taxAmount = (discountedCost * taxPercentage) / 100
-    const finalCost = discountedCost + taxAmount + consultationFee
-
-    const payload = {
-      clinicId: clinicId,
-
-      serviceId: newService.serviceId,
-      serviceName: newService.serviceName,
-      categoryId: newService.categoryId,
-      categoryName: newService.categoryName,
-      subServiceId: newService.subServiceId,
-      subServiceName: newService.subServiceName,
-
-      viewDescription: newService.viewDescription,
-      // consentFormType: newService.consentFormType,
-      consentFormType: Number(newService.consentFormType),
-      status: 'Active',
-      minTime: newService.minTime,
-
-      preProcedureQA: newService.preProcedureQA,
-      procedureQA: newService.procedureQA,
-      postProcedureQA: newService.postProcedureQA,
-
-      price,
-      discountPercentage,
-      discountAmount,
-      discountedCost,
-      taxPercentage,
-      taxAmount,
-      gst,
-      consultationFee,
-      finalCost,
-
-      subServiceImage: newService.subServiceImage || '',
-    }
-
-    console.log('Final Payload:', payload)
-    // 👉 call API here
-  }
-
-  // Open for adding
+  /* ── modals ── */
   const openAddModal = () => {
-    setModalMode('add')
-    setQaList([])
-    setAnswers([])
-    setQuestion('')
-    setSelectedSubService('')
-    setNewService({
-      categoryName: '',
-      categoryId: '',
-      serviceName: '',
-      serviceId: '',
-      subServiceId: '',
-      subServiceName: '',
-      price: '',
-      discount: 0,
-      gst: 0,
-      consultationFee: 0,
-      minTime: '',
-      taxPercentage: 0,
-      status: '',
-      subServiceImage: '',
-      subServiceImageFile: null,
-      viewImage: '',
-      viewDescription: '',
-      consentFormType: serviceData.consentFormType === 'Generic ConsentForm' ? '1' : '2',
-      platformFeePercentage: 0,
-      descriptionQA: [],
-    })
-    setModalVisible(true)
+    setModalMode('add'); setSelectedSubService('')
+    setServiceOptions([]); setSubServiceOptions([])
+    setNewService(emptyService); setErrors({}); setModalVisible(true)
   }
 
-  // Open for editing
-
-  const openEditModal = async (service) => {
-
-    setSubServiceId(service.subServiceId)
-    setModalMode('edit')
-    setModalVisible(true)
-
-    // 1. Set selected category
-    const selectedCategory = category.find((cat) => cat.categoryName === service.categoryName)
+  const openEditModal = async (svc) => {
+    setSubServiceId(svc.subServiceId); setModalMode('edit'); setModalVisible(true)
+    const selectedCategory = category.find(cat => cat.categoryName === svc.categoryName)
     const categoryId = selectedCategory?.categoryId || ''
-
-    // 2. Fetch services under this category
     let fetchedServiceOptions = []
     try {
       const res = await axios.get(`${BASE_URL}/${getservice}/${categoryId}`)
       fetchedServiceOptions = res.data?.data || []
-      console.log(fetchedServiceOptions)
       setServiceOptions(fetchedServiceOptions)
-    } catch (err) {
-      console.error('Error fetching service list:', err)
-    }
-
-    const selectedService = fetchedServiceOptions.find((s) => s.serviceName === service.serviceName)
+    } catch (err) { console.error(err) }
+    const selectedService = fetchedServiceOptions.find(s => s.serviceName === svc.serviceName)
     const serviceId = selectedService?.serviceId || ''
-
-    // 3. Fetch subservices
     let subServiceList = []
     if (serviceId) {
       try {
         const subRes = await subServiceData(serviceId)
         const subList = subRes.data
-        if (Array.isArray(subList)) {
-          subServiceList = subList.flatMap((item) => item.subServices || [])
-        } else if (subList?.subServices) {
-          subServiceList = subList.subServices
-        }
-      } catch (err) {
-        console.error('Error fetching subservices:', err)
-      }
+        if (Array.isArray(subList)) subServiceList = subList.flatMap(item => item.subServices || [])
+        else if (subList?.subServices) subServiceList = subList.subServices
+      } catch (err) { console.error(err) }
     }
-
     setSubServiceOptions({ subServices: subServiceList })
-
-    // Get valid subServiceId and name
-    const selectedSubServiceObj = subServiceList.find(
-      (s) => s.subServiceName === service.subServiceName,
-    )
-
-    const resolvedSubServiceId = selectedSubServiceObj?.subServiceId || ''
-    const resolvedSubServiceName = selectedSubServiceObj?.subServiceName || ''
-
-    setSelectedSubService(resolvedSubServiceId)
-    const procedureQA = Array.isArray(service.procedureQA)
-      ? service.procedureQA
-      : JSON.parse(service.procedureQA || '[]')
-    const preProcedureQA = Array.isArray(service.preProcedureQA)
-      ? service.preProcedureQA
-      : JSON.parse(service.preProcedureQA || '[]')
-    const postProcedureQA = Array.isArray(service.postProcedureQA)
-      ? service.postProcedureQA
-      : JSON.parse(service.postProcedureQA || '[]')
-
-    const rawImage = service.subServiceImage || ''
-    const fullImage = rawImage.startsWith('data:') ? rawImage : `data:image/jpeg;base64,${rawImage}`
-
-    // Prefill all fields
+    const selectedSubServiceObj = subServiceList.find(s => s.subServiceName === svc.subServiceName)
+    setSelectedSubService(selectedSubServiceObj?.subServiceId || '')
+    const { minTimeValue, minTimeUnit } = splitMinTime(svc.minTime)
     setNewService({
-      subServiceId: resolvedSubServiceId,
-      subServiceName: resolvedSubServiceName,
-      serviceName: service.serviceName || '',
-      serviceId: serviceId,
-      categoryName: service.categoryName || '',
-      categoryId: categoryId || '',
-      price: service.price || '',
-      discount: service.discountPercentage || 0,
-      gst: service.gst || 0,
-      consultationFee: service.consultationFee || 0,
-      taxPercentage: service.taxPercentage || 0,
-      minTime: service.minTime || '',
-      subServiceImage: rawImage,
-
-      subServiceImageFile: null,
-      status: service.status || '',
-      viewDescription: service.viewDescription || '',
-      consentFormType: service.consentFormType ? String(service.consentFormType) : '',
-
-      platformFeePercentage: service.platformFeePercentage || 0,
-      // descriptionQA: formattedQA,
-      viewImage: service.viewImage || '',
-      procedureQA: procedureQA,
-      preProcedureQA: preProcedureQA,
-      postProcedureQA: postProcedureQA,
+      subServiceId: selectedSubServiceObj?.subServiceId || '', subServiceName: selectedSubServiceObj?.subServiceName || '',
+      serviceName: svc.serviceName || '', serviceId, categoryName: svc.categoryName || '', categoryId,
+      price: svc.price || '', discount: svc.discountPercentage || 0, gst: svc.gst || 0,
+      consultationFee: svc.consultationFee || 0, taxPercentage: svc.taxPercentage || 0,
+      minTimeValue, minTimeUnit, subServiceImage: svc.subServiceImage || '',
+      subServiceImageFile: null, status: svc.status || '', viewDescription: svc.viewDescription || '',
+      consentFormType: svc.consentFormType ? String(svc.consentFormType) : '',
+      platformFeePercentage: svc.platformFeePercentage || 0, viewImage: svc.viewImage || '',
+      procedureQA: parseQA(svc.procedureQA), preProcedureQA: parseQA(svc.preProcedureQA),
+      postProcedureQA: parseQA(svc.postProcedureQA), descriptionQA: [],
     })
-    setQaList(formattedQA)
+    setErrors({})
   }
 
-  const addAnswer = () => {
-    if (answerInput.trim()) {
-      setAnswers([...answers, answerInput.trim()])
-      setAnswerInput('')
-    }
-  }
-
-  const removeAnswer = (answerToRemove) => {
-    setAnswers(answers.filter((ans) => ans !== answerToRemove))
-  }
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [serviceIdToDelete, setServiceIdToDelete] = useState(null)
-  const [errors, setErrors] = useState({
-    subServiceName: '',
-    serviceName: '',
-    serviceId: '',
-    categoryName: '',
-    price: '',
-    status: '',
-    taxPercentage: '',
-    descriptionQA: '',
-    answers: '',
-    minTime: '',
-    discount: '',
-    viewDescription: '',
-    consentFormType: '',
-    subServiceImage: '',
-    bannerImage: '',
-  })
-
-  const [editErrors, setEditErrors] = useState({})
-
-  const fetchData = async () => {
-    // console.log('fetch dataaaaaaa', service.subServiceId)
-    setLoading(true)
-    setError(null)
-
-    try {
-      const categoryResponse = await CategoryData()
-      if (categoryResponse.data && Array.isArray(categoryResponse.data)) {
-        const categoryDetails = categoryResponse.data.map((category) => ({
-          categoryId: category.categoryId,
-          categoryName: category.categoryName,
-        }))
-        setCategory(categoryDetails) // ✅ use mapped array
-      } else {
-        throw new Error('Invalid category data format')
-      }
-
-      // const hospitalId = localStorage.getItem('HospitalId') // ✅ current hospital
-      if (clinicId) {
-        // console.log("clinic ID SUb ", subServiceId)
-        const subServiceData = await GetSubServices_ByClinicId(clinicId)
-        console.log('hi tehre ', subServiceData)
-        if (Array.isArray(subServiceData)) {
-          // you might need to flatten if response is nested
-          // but usually GetSubServices_ByClinicId should return a clean array
-          setService(subServiceData)
-          console.log(subServiceData)
-        } else {
-          setService([])
-          console.warn('No subservices found for this hospital.')
-        }
-      } else {
-        console.warn('No hospitalId found in localStorage.')
-        setService([])
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error)
-      setError('Failed to fetch data. Please try again later.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchData()
-    // serviceData()
-  }, [])
-
-  useEffect(() => {
-    if (
-      editServiceMode &&
-      serviceToEdit?.descriptionQA &&
-      typeof serviceToEdit.descriptionQA === 'string'
-    ) {
-      try {
-        setServiceToEdit((prev) => ({
-          ...prev,
-          descriptionQA: JSON.parse(prev.descriptionQA),
-        }))
-      } catch (e) {
-        console.error('Invalid QA format')
-      }
-    }
-  }, [editServiceMode])
-
-  useEffect(() => {
-    const handleSearch = () => {
-      const trimmedQuery = searchQuery.toLowerCase().trim()
-
-      if (!trimmedQuery) {
-        setFilteredData([])
-        return
-      }
-
-      const filtered = service.filter((item) => {
-        const subServiceNameMatch = item.subServiceName?.toLowerCase().startsWith(trimmedQuery)
-        const serviceNameMatch = item.serviceName?.toLowerCase().startsWith(trimmedQuery)
-        const categoryNameMatch = item.categoryName?.toLowerCase().startsWith(trimmedQuery)
-        // const priceMatch = item.price?.toLowerCase().startsWith(trimmedQuery)
-
-        return subServiceNameMatch || serviceNameMatch || categoryNameMatch
-      })
-
-      setFilteredData(filtered)
-    }
-
-    handleSearch()
-  }, [searchQuery, service])
-
-  const handleEditClick = (serviceItem) => {
-    setServiceToEdit(serviceItem)
-    setEditServiceMode(true)
-  }
-
-  const columns = [
-    {
-      name: 'S.No',
-      selector: (row, index) => index + 1,
-      sortable: false,
-      center: true,
-      width: '180px',
-    },
-    {
-      name: 'Procedure Name',
-      selector: (row) => row.subServiceName || 'N/A',
-      sortable: true,
-      width: '180px',
-      cell: (row) => <span style={{ color: "#7e3a93" }}>{row.subServiceName}</span>,
-    },
-    {
-      name: 'Service Name',
-      selector: (row) => row.serviceName || 'N/A',
-      width: '180px',
-      cell: (row) => <span style={{ color: "#7e3a93" }}>{row.serviceName}</span>,
-    },
-    {
-      name: 'Category Name',
-      selector: (row) => row.categoryName || 'N/A',
-      width: '180px',
-      cell: (row) => <span style={{ color: "#7e3a93" }}>{row.categoryName}</span>,
-    },
-    {
-      name: 'Price',
-      selector: (row) => `₹${row.price || '0'}`,
-      width: '180px',
-      cell: (row) => (
-        <span style={{ color: "#7e3a93" }}>{`₹${row.price || '0'}`}</span>
-      ),
-    },
-    {
-      name: 'Actions',
-      width: '180px',
-      center: true,
-      cell: (row) => (
-        <div className="d-flex justify-content-center gap-2">
-          <button
-            className="actionBtn"
-            title="View"
-            onClick={() => setViewService(row)}
-          >
-            <Eye size={18} />
-          </button>
-
-          <button
-            className="actionBtn"
-            title="Edit"
-            onClick={() => openEditModal(row)}
-          >
-            <Edit2 size={18} />
-          </button>
-
-          <button
-            className="actionBtn"
-            title="Delete"
-            onClick={() => handleServiceDelete(row)}
-          >
-            <Trash2 size={18} />
-          </button>
-
-          <ConfirmationModal
-            isVisible={isModalVisible}
-            title="Delete Procedure"
-            message="Are you sure you want to delete this procedure? This action cannot be undone."
-            confirmText="Yes, Delete"
-            cancelText="Cancel"
-            confirmColor="danger"
-            cancelColor="secondary"
-            onConfirm={handleConfirmDelete}
-            onCancel={handleCancelDelete}
-          />
-        </div>
-      ),
-    },
-  ];
-
-
-  const minTimeValue = parseFloat(newService.minTime)
+  /* ── validate ── */
   const validateForm = () => {
-    const newErrors = {}
-
-
-    if (!newService.serviceName) {
-      newErrors.serviceName = 'Service name is required.'
-    }
-
-    if (!newService.categoryName) {
-      newErrors.categoryName = 'Category is required.'
-    }
-    if (!newService.subServiceName) {
-      newErrors.subServiceName = 'Procedure Name is required'
-    }
-
-    if (!newService.price) {
-      newErrors.price = 'price is required.'
-    } else if (isNaN(newService.price)) {
-      newErrors.price = 'price must be a valid number.'
-    } else if (parseFloat(newService.price) < 0) {
-      newErrors.price = 'price cannot be a negative number.'
-    }
-
-    if (!newService.status) {
-      newErrors.status = 'Status is required.'
-    }
-    if (newService.gst === '' || isNaN(newService.gst) || parseFloat(newService.gst) < 0) {
-      newErrors.gst = 'GST must be a valid number and not negative.'
-    }
-    if (
-      newService.consultationFee === '' ||
-      isNaN(newService.consultationFee) ||
-      parseFloat(newService.consultationFee) < 0
-    ) {
-      newErrors.consultationFee = 'Consultation fee must be a valid number and not negative.'
-    }
-
-    if (!newService.discount && newService.discount !== 0) {
-      newErrors.discount = 'Discount is required.'
-    } else if (parseFloat(newService.discount) < 0) {
-      newErrors.discount = 'Discount cannot be a negative number.'
-    }
-
-    if (!newService.minTimeValue || isNaN(newService.minTimeValue)) {
-      newErrors.minTime = 'Minimum time is required'
-    } else if (parseFloat(newService.minTimeValue) <= 0) {
-      newErrors.minTime = 'Minimum time must be greater than zero.'
-    }
-
-    if (!newService.viewDescription) {
-      newErrors.viewDescription = 'View description is Required.'
-    }
-    if (!newService.consentFormType) {
-      newErrors.consentFormType = 'consentFormType is Required.'
-    }
-
-    if (!newService.subServiceImage) {
-      console.log('Service Image in Form:', newService.serviceImage)
-      newErrors.subServiceImage = 'Please upload a service image.'
-    }
-
-    if (!newService.categoryId) {
-      newErrors.categoryId = 'Please select a valid category.'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    const e = {}
+    if (!newService.categoryName)   e.categoryName   = 'Category is required.'
+    if (!newService.serviceName)    e.serviceName    = 'Service name is required.'
+    if (!newService.subServiceName) e.subServiceName = 'Procedure name is required.'
+    if (!newService.price) e.price = 'Price is required.'
+    else if (isNaN(newService.price)) e.price = 'Must be a valid number.'
+    else if (parseFloat(newService.price) < 0) e.price = 'Cannot be negative.'
+    if (!newService.status) e.status = 'Status is required.'
+    if (newService.gst === '' || isNaN(newService.gst) || parseFloat(newService.gst) < 0) e.gst = 'GST must be a valid non-negative number.'
+    if (!newService.minTimeValue || isNaN(newService.minTimeValue)) e.minTime = 'Minimum time is required.'
+    else if (parseFloat(newService.minTimeValue) <= 0) e.minTime = 'Must be greater than zero.'
+    if (!newService.viewDescription) e.viewDescription = 'View description is required.'
+    if (!newService.consentFormType) e.consentFormType = 'Consent form type is required.'
+    if (!newService.subServiceImage) e.subServiceImage = 'Please upload a service image.'
+    if (!newService.categoryId)      e.categoryId      = 'Please select a valid category.'
+    setErrors(e)
+    return Object.keys(e).length === 0
   }
 
-  const saveCurrentQA = () => {
-    if (question.trim() && answers.length > 0) {
-      const newQA = { [question.trim()]: [...answers] }
-
-      // Add to local qaList
-      const updatedQaList = [...qaList, newQA]
-      setQaList(updatedQaList)
-
-      // Also update the newService object
-      setNewService((prev) => ({
-        ...prev,
-        descriptionQA: updatedQaList,
-      }))
-
-      // Clear input fields
-      setQuestion('')
-      setAnswers([])
-    }
-  }
-
-  const removeQA = (indexToRemove) => {
-    const updatedQAList = qaList.filter((_, index) => index !== indexToRemove)
-
-    // Update both qaList and newService.descriptionQA
-    setQaList(updatedQAList)
-    setNewService((prev) => ({
-      ...prev,
-      descriptionQA: updatedQAList,
-    }))
-  }
-
-  const buildQA = (question, answers, qaList) => {
-    const finalQA = [...qaList]
-
-    // Include the latest unsaved input, if any
-    if (question.trim() && answers.length > 0) {
-      finalQA.push({ [question.trim()]: [...answers] })
-    }
-
-    return finalQA
-  }
-  const buildDescriptionQA = () => {
-    return {
-      general: buildQA(question, answers, qaList),
-      preProcedure: buildQA(preQuestion, preAnswers, preQaList),
-      postProcedure: buildQA(postQuestion, postAnswers, postQaList),
-    }
-  }
+  /* ── add ── */
   const handleAddService = async () => {
-    const isValid = validateForm(); // ✅ Call it here
-
-    console.log('--- handleAddService START ---')
-
-    // Calculate derived values before sending
-    const discountAmount = (newService.price * newService.discount) / 100
-    const discountedCost = newService.price - discountAmount
-    const taxAmount = (discountedCost * newService.taxPercentage) / 100
-    const gst = newService.gst || 0
-    const platformFee = (discountedCost * (newService.platformFeePercentage || 0)) / 100
+    if (!validateForm()) return
+    const price = Number(newService.price || 0)
+    const discountPercentage = parseFloat(newService.discount || 0)
+    const taxPercentage = parseFloat(newService.taxPercentage || 0)
+    const gst = parseFloat(newService.gst || 0)
+    const consultationFee = parseFloat(newService.consultationFee || 0)
+    const platformFeePercentage = parseFloat(newService.platformFeePercentage || 0)
+    const discountAmount = (price * discountPercentage) / 100
+    const discountedCost = price - discountAmount
+    const taxAmount = (discountedCost * taxPercentage) / 100
+    const platformFee = (discountedCost * platformFeePercentage) / 100
     const clinicPay = discountedCost + taxAmount - platformFee
-    const finalCost = clinicPay + gst + (newService.consultationFee || 0)
-    const formattedMinTime = `${newService.minTimeValue} ${newService.minTimeUnit}`
-
-    console.log('Calculated values:', {
-      discountAmount,
-      discountedCost,
-      taxAmount,
-      platformFee,
-      clinicPay,
-      finalCost,
-    })
-
+    const finalCost = clinicPay + gst + consultationFee
     const payload = {
-      hospitalId: clinicId,
-      subServiceName: newService.subServiceName,
-      subServiceId: newService.subServiceId,
-      serviceId: newService.serviceId,
-      serviceName: newService.serviceName,
-      categoryName: newService.categoryName,
-      categoryId: newService.categoryId,
-
-      price: newService.price,
-      discountPercentage: newService.discount,
-      discountAmount,
-      discountedCost,
-      taxPercentage: newService.taxPercentage,
-      taxAmount,
-      platformFeePercentage: newService.platformFeePercentage,
-      platformFee,
-      clinicPay,
-      finalCost,
-      gst: newService.gst,
-      consultationFee: newService.consultationFee,
-
-      minTime: formattedMinTime,
-      status: newService.status,
-      subServiceImage: newService.subServiceImage,
-
-      procedureQA: newService.procedureQA,
-      preProcedureQA: newService.preProcedureQA,
-      postProcedureQA: newService.postProcedureQA,
-      viewDescription: newService.viewDescription,
-      consentFormType: Number(newService.consentFormType), // backend receives 1 or 2
+      hospitalId: clinicId, subServiceName: newService.subServiceName, subServiceId: newService.subServiceId,
+      serviceId: newService.serviceId, serviceName: newService.serviceName, categoryName: newService.categoryName,
+      categoryId: newService.categoryId, price, discountPercentage, discountAmount, discountedCost,
+      taxPercentage, taxAmount, platformFeePercentage, platformFee, clinicPay, finalCost, gst,
+      consultationFee, minTime: `${newService.minTimeValue} ${newService.minTimeUnit}`,
+      status: newService.status, subServiceImage: newService.subServiceImage,
+      procedureQA: newService.procedureQA, preProcedureQA: newService.preProcedureQA,
+      postProcedureQA: newService.postProcedureQA, viewDescription: newService.viewDescription,
+      consentFormType: Number(newService.consentFormType),
     }
-
-    console.log('Payload ready to submit:', payload)
-
     try {
       const response = await postServiceData(payload, newService.subServiceId)
-      console.log('Response received:', response)
       if (response.status === 201) {
         toast.success(response.data.message, { position: 'top-right' })
-        setModalVisible(false)
-        fetchData()
-        serviceData()
+        setModalVisible(false); fetchData(); serviceData()
       }
-    } catch (error) {
-      console.error('Error in handleAddService:', error.response)
-      toast.error(error.response?.data?.message, { position: 'top-right' })
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add procedure.', { position: 'top-right' })
     }
-
-    setNewService({
-      hospitalId: '',
-      categoryName: '',
-      categoryId: '',
-      serviceName: '',
-      serviceId: '',
-      subServiceId: '',
-      subServiceName: '',
-      price: 0,
-      discount: 0,
-      gst: 0,
-      consultationFee: 0,
-      taxPercentage: 0,
-      minTimeValue,
-      minTimeUnit: '',
-      status: '',
-      subServiceImage: '',
-      subServiceImageFile: '',
-      viewDescription: '',
-      consentFormType: '',
-      procedureQA: [],
-      preProcedureQA: [],
-      postProcedureQA: [],
-      platformFeePercentage: 0,
-      descriptionQA: [],
-    })
-
-    setQaList([])
-    console.log('--- handleAddService END ---')
+    setNewService(emptyService)
   }
 
-  const formatMinutes = (minTime) => {
-    const minutes = parseInt(minTime, 10)
-
-    if (isNaN(minutes)) return 'Invalid time'
-
-    if (minutes < 60) return `${minutes} min`
-
-    const hours = Math.floor(minutes / 60)
-    const remainingMins = minutes % 60
-
-    return remainingMins === 0
-      ? `${hours} hour${hours > 1 ? 's' : ''}`
-      : `${hours} hour${hours > 1 ? 's' : ''} ${remainingMins} min`
-  }
-
-  const handleServiceFileChange = (e) => {
-    const file = e.target.files[0]
-
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result?.split(',')[1] || ''
-        setNewService((prev) => ({
-          ...prev,
-          subServiceImage: base64String,
-          subServiceImageFile: file,
-        }))
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
+  /* ── update ── */
   const handleUpdateService = async () => {
     try {
       let base64ImageToSend = ''
-
-      if (newService.serviceImageFile) {
-        const fullBase64String = await toBase64(newService.serviceImageFile)
-        base64ImageToSend = fullBase64String.split(',')[1]
+      if (newService.subServiceImageFile) {
+        const full = await toBase64(newService.subServiceImageFile)
+        base64ImageToSend = full.split(',')[1]
       } else if (newService.subServiceImage?.startsWith('data:')) {
         base64ImageToSend = newService.subServiceImage.split(',')[1]
-      } else {
-        base64ImageToSend = newService.subServiceImage || ''
-      }
-
-      // Ensure numeric values are numbers, not empty strings or null
-      const price = newService.price > 0 ? Number(newService.price) : 0
-
-      // build only the expected payload (no extra keys)
+      } else { base64ImageToSend = newService.subServiceImage || '' }
       const updatedService = {
-        clinicId,
-        subServiceName: newService.subServiceName || '',
-        viewDescription: newService.viewDescription || '',
-        consentFormType: Number(newService.consentFormType),
-        status: newService.status || '',
-        minTime: newService.minTimeValue
-          ? `${newService.minTimeValue} ${newService.minTimeUnit}`
-          : '',
-
+        clinicId, subServiceName: newService.subServiceName, viewDescription: newService.viewDescription,
+        consentFormType: Number(newService.consentFormType), status: newService.status,
+        minTime: newService.minTimeValue ? `${newService.minTimeValue} ${newService.minTimeUnit}` : '',
         procedureQA: Array.isArray(newService.procedureQA) ? newService.procedureQA : [],
         preProcedureQA: Array.isArray(newService.preProcedureQA) ? newService.preProcedureQA : [],
-        postProcedureQA: Array.isArray(newService.postProcedureQA)
-          ? newService.postProcedureQA
-          : [],
-        price: newService.price || 0,
-        discountPercentage: newService.discount || 0,
-        taxPercentage: newService.taxPercentage || 0,
-        platformFeePercentage: newService.platformFeePercentage || 0,
-        subServiceImage: base64ImageToSend,
-        gst: newService.gst || 0,
-        consultationFee: newService.consultationFee || 0,
-        // ProcedureQA:newService.ProcedureQA
+        postProcedureQA: Array.isArray(newService.postProcedureQA) ? newService.postProcedureQA : [],
+        price: newService.price || 0, discountPercentage: newService.discount || 0,
+        taxPercentage: newService.taxPercentage || 0, platformFeePercentage: newService.platformFeePercentage || 0,
+        subServiceImage: base64ImageToSend, gst: newService.gst || 0, consultationFee: newService.consultationFee || 0,
       }
-
-      // Log the payload to verify it before sending
-      console.log('Payload for updateSubServiceData:', updatedService)
-
-      // send cleaned payload
-      const response = await updateServiceData(subServiceId, clinicId, updatedService)
-
+      await updateServiceData(subServiceId, clinicId, updatedService)
       toast.success('Procedure updated successfully!', { position: 'top-right' })
-      setEditServiceMode(false)
-      setModalVisible(false)
-      fetchData()
-    } catch (error) {
-      console.error('Update failed:', error)
-      toast.error('Error updating service.', { position: 'top-right' })
+      setModalVisible(false); fetchData()
+    } catch (err) {
+      toast.error('Error updating procedure.', { position: 'top-right' })
     }
   }
 
-  // Convert file to base64
-  const toBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = (error) => reject(error)
-    })
-
-  const handleServiceDelete = async (serviceId) => {
-    console.log(serviceId)
-
-    setServiceIdToDelete(serviceId.subServiceId)
-    setIsModalVisible(true)
-  }
-
+  /* ── delete ── */
+  const handleServiceDelete = (row) => { setServiceIdToDelete(row.subServiceId); setIsModalVisible(true) }
   const handleConfirmDelete = async () => {
-    console.log(serviceIdToDelete)
-    // const hospitalId = localStorage.getItem('HospitalId')
     try {
-      const result = await deleteServiceData(serviceIdToDelete, clinicId)
-      console.log('Service deleted:', result)
-      toast.success('Procedure deleted successfully!', { position: 'top-right' })
-
-      fetchData()
-    } catch (error) {
-      console.error('Error deleting Procedure:', error)
-    }
+      await deleteServiceData(serviceIdToDelete, clinicId)
+      toast.success('Procedure deleted successfully!', { position: 'top-right' }); fetchData()
+    } catch (err) { toast.error('Failed to delete procedure.', { position: 'top-right' }) }
     setIsModalVisible(false)
   }
 
-  const handleCancelDelete = () => {
-    setIsModalVisible(false)
-    console.log('Service deletion canceled')
-  }
-
+  /* ── onChange ── */
   const handleChange = (e) => {
     const { name, value } = e.target
-
-    setNewService((prev) => {
-      // If categoryName, also update categoryId
+    setNewService(prev => {
       if (name === 'categoryName') {
-        const selectedCategory = category.find((cat) => cat.categoryName === value)
-        return {
-          ...prev,
-          [name]: value,
-          categoryId: selectedCategory ? selectedCategory.categoryId : '',
-        }
+        const sel = category.find(cat => cat.categoryName === value)
+        return { ...prev, [name]: value, categoryId: sel?.categoryId || '' }
       }
-
-      // For numeric fields, parseFloat
-      if (
-        name === 'gst' ||
-        name === 'consultationFee' ||
-        name === 'price' ||
-        name === 'discount' ||
-        name === 'taxPercentage' ||
-        name === 'minTime'
-      ) {
-        return {
-          ...prev,
-          [name]: parseFloat(value) || 0,
-        }
-      }
-
-      // Default: just update value
-      return {
-        ...prev,
-        [name]: value,
-      }
+      if (['gst', 'consultationFee', 'price', 'discount', 'taxPercentage', 'minTime'].includes(name))
+        return { ...prev, [name]: parseFloat(value) || 0 }
+      return { ...prev, [name]: value }
     })
-
-    setErrors((prev) => ({
-      ...prev,
-      [name]: '',
-    }))
-  }
-
-  const AddCancel = () => {
-    setNewService({
-      serviceName: '',
-      categoryName: '',
-
-      price: '',
-      discount: 0,
-      taxPercentage: 0,
-      minTime: '',
-      minTimeValue: '', //reset value
-      minTimeUnit: 'minutes', // reset unit
-      status: '',
-      subServiceImage: '',
-      viewImage: '',
-      viewDescription: '',
-      consentFormType: '',
-      categoryId: '',
-    })
-    setModalVisible(false)
-
-    setErrors({})
+    setErrors(prev => ({ ...prev, [name]: '' }))
   }
 
   const handleChanges = async (e) => {
     const { name, value } = e.target
-
     if (name === 'categoryId') {
-      const selectedCategory = category.find((cat) => cat.categoryId === value)
-
-      setNewService((prev) => ({
-        ...prev,
-        categoryName: selectedCategory?.categoryName || '',
-        categoryId: value,
-        serviceName: '',
-        serviceId: '',
-      }))
-
+      const sel = category.find(cat => cat.categoryId === value)
+      setNewService(prev => ({ ...prev, categoryName: sel?.categoryName || '', categoryId: value, serviceName: '', serviceId: '' }))
       try {
         const res = await axios.get(`${BASE_URL}/${getservice}/${value}`)
-        const serviceList = res.data?.data || []
-        setServiceOptions(serviceList)
-        console.log('my new service', newService)
-      } catch (err) {
-        console.error('Failed to fetch services:', err)
-        setServiceOptions([])
-      }
+        setServiceOptions(res.data?.data || [])
+      } catch (err) { setServiceOptions([]) }
     } else if (name === 'serviceName') {
-      const selectedService = serviceOptions.find((s) => s.serviceName === value)
-      const serviceId = selectedService?.serviceId || ''
-
-      setNewService((prev) => ({
-        ...prev,
-        serviceName: value,
-        serviceId,
-      }))
-
+      const sel = serviceOptions.find(s => s.serviceName === value)
+      const serviceId = sel?.serviceId || ''
+      setNewService(prev => ({ ...prev, serviceName: value, serviceId }))
       if (serviceId) {
         try {
           const subRes = await subServiceData(serviceId)
           const subList = subRes.data
-          let allSubServices = []
-
-          if (Array.isArray(subList)) {
-            allSubServices = subList.flatMap((item) => item.subServices || [])
-
-          } else if (subList?.subServices) {
-            allSubServices = subList.subServices
-          }
-
-          setSubServiceOptions({ subServices: allSubServices })
-        } catch (err) {
-          console.error('Failed to fetch subservices:', err)
-          setSubServiceOptions({ subServices: [] })
-        }
+          let all = []
+          if (Array.isArray(subList)) all = subList.flatMap(item => item.subServices || [])
+          else if (subList?.subServices) all = subList.subServices
+          setSubServiceOptions({ subServices: all })
+        } catch (err) { setSubServiceOptions({ subServices: [] }) }
       }
-    } else {
-      setNewService((prev) => ({
-        ...prev,
-        [name]: value,
-      }))
-    }
+    } else { setNewService(prev => ({ ...prev, [name]: value })) }
   }
 
+  const toBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = err => reject(err)
+  })
 
+  const formatMinutes = (minTime) => {
+    const minutes = parseInt(minTime, 10)
+    if (isNaN(minutes)) return 'Invalid time'
+    if (minutes < 60) return `${minutes} min`
+    const h = Math.floor(minutes / 60); const rem = minutes % 60
+    return rem === 0 ? `${h} hour${h > 1 ? 's' : ''}` : `${h} hour${h > 1 ? 's' : ''} ${rem} min`
+  }
 
+  /* ── table columns ── */
+  const columns = [
+    {
+      name: 'S.No', selector: (_, i) => i + 1, sortable: false, center: true, width: '70px',
+      cell: (_, i) => <span style={{ fontSize: '12px', color: t.textMuted, fontWeight: '600' }}>{i + 1}</span>,
+    },
+    {
+      name: 'Procedure Name', selector: row => row.subServiceName || 'N/A', sortable: true, width: '190px',
+      cell: row => <span style={{ fontSize: '12px', fontWeight: '600', color: t.text }}>{row.subServiceName}</span>,
+    },
+    {
+      name: 'Service Name', selector: row => row.serviceName || 'N/A', width: '180px',
+      cell: row => <span style={{ fontSize: '12px', color: t.text }}>{row.serviceName}</span>,
+    },
+    {
+      name: 'Category', selector: row => row.categoryName || 'N/A', width: '160px',
+      cell: row => <span style={{ fontSize: '12px', color: t.textMuted }}>{row.categoryName}</span>,
+    },
+    {
+      name: 'Price', selector: row => `₹${row.price || '0'}`, width: '100px',
+      cell: row => <span style={{ fontSize: '12px', fontWeight: '700', color: PRIMARY }}>₹{row.price || '0'}</span>,
+    },
+    {
+      name: 'Status', width: '100px', center: true,
+      cell: row => (
+        <span style={{
+          fontSize: '10px', fontWeight: '700', letterSpacing: '0.05em', textTransform: 'uppercase',
+          padding: '3px 10px', borderRadius: '20px',
+          backgroundColor: row.status === 'Active' ? '#dcfce7' : '#f1f5f9',
+          color: row.status === 'Active' ? t.success : t.textMuted,
+          border: `1px solid ${row.status === 'Active' ? '#86efac' : t.border}`,
+        }}>
+          {row.status || '—'}
+        </span>
+      ),
+    },
+    {
+      name: 'Actions', width: '140px', center: true,
+      cell: row => (
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <button title="View" onClick={() => setViewService(row)} style={iconBtnStyle('#e0f2fe', PRIMARY)}>
+            <Eye size={14} />
+          </button>
+          <button title="Edit" onClick={() => openEditModal(row)} style={iconBtnStyle('#fef3c7', '#b45309')}>
+            <Edit2 size={14} />
+          </button>
+          <button title="Delete" onClick={() => handleServiceDelete(row)} style={iconBtnStyle('#fee2e2', t.danger)}>
+            <Trash2 size={14} />
+          </button>
+          <ConfirmationModal
+            isVisible={isModalVisible} title="Delete Procedure"
+            message="Are you sure you want to delete this procedure? This action cannot be undone."
+            confirmText="Yes, Delete" cancelText="Cancel" confirmColor="danger" cancelColor="secondary"
+            onConfirm={handleConfirmDelete} onCancel={() => setIsModalVisible(false)}
+          />
+        </div>
+      ),
+    },
+  ]
+
+  const iconBtnStyle = (bg, color) => ({
+    width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    borderRadius: t.radiusSm, border: 'none', cursor: 'pointer',
+    backgroundColor: bg, color,
+  })
+
+  /* ── field helper for modal ── */
+  const MField = ({ label, required, error, children, span = 1 }) => (
+    <div style={{ gridColumn: `span ${span}` }}>
+      <FieldLabel required={required}>{label}</FieldLabel>
+      {children}
+      <FieldError msg={error} />
+    </div>
+  )
+
+  /* ════ RENDER ════════════════════════════════════════════════════════ */
   return (
-    <div style={{ overflow: 'hidden' }}>
+    <div style={{ color: t.text }}>
       <ToastContainer />
 
-      <div>
-        <CForm className="d-flex justify-content-end mb-3">
-          <CInputGroup className="mb-3" style={{ marginRight: '20px', width: '400px' }}>
-            <CFormInput
-              type="text"
-              placeholder="Search by Procedure Name, Category"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ height: '40px', border: "1px solid #7e3a93" }}
-            />
-            <CInputGroupText style={{ height: '40px', border: "1px solid #7e3a93" }}>
-              <CIcon icon={cilSearch} />
-            </CInputGroupText>
-          </CInputGroup>
-
-          <CButton
-            color="info"
-            className="text-white"
-            style={{ height: '40px' }}
-            onClick={() => openAddModal()}
-          >
-            Add Procedure Details
-          </CButton>
-        </CForm>
+      {/* ── Toolbar ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+        {/* Search */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0', border: `1px solid ${t.border}`, borderRadius: t.radiusSm, overflow: 'hidden', backgroundColor: '#fff', maxWidth: '360px', flex: 1 }}>
+          <span style={{ padding: '0 10px', color: t.textMuted, display: 'flex', alignItems: 'center' }}>
+            <Search size={15} />
+          </span>
+          <input
+            type="text"
+            placeholder="Search by procedure, category, service…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ border: 'none', outline: 'none', fontSize: '13px', color: t.text, padding: '8px 10px 8px 0', flex: 1, backgroundColor: 'transparent' }}
+          />
+        </div>
+        <Btn onClick={openAddModal}><Plus size={14} /> Add Procedure</Btn>
       </div>
 
-      {viewService && (
-        <CModal
-          visible={!!viewService}
-          onClose={() => setViewService(null)}
-          size="xl"
-          backdrop="static"
-          className="procedure-modal"
-        >
-          <CModalHeader className="justify-content-center bg-light border-bottom">
-            <CModalTitle className="text-primary fw-bold fs-4">
-              Procedure Details
-            </CModalTitle>
-          </CModalHeader>
-
-          <CModalBody className="p-4">
-            {/* Basic Info */}
-            <CCard className="shadow-sm mb-4 border-0">
-              <CCardBody>
-                <h6 className="text-info fw-semibold mb-3">Basic Information</h6>
-                <CRow className="gy-3">
-                  <CCol sm={6}>
-                    <strong>Procedure Name:</strong> {viewService.subServiceName}
-
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>Procedure ID:</strong> {viewService.subServiceId}
-
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>Service Name:</strong> {viewService.serviceName}
-
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>Service ID:</strong> {viewService.serviceId}
-
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>Category Name:</strong> {viewService.categoryName}
-
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>Category ID:</strong> {viewService.categoryId}
-
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>Consent Form Type:</strong> {consentFormTypeLabels[viewService.consentFormType] || "N/A"}
-
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>Status:</strong>  <CBadge color={viewService.status === "Active" ? "success" : "secondary"}>
-                      {viewService.status}
-                    </CBadge>
-
-                  </CCol>
-                </CRow>
-              </CCardBody>
-            </CCard>
-
-            {/* Pricing Info */}
-            <CCard className="shadow-sm mb-4 border-0">
-              <CCardBody>
-                <h6 className="text-info fw-semibold mb-3">Pricing & Fees</h6>
-                <CRow className="gy-3">
-                  <CCol sm={4}><strong>Price:</strong> ₹ {viewService.price ? Math.round(viewService.price) : '—'}</CCol>
-                  <CCol sm={4}><strong>Discount %:</strong> {viewService.discountPercentage ? Math.round(viewService.discountPercentage) + '%' : '—'}</CCol>
-                  <CCol sm={4}><strong>Discount Amount:</strong> ₹ {viewService.discountAmount ? Math.round(viewService.discountAmount) : '—'}</CCol>
-                  <CCol sm={4}><strong>Discounted Cost:</strong> ₹ {viewService.discountedCost ? Math.round(viewService.discountedCost) : '—'}</CCol>
-                  <CCol sm={4}><strong>Tax %:</strong> {viewService.taxPercentage ? Math.round(viewService.taxPercentage) + '%' : '—'}</CCol>
-                  <CCol sm={4}><strong>Tax Amount:</strong> ₹ {viewService.taxAmount ? Math.round(viewService.taxAmount) : '—'}</CCol>
-                  <CCol sm={4}><strong>Platform Fee %:</strong> {viewService.platformFeePercentage ? Math.round(viewService.platformFeePercentage) + '%' : '—'}</CCol>
-                  <CCol sm={4}><strong>Platform Fee:</strong> ₹ {viewService.platformFee ? Math.round(viewService.platformFee) : '—'}</CCol>
-                  <CCol sm={4}><strong>Clinic Pay:</strong> ₹ {viewService.clinicPay ? Math.round(viewService.clinicPay) : '—'}</CCol>
-                  <CCol sm={4}><strong>GST:</strong> ₹ {viewService.gst ? Math.round(viewService.gst) : '—'}</CCol>
-                  <CCol sm={4}><strong>Consultation Fee:</strong> ₹ {viewService.consultationFee ?? '—'}</CCol>
-                  <CCol sm={4}><strong>Final Cost:</strong> ₹ {viewService.finalCost ? Math.round(viewService.finalCost) : '—'}</CCol>
-                  <CCol sm={4}><strong>Service Time:</strong> {viewService.minTime ? formatMinutes(viewService.minTime) : '—'}</CCol>
-                </CRow>
-              </CCardBody>
-            </CCard>
-
-
-            {/* Q&A Sections */}
-            {["preProcedureQA", "procedureQA", "postProcedureQA"].map((qaType, i) => {
-              const titles = {
-                preProcedureQA: "Pre-Procedure Q&A",
-                procedureQA: "Procedure Q&A",
-                postProcedureQA: "Post-Procedure Q&A",
-              };
-              const qaData = viewService[qaType];
-
-              return (
-                <CCard key={i} className="shadow-sm mb-4 border-0">
-                  <CCardBody>
-                    <h6 className="text-info fw-semibold mb-3">{titles[qaType]}</h6>
-                    {Array.isArray(qaData) && qaData.length > 0 ? (
-                      qaData.map((qa, index) => {
-                        const question = Object.keys(qa)[0];
-                        const answers = qa[question];
-                        return (
-                          <div key={index} className="mb-2">
-                            <strong>{question}</strong>
-                            <ul className="ms-3">
-                              {answers.map((ans, i) => (
-                                <li key={i}>{ans}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-muted fst-italic">No Q&A available</div>
-                    )}
-                  </CCardBody>
-                </CCard>
-              );
-            })}
-
-            {/* Image & Description */}
-            <CCard className="shadow-sm border-0">
-              <CCardBody>
-                <h6 className="text-info fw-semibold mb-3">Additional Details</h6>
-                <CRow>
-                  <CCol sm={6}>
-                    <strong>Sub Service Image:</strong>
-                    <div className="mt-2">
-                      {viewService.subServiceImage ? (
-                        <img
-                          src={`data:image/png;base64,${viewService.subServiceImage}`}
-                          alt="Service"
-                          className="img-fluid rounded border"
-                          style={{ maxWidth: "250px" }}
-                        />
-                      ) : (
-                        <div className="text-muted">No image available</div>
-                      )}
-                    </div>
-                  </CCol>
-                  <CCol sm={6}>
-                    <strong>View Description:</strong>
-                    <div className="mt-2">{viewService.viewDescription || "N/A"}</div>
-                  </CCol>
-                </CRow>
-              </CCardBody>
-            </CCard>
-          </CModalBody>
-
-          <CModalFooter className="justify-content-center border-top bg-light">
-            <CButton color="secondary" variant="outline" onClick={() => setViewService(null)}>
-              Close
-            </CButton>
-          </CModalFooter>
-        </CModal>
-      )}
-
-
-      <CModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        size="xl"
-        backdrop="static" className='custom-modal'
-      >
-        <CModalHeader>
-          <CModalTitle style={{ textAlign: 'center', width: '100%' }}>
-            {modalMode === 'edit' ? 'Edit Procedure Details' : 'Add New Procedure Details'}
-          </CModalTitle>
-        </CModalHeader>
-        <CModalBody>
-          <CForm>
-            <CRow className="mb-4">
-              <CCol md={4}>
-                <h6>
-                  Category Name <span className="text-danger">*</span>
-                </h6>
-                <CFormSelect
-                  value={newService.categoryId || ''}
-                  onChange={handleChanges}
-                  aria-label="Select Category"
-                  name="categoryId" // must match state property
-                  disabled={modalMode === 'edit'}
-                >
-                  <option value="">Select a Category</option>
-                  {category?.map((cat) => (
-                    <option key={cat.categoryId} value={cat.categoryId}>
-                      {cat.categoryName}
-                    </option>
-                  ))}
-                </CFormSelect>
-
-
-                {errors.categoryName && (
-                  <CFormText className="text-danger">{errors.categoryName}</CFormText>
-                )}
-              </CCol>
-              <CCol md={4}>
-                <h6>
-                  Service Name <span className="text-danger">*</span>
-                </h6>
-                <CFormSelect
-                  name="serviceName"
-                  value={newService.serviceName || ''}
-                  onChange={handleChanges}
-                  disabled={modalMode === 'edit'}
-                >
-                  <option value="">Select Service</option>
-                  {serviceOptions.map((service) => (
-                    <option key={service.serviceId} value={service.serviceName}>
-                      {service.serviceName}
-                    </option>
-                  ))}
-                </CFormSelect>
-
-                {errors.serviceName && (
-                  <CFormText className="text-danger">{errors.serviceName}</CFormText>
-                )}
-              </CCol>
-              <CCol md={4}>
-                <h6>
-                  Procedure Name <span className="text-danger">*</span>
-                </h6>
-                <CFormSelect
-                  name="subServiceId"
-                  value={selectedSubService}
-                  onChange={(e) => {
-                    const selectedId = e.target.value
-                    setSelectedSubService(selectedId)
-
-                    // Find selected sub-service object
-                    const selectedObj = subServiceOptions?.subServices?.find(
-                      (s) => s.subServiceId === selectedId,
-                    )
-
-                    setNewService((prev) => ({
-                      ...prev,
-                      subServiceId: selectedId,
-                      subServiceName: selectedObj?.subServiceName || '',
-                      preProcedureQA: service.preProcedureQA || [],
-                      procedureQA: service.procedureQA || [],
-                      postProcedureQA: service.postProcedureQA || [],
-                    }))
-                  }}
-                >
-                  <option value="">Select Procedure</option>
-                  {Array.isArray(subServiceOptions?.subServices) &&
-                    subServiceOptions.subServices.map((sub) => (
-                      <option key={sub.subServiceId} value={sub.subServiceId}>
-                        {sub.subServiceName}
-                      </option>
-                    ))}
-                </CFormSelect>
-
-                {errors.subServiceName && (
-                  <CFormText className="text-danger">{errors.subServiceName}</CFormText>
-                )}
-              </CCol>
-            </CRow>
-            <CRow className="mb-4">
-              <CCol md={4}>
-                <h6>
-                  Procedure Image <span className="text-danger">*</span>
-                </h6>
-                <CFormInput
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files[0]
-                    if (file) {
-                      const reader = new FileReader()
-                      reader.onloadend = () => {
-                        const base64String = reader.result?.split(',')[1] || ''
-                        setNewService((prev) => ({
-                          ...prev,
-                          subServiceImage: base64String,
-                          subServiceImageFile: file,
-                        }))
-                      }
-                      reader.readAsDataURL(file)
-                    }
-                  }}
-                />
-
-                {newService?.subServiceImage && (
-                  <img
-                    src={
-                      newService.subServiceImage.startsWith('data:')
-                        ? newService.subServiceImage
-                        : `data:image/jpeg;base64,${newService.subServiceImage}`
-                    }
-                    alt="Preview"
-                    style={{ width: 100, height: 100, marginTop: 10 }}
-                  />
-                )}
-              </CCol>
-              <CCol md={4}>
-                <h6>
-                  View Description <span className="text-danger">*</span>
-                </h6>
-                <CFormInput
-                  type="text"
-                  placeholder="View Description"
-                  value={newService.viewDescription || ''}
-                  name="viewDescription"
-                  onChange={handleChange}
-                  maxLength={100}
-                />
-                {errors.viewDescription && (
-                  <CFormText className="text-danger">{errors.viewDescription}</CFormText>
-                )}
-              </CCol>
-
-              <CCol md={4}>
-                <h6>
-                  Status <span className="text-danger">*</span>
-                </h6>
-                <CFormSelect value={newService.status || ''} onChange={handleChange} name="status">
-                  <option value="">Select</option>
-                  <option value="Active">Active</option>
-                  <option value="InActive">Inactive</option>
-                </CFormSelect>
-                {errors.status && <CFormText className="text-danger">{errors.status}</CFormText>}
-              </CCol>
-            </CRow>
-
-            <CRow className="mb-4">
-              <CCol md={4}>
-                <CFormLabel>
-                  ConsentFormType<span className="text-danger">*</span>
-                </CFormLabel>
-                <CFormSelect
-                  value={newService.consentFormType || ''} // backend value ("1" or "2")
-                  onChange={(e) =>
-                    setNewService((prev) => ({
-                      ...prev,
-                      consentFormType: e.target.value, // still "1" or "2"
-                    }))
-                  }
-                >
-                  <option value="">Select consentFormType</option>
-                  <option value="1">Generic ConsentForm</option>
-                  <option value="2">Procedure ConsentForm</option>
-                </CFormSelect>
-
-                {errors.consentFormType && (
-                  <CFormText className="text-danger">{errors.consentFormType}</CFormText>
-                )}
-              </CCol>
-              <CCol md={4}>
-                <h6>
-                  Consultation Fee<span className="text-danger">*</span>
-                </h6>
-                <CFormInput
-                  type="number"
-                  value={newService.consultationFee || ''}
-                  onChange={(e) =>
-                    setNewService((prev) => ({
-                      ...prev,
-                      consultationFee: Number(e.target.value),
-                    }))
-                  }
-                />
-              </CCol>
-              <CCol>
-                <div className="mb-4">
-                  <h6>
-                    Min Time <span className="text-danger">*</span>
-                  </h6>
-                  <div className="d-flex">
-                    {/* Number Input */}
-                    <CFormInput
-                      type="number"
-                      name="minTimeValue"
-                      value={newService.minTimeValue || ''}
-                      onChange={(e) =>
-                        setNewService({ ...newService, minTimeValue: e.target.value })
-                      }
-                      placeholder="Enter time"
-                    />
-
-                    {/* Dropdown for Unit */}
-                    <CFormSelect
-                      name="minTimeUnit"
-                      className="ms-2"
-                      value={newService.minTimeUnit || ''}
-                      onChange={(e) =>
-                        setNewService({ ...newService, minTimeUnit: e.target.value })
-                      }
-                    >
-                      <option value="" disabled>
-                        Select Time
-                      </option>
-                      <option value="minutes">Minutes</option>
-                      <option value="hours">Hours</option>
-                    </CFormSelect>
-                  </div>
-
-                  {/* Validation error */}
-                  {errors.minTime && (
-                    <CFormText className="text-danger">{errors.minTime}</CFormText>
-                  )}
-                </div>
-              </CCol>
-            </CRow>
-            <CRow className="mb-4">
-
-
-
-              <CCol md={3}>
-                <h6>
-                  Procedure Price <span className="text-danger">*</span>
-                </h6>
-                <CFormInput
-                  type="number"
-                  value={newService.price || ''}
-                  onChange={(e) => setNewService((prev) => ({ ...prev, price: e.target.value }))}
-                />
-
-                {errors.price && <CFormText className="text-danger">{errors.price}</CFormText>}
-              </CCol>
-
-              <CCol md={3}>
-                <h6>
-                  Discount (%) <span className="text-danger">*</span>
-                </h6>
-                <CFormInput
-                  type="number"
-                  placeholder="Discount"
-                  value={newService.discount || ''}
-                  name="discount"
-                  onChange={handleChange}
-                  min={1}
-                  onKeyDown={(e) => {
-                    if (e.key === '-' || e.key === 'e') e.preventDefault()
-                  }}
-                />
-                {errors.discount && (
-                  <CFormText className="text-danger">{errors.discount}</CFormText>
-                )}
-              </CCol>
-              <CCol md={3}>
-                <h6>
-                  GST (%)<span className="text-danger">*</span>
-                </h6>
-                <CFormInput
-                  type="number"
-                  value={newService.gst || ''}
-                  onChange={(e) =>
-                    setNewService((prev) => ({ ...prev, gst: Number(e.target.value) }))
-                  }
-                />
-              </CCol>
-              <CCol md={3}>
-                <h6>Other Taxes(%)</h6>
-                <CFormInput
-                  type="number"
-                  placeholder="Tax Percentage"
-                  value={newService.taxPercentage || ''}
-                  name="taxPercentage"
-                  onChange={handleChange}
-                  min={1}
-                  onKeyDown={(e) => {
-                    if (e.key === '-' || e.key === 'e') e.preventDefault()
-                  }}
-                />
-                {errors.taxPercentage && (
-                  <CFormText className="text-danger">{errors.taxPercentage}</CFormText>
-                )}
-              </CCol>
-
-
-            </CRow>
-
-            <h6 className="m-3">Procedure (Optional)</h6>
-
-            <ProcedureQA
-              preQAList={newService.preProcedureQA}
-              setPreQAList={(data) => setNewService((prev) => ({ ...prev, preProcedureQA: data }))}
-              procedureQAList={newService.procedureQA}
-              setProcedureQAList={(data) =>
-                setNewService((prev) => ({ ...prev, procedureQA: data }))
-              }
-              postQAList={newService.postProcedureQA}
-              setPostQAList={(data) =>
-                setNewService((prev) => ({ ...prev, postProcedureQA: data }))
-              }
-            />
-          </CForm>
-        </CModalBody>
-        <CModalFooter>
-          <CButton color="secondary" onClick={AddCancel}>
-            Cancel
-          </CButton>
-          <CButton
-            color="info"
-            className="text-white"
-            onClick={modalMode === 'edit' ? handleUpdateService : handleAddService}
-          >
-            {modalMode === 'edit' ? 'Update' : 'Add'}
-          </CButton>
-        </CModalFooter>
-      </CModal>
-
+      {/* ── Table ── */}
       {loading ? (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '300px',
-            fontSize: '1.5rem',
-            color: '#555',
-          }}
-        >
-          Loading...
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: t.textMuted, fontSize: '14px' }}>
+          Loading procedures…
         </div>
       ) : error ? (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '300px',
-            fontSize: '1.2rem',
-            color: 'red',
-          }}
-        >
-          {error}
-        </div>
+        <div style={{ textAlign: 'center', padding: '40px', color: t.danger, fontSize: '13px' }}>{error}</div>
       ) : (
-        <div
-          className="border rounded p-3 shadow-sm"
-          style={{
-            backgroundColor: '#fff',
-            borderColor: '#e0e0e0',
-          }}
-        >
+        <div style={{ border: `1px solid ${t.border}`, borderRadius: t.radius, overflow: 'hidden', backgroundColor: '#fff' }}>
           <DataTable
             columns={columns}
             data={filteredData.length > 0 ? filteredData : service}
             pagination
-            paginationPerPage={5} // 👈 Default number of rows per page
-            paginationRowsPerPageOptions={[5, 10, 15, 20, 30, 40, 50]} // 👈 Dropdown options
+            paginationPerPage={5}
+            paginationRowsPerPageOptions={[5, 10, 15, 20, 30, 50]}
             highlightOnHover
             pointerOnHover
             customStyles={{
-              table: {
-                style: {
-                  backgroundColor: '#fff',
-
-                },
-              },
-              headRow: {
-                style: {
-                  backgroundColor: '#a5c4d4ff',
-                  minHeight: '52px',
-                },
-              },
-              headCells: {
-                style: {
-                  color: '#7e3a93',
-                  fontWeight: '600',
-                  fontSize: '0.95rem',
-
-
-                },
-              },
-
-              cells: {
-                style: {
-
-                  fontSize: '0.9rem',
-                  color: '#7e3a93',
-                  padding: '12px 14px',
-                },
-              },
-              pagination: {
-                style: {
-                  borderTop: '1px solid #e0e0e0',
-                  color: '#7e3a93',
-                  fontWeight: 500,
-                  padding: '10px',
-                },
-              },
+              table:    { style: { backgroundColor: '#fff', color: t.text } },
+              headRow:  { style: { backgroundColor: t.surface, borderBottom: `2px solid ${t.border}`, minHeight: '44px' } },
+              headCells:{ style: { color: t.text, fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '10px 14px' } },
+              cells:    { style: { fontSize: '12px', color: t.text, padding: '10px 14px', borderBottom: `1px solid ${t.border}` } },
+              pagination:{ style: { borderTop: `1px solid ${t.border}`, color: t.textMuted, fontSize: '12px' } },
+              rows:     { highlightOnHoverStyle: { backgroundColor: t.surface, transition: 'background-color .15s' } },
             }}
           />
-
         </div>
       )}
+
+      {/* ══ VIEW MODAL ══════════════════════════════════════════════════ */}
+      {viewService && (
+        <CModal visible={!!viewService} onClose={() => setViewService(null)} size="xl" backdrop="static">
+          <CModalHeader style={{ backgroundColor: PRIMARY, padding: '14px 20px', borderBottom: 'none' }}>
+            <CModalTitle style={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}>
+              Procedure Details
+            </CModalTitle>
+          </CModalHeader>
+
+          <CModalBody style={{ padding: '20px', backgroundColor: '#f8fafc', color: t.text }}>
+
+            {/* Basic Info */}
+            <div style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px', marginBottom: '14px' }}>
+              <SectionHeading title="Basic Information" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px 24px' }}>
+                {[
+                  ['Procedure Name', viewService.subServiceName],
+                  ['Procedure ID', viewService.subServiceId],
+                  ['Service Name', viewService.serviceName],
+                  ['Category Name', viewService.categoryName],
+                  ['Consent Form', consentFormTypeLabels[viewService.consentFormType] || 'N/A'],
+                ].map(([label, val]) => (
+                  <div key={label}>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>{label}</div>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: t.text }}>{val || '—'}</div>
+                  </div>
+                ))}
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Status</div>
+                  <span style={{
+                    fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px',
+                    backgroundColor: viewService.status === 'Active' ? '#dcfce7' : '#f1f5f9',
+                    color: viewService.status === 'Active' ? t.success : t.textMuted,
+                    border: `1px solid ${viewService.status === 'Active' ? '#86efac' : t.border}`,
+                  }}>{viewService.status}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing */}
+            <div style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px', marginBottom: '14px' }}>
+              <SectionHeading title="Pricing & Fees" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px 24px' }}>
+                {[
+                  ['Price', `₹${viewService.price ? Math.round(viewService.price) : '—'}`],
+                  ['Discount %', viewService.discountPercentage ? Math.round(viewService.discountPercentage) + '%' : '—'],
+                  ['Discount Amt', `₹${viewService.discountAmount ? Math.round(viewService.discountAmount) : '—'}`],
+                  ['Discounted Cost', `₹${viewService.discountedCost ? Math.round(viewService.discountedCost) : '—'}`],
+                  ['Tax %', viewService.taxPercentage ? Math.round(viewService.taxPercentage) + '%' : '—'],
+                  ['Tax Amount', `₹${viewService.taxAmount ? Math.round(viewService.taxAmount) : '—'}`],
+                  ['Platform Fee %', viewService.platformFeePercentage ? Math.round(viewService.platformFeePercentage) + '%' : '—'],
+                  ['Platform Fee', `₹${viewService.platformFee ? Math.round(viewService.platformFee) : '—'}`],
+                  ['Clinic Pay', `₹${viewService.clinicPay ? Math.round(viewService.clinicPay) : '—'}`],
+                  ['GST', `₹${viewService.gst ? Math.round(viewService.gst) : '—'}`],
+                  ['Consultation Fee', `₹${viewService.consultationFee ?? '—'}`],
+                  ['Final Cost', `₹${viewService.finalCost ? Math.round(viewService.finalCost) : '—'}`],
+                  ['Service Time', viewService.minTime ? formatMinutes(viewService.minTime) : '—'],
+                ].map(([label, val]) => (
+                  <div key={label}>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>{label}</div>
+                    <div style={{ fontSize: '13px', fontWeight: label === 'Final Cost' ? '700' : '500', color: label === 'Final Cost' ? PRIMARY : t.text }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Q&A */}
+            {['preProcedureQA', 'procedureQA', 'postProcedureQA'].map((qaType, i) => {
+              const titles = { preProcedureQA: 'Pre-Procedure Q&A', procedureQA: 'Procedure Q&A', postProcedureQA: 'Post-Procedure Q&A' }
+              const qaData = viewService[qaType]
+              return (
+                <div key={i} style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px', marginBottom: '14px' }}>
+                  <SectionHeading title={titles[qaType]} />
+                  {Array.isArray(qaData) && qaData.length > 0 ? (
+                    qaData.map((qa, idx) => {
+                      const q = Object.keys(qa)[0]; const ans = qa[q]
+                      return (
+                        <div key={idx} style={{ marginBottom: '10px', padding: '10px', backgroundColor: t.surface, borderRadius: t.radiusSm, border: `1px solid ${t.border}` }}>
+                          <div style={{ fontSize: '12px', fontWeight: '700', color: t.text, marginBottom: '6px' }}>{q}</div>
+                          <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                            {ans.map((a, j) => <li key={j} style={{ fontSize: '12px', color: t.textMuted }}>{a}</li>)}
+                          </ul>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div style={{ fontSize: '12px', color: t.textMuted, fontStyle: 'italic' }}>No Q&amp;A available</div>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Image & Description */}
+            <div style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px' }}>
+              <SectionHeading title="Additional Details" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: t.textMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service Image</div>
+                  {viewService.subServiceImage
+                    ? <img src={`data:image/png;base64,${viewService.subServiceImage}`} alt="Service" style={{ maxWidth: '200px', borderRadius: t.radiusSm, border: `1px solid ${t.border}` }} />
+                    : <span style={{ fontSize: '12px', color: t.textMuted }}>No image available</span>
+                  }
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: t.textMuted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>View Description</div>
+                  <div style={{ fontSize: '13px', color: t.text }}>{viewService.viewDescription || 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+          </CModalBody>
+
+          <CModalFooter style={{ borderTop: `1px solid ${t.border}`, padding: '12px 20px' }}>
+            <Btn variant="secondary" onClick={() => setViewService(null)}>Close</Btn>
+          </CModalFooter>
+        </CModal>
+      )}
+
+      {/* ══ ADD / EDIT MODAL ════════════════════════════════════════════ */}
+      <CModal visible={modalVisible} onClose={() => setModalVisible(false)} size="xl" backdrop="static">
+        <CModalHeader style={{ backgroundColor: PRIMARY, padding: '14px 20px', borderBottom: 'none' }}>
+          <CModalTitle style={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}>
+            {modalMode === 'edit' ? 'Edit Procedure Details' : 'Add New Procedure'}
+          </CModalTitle>
+        </CModalHeader>
+
+        <CModalBody style={{ padding: '20px', backgroundColor: '#f8fafc', color: t.text }}>
+          <CForm>
+
+            {/* ── Section: Classification ── */}
+            <div style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px', marginBottom: '14px' }}>
+              <SectionHeading title="Classification" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+                <MField label="Category" required error={errors.categoryName}>
+                  <Sel name="categoryId" value={newService.categoryId || ''} onChange={handleChanges} disabled={modalMode === 'edit'} error={errors.categoryName}>
+                    <option value="">Select Category</option>
+                    {category.map(cat => <option key={cat.categoryId} value={cat.categoryId}>{cat.categoryName}</option>)}
+                  </Sel>
+                </MField>
+                <MField label="Service" required error={errors.serviceName}>
+                  <Sel name="serviceName" value={newService.serviceName || ''} onChange={handleChanges} disabled={modalMode === 'edit'} error={errors.serviceName}>
+                    <option value="">Select Service</option>
+                    {serviceOptions.map(s => <option key={s.serviceId} value={s.serviceName}>{s.serviceName}</option>)}
+                  </Sel>
+                </MField>
+                <MField label="Procedure Name" required error={errors.subServiceName}>
+                  <Sel name="subServiceId" value={selectedSubService} disabled={modalMode === 'edit'} error={errors.subServiceName}
+                    onChange={e => {
+                      const id = e.target.value; setSelectedSubService(id)
+                      const obj = subServiceOptions?.subServices?.find(s => s.subServiceId === id)
+                      setNewService(prev => ({ ...prev, subServiceId: id, subServiceName: obj?.subServiceName || '' }))
+                    }}>
+                    <option value="">Select Procedure</option>
+                    {Array.isArray(subServiceOptions?.subServices) && subServiceOptions.subServices.map(sub =>
+                      <option key={sub.subServiceId} value={sub.subServiceId}>{sub.subServiceName}</option>
+                    )}
+                  </Sel>
+                </MField>
+              </div>
+            </div>
+
+            {/* ── Section: Details ── */}
+            <div style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px', marginBottom: '14px' }}>
+              <SectionHeading title="Procedure Details" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+
+                <MField label="Procedure Image" required error={errors.subServiceImage}>
+                  <input type="file" accept="image/*" style={{ width: '100%', fontSize: '12px', color: t.text }}
+                    onChange={e => {
+                      const file = e.target.files[0]; if (!file) return
+                      const reader = new FileReader()
+                      reader.onloadend = () => setNewService(prev => ({ ...prev, subServiceImage: reader.result?.split(',')[1] || '', subServiceImageFile: file }))
+                      reader.readAsDataURL(file)
+                    }} />
+                  {newService.subServiceImage && (
+                    <img src={newService.subServiceImage.startsWith('data:') ? newService.subServiceImage : `data:image/jpeg;base64,${newService.subServiceImage}`}
+                      alt="Preview" style={{ width: 70, height: 70, marginTop: 8, borderRadius: t.radiusSm, border: `1px solid ${t.border}`, objectFit: 'cover' }} />
+                  )}
+                </MField>
+
+                <MField label="View Description" required error={errors.viewDescription}>
+                  <Inp type="text" name="viewDescription" value={newService.viewDescription || ''} onChange={handleChange} maxLength={100} placeholder="Short description…" />
+                </MField>
+
+                <MField label="Status" required error={errors.status}>
+                  <Sel name="status" value={newService.status || ''} onChange={handleChange} error={errors.status}>
+                    <option value="">Select Status</option>
+                    <option value="Active">Active</option>
+                    <option value="InActive">Inactive</option>
+                  </Sel>
+                </MField>
+
+                <MField label="Consent Form Type" required error={errors.consentFormType}>
+                  <Sel value={newService.consentFormType || ''} error={errors.consentFormType}
+                    onChange={e => setNewService(prev => ({ ...prev, consentFormType: e.target.value }))}>
+                    <option value="">Select type</option>
+                    <option value="1">Generic ConsentForm</option>
+                    <option value="2">Procedure ConsentForm</option>
+                  </Sel>
+                </MField>
+
+                <MField label="Consultation Fee" required error={errors.consultationFee}>
+                  <Inp type="number" value={newService.consultationFee || ''} placeholder="₹"
+                    onChange={e => setNewService(prev => ({ ...prev, consultationFee: Number(e.target.value) }))} />
+                </MField>
+
+                <MField label="Min Time" required error={errors.minTime}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <Inp type="number" name="minTimeValue" value={newService.minTimeValue || ''} placeholder="e.g. 30"
+                      onChange={e => setNewService(prev => ({ ...prev, minTimeValue: e.target.value }))}
+                      style={{ flex: 1 }} />
+                    <Sel name="minTimeUnit" value={newService.minTimeUnit || 'minutes'}
+                      onChange={e => setNewService(prev => ({ ...prev, minTimeUnit: e.target.value }))}
+                      style={{ width: '110px', flexShrink: 0 }}>
+                      <option value="minutes">Minutes</option>
+                      <option value="hours">Hours</option>
+                    </Sel>
+                  </div>
+                </MField>
+              </div>
+            </div>
+
+            {/* ── Section: Pricing ── */}
+            <div style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px', marginBottom: '14px' }}>
+              <SectionHeading title="Pricing" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
+                <MField label="Procedure Price (₹)" required error={errors.price}>
+                  <Inp type="number" value={newService.price || ''} placeholder="₹"
+                    onChange={e => setNewService(prev => ({ ...prev, price: e.target.value }))} />
+                </MField>
+                <MField label="Discount (%)" required error={errors.discount}>
+                  <Inp type="number" name="discount" value={newService.discount || ''} onChange={handleChange} min={0}
+                    onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault() }} />
+                </MField>
+                <MField label="GST (%)" required error={errors.gst}>
+                  <Inp type="number" value={newService.gst || ''}
+                    onChange={e => setNewService(prev => ({ ...prev, gst: Number(e.target.value) }))} />
+                </MField>
+                <MField label="Other Taxes (%)">
+                  <Inp type="number" name="taxPercentage" value={newService.taxPercentage || ''} onChange={handleChange} min={0}
+                    onKeyDown={e => { if (e.key === '-' || e.key === 'e') e.preventDefault() }} />
+                </MField>
+              </div>
+            </div>
+
+            {/* ── Q&A ── */}
+            <div style={{ backgroundColor: '#fff', borderRadius: t.radius, border: `1px solid ${t.border}`, padding: '18px' }}>
+              <SectionHeading title="Procedure Q&A (Optional)" />
+              <ProcedureQA
+                preQAList={newService.preProcedureQA}
+                setPreQAList={data => setNewService(prev => ({ ...prev, preProcedureQA: data }))}
+                procedureQAList={newService.procedureQA}
+                setProcedureQAList={data => setNewService(prev => ({ ...prev, procedureQA: data }))}
+                postQAList={newService.postProcedureQA}
+                setPostQAList={data => setNewService(prev => ({ ...prev, postProcedureQA: data }))}
+              />
+            </div>
+
+          </CForm>
+        </CModalBody>
+
+        <CModalFooter style={{ borderTop: `1px solid ${t.border}`, padding: '12px 20px', gap: '8px' }}>
+          <Btn variant="secondary" onClick={() => { setNewService(emptyService); setErrors({}); setModalVisible(false) }}>
+            Cancel
+          </Btn>
+          <Btn onClick={modalMode === 'edit' ? handleUpdateService : handleAddService}>
+            {modalMode === 'edit' ? 'Update Procedure' : 'Add Procedure'}
+          </Btn>
+        </CModalFooter>
+      </CModal>
     </div>
   )
 }

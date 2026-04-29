@@ -24,7 +24,10 @@ a {
   color: var(--color-black) !important; /* #7e3a93 */
   font-size: 14px !important;
 }
-
+.search-input::placeholder {
+  color: #ffffff !important;
+  opacity: 1;
+}
 /* Optional: make striped rows light pink dynamically */
 .table-striped > tbody > tr:nth-of-type(odd) {
   background-color: var(

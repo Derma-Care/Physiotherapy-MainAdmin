@@ -1,22 +1,16 @@
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import Logo from './header/DermaLogoP.png'
+import Logo from './header/Kinetix.jpg.jpeg'
 
 import {
-  CCloseButton,
   CSidebar,
-  CSidebarBrand,
   CSidebarFooter,
   CSidebarHeader,
   CSidebarToggler,
 } from '@coreui/react'
-import CIcon from '@coreui/icons-react'
 
 import { AppSidebarNav } from './AppSidebarNav'
 import './sidebar.css'
-import { COLORS } from '../Constant/Themes'
-
-// sidebar nav config
 import navigation from '../_nav'
 
 const AppSidebar = () => {
@@ -27,8 +21,7 @@ const AppSidebar = () => {
   return (
     <CSidebar
       className="border-end"
-     style={{ background: 'var(--color-bgcolor)' }}
-      color={COLORS.teal}
+      style={{ backgroundColor: '#1B4F8A' }}
       position="fixed"
       unfoldable={unfoldable}
       visible={sidebarShow}
@@ -36,41 +29,90 @@ const AppSidebar = () => {
         dispatch({ type: 'set', sidebarShow: visible })
       }}
     >
-      <CSidebarHeader className="border-bottom">
-        <div to="/">
-          <div className="d-flex justify-content-center">
+      <CSidebarHeader
+        style={{
+          backgroundColor: '#1B4F8A',
+          borderBottom: '1px solid rgba(255,255,255,0.15)',
+          padding: '20px 16px 16px',
+        }}
+      >
+        {/* Logo Box */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          {/* White card behind logo */}
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '10px',
+              width: '90px',
+              height: '90px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            }}
+          >
             <img
               src={Logo}
-              alt="DermaCare Logo"
-              style={{ width: '140px', height: '120px', marginBottom: '0px', marginLeft: '30px' }}
+              alt="Kinetix Wellness Care Logo"
+              style={{
+                width: '70px',
+                height: '70px',
+                objectFit: 'contain',
+                borderRadius: '6px',
+              }}
             />
           </div>
-          <div
-            className="d-flex justify-content-center underline-none"
-            style={{ marginLeft: '20px' }}
-          >
+
+          {/* Brand Name */}
+          <div style={{ textAlign: 'center' }}>
             <h1
               style={{
-                fontSize: '30px',
-                background: 'linear-gradient(to right, #0072CE, #00AEEF)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                fontWeight: 'bold',
+                fontSize: '18px',
+                color: '#ffffff',
+                fontWeight: '700',
+                margin: 0,
+                letterSpacing: '0.3px',
+                lineHeight: '1.3',
               }}
             >
-              DermaCare
+              Kinetix Wellness Care
             </h1>
+           
           </div>
+
+          {/* Decorative divider */}
+          <div
+            style={{
+              width: '60px',
+              height: '2px',
+              background: 'linear-gradient(to right, transparent, #f9c571, transparent)',
+              borderRadius: '2px',
+            }}
+          />
         </div>
-        {/* <CCloseButton
-          className="d-lg-none"
-          dark
-          onClick={() => dispatch({ type: 'set', sidebarShow: false })}
-        /> */}
       </CSidebarHeader>
+
       <AppSidebarNav items={navigation} />
-      <CSidebarFooter className="border-top d-none d-lg-flex">
-        <CSidebarToggler onClick={() => dispatch({ type: 'set', sidebarShow: !sidebarShow })} />
+
+      <CSidebarFooter
+        className="border-top d-none d-lg-flex"
+        style={{
+          backgroundColor: '#1B4F8A',
+          borderTop: '1px solid rgba(255,255,255,0.15)',
+        }}
+      >
+        <CSidebarToggler
+          onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
+          style={{ color: '#ffffff' }}
+        />
       </CSidebarFooter>
     </CSidebar>
   )

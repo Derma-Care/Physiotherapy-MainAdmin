@@ -11,33 +11,61 @@ const ConfirmationModal = ({
   cancelText = 'Cancel',
   confirmColor = 'danger',
   cancelColor = 'secondary',
+  isLoading = false,   // ✅ added
 }) => {
   return (
-    <CModal visible={isVisible} onClose={onCancel} alignment="center" backdrop="static" className='custom-modal'>
+    <CModal 
+      visible={isVisible} 
+      onClose={onCancel} 
+      alignment="center" 
+      backdrop="static" 
+      className="custom-modal"
+    >
       {/* Header */}
       <CModalHeader>
-        <CModalTitle style={{ color: 'var(--color-black)' }}>⚠ {title}</CModalTitle>
+        <CModalTitle style={{ color: 'var(--color-black)' }}>
+          ⚠ {title}
+        </CModalTitle>
       </CModalHeader>
 
       {/* Body */}
-      <CModalBody style={{ color: 'var(--color-black)', textAlign: 'center' }}>
+      <CModalBody 
+        style={{ color: 'var(--color-black)', textAlign: 'center' }}
+      >
         {message}
       </CModalBody>
 
       {/* Footer */}
-      <CModalFooter style={{ color: 'var(--color-bgcolor)', justifyContent: 'center' }}>
-        <CButton color={cancelColor} onClick={onCancel} style={{ minWidth: '100px' }}>
+      <CModalFooter 
+        style={{ justifyContent: 'center' }}
+      >
+        <CButton 
+          color={cancelColor} 
+          onClick={onCancel} 
+          disabled={isLoading}   // ✅ prevent cancel while loading
+          style={{ minWidth: '100px' }}
+        >
           {cancelText}
         </CButton>
+
         <CButton
+          color={confirmColor}
           onClick={onConfirm}
+          disabled={isLoading}   // ✅ prevent double click
           style={{
             minWidth: '100px',
-            color: 'red',
+            color: 'white',
             backgroundColor: 'var(--color-black)',
           }}
         >
-          {confirmText}
+          {isLoading ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2" />
+              Deleting...
+            </>
+          ) : (
+            confirmText
+          )}
         </CButton>
       </CModalFooter>
     </CModal>

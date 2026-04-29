@@ -1,1008 +1,612 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  CButton,
   CForm,
   CFormInput,
-  CInputGroup,
-  CInputGroupText,
   CModal,
   CModalHeader,
   CModalTitle,
   CModalBody,
   CModalFooter,
-  CRow,
-  CCol,
-  CCard,
-  CCardHeader,
-  CFormSelect,
   CTable,
   CTableHead,
   CTableRow,
   CTableHeaderCell,
   CTableBody,
   CTableDataCell,
-  CPagination,
-  CPaginationItem, CCardBody,
-  CSpinner,
+  CFormSelect,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSearch, cilTrash } from '@coreui/icons'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { getAllServices, postServiceData, updateServiceData, deleteServiceData, getServiceByServiceId } from './ServiceAPI'
+import {
+  getAllServices, postServiceData, updateServiceData,
+  deleteServiceData, getServiceByServiceId,
+} from './ServiceAPI'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import Select from 'react-select'
-import { cilXCircle } from '@coreui/icons'
 import LoadingIndicator from '../../Utils/loader'
-import { Edit2, Eye, Trash2 } from 'lucide-react'
-import { COLORS } from '../../Constant/Themes'
+import { Edit2, Eye, Trash2, Layers, Save, X } from 'lucide-react'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 const ServiceManagement = () => {
-  const fileInputRef = useRef(null);
+  const fileInputRef     = useRef(null)
+  const editFileInputRef = useRef(null)
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [service, setService] = useState([])
-  const [categories, setCategories] = useState([])
-  const [filteredData, setFilteredData] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [modalVisible, setModalVisible] = useState(false)
-  const [viewService, setViewService] = useState(null)
-  const [editServiceMode, setEditServiceMode] = useState(false)
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [serviceIdToDelete, setServiceIdToDelete] = useState(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(5)
-  const [selectedService, setSelectedService] = useState(null)
+  const [searchQuery, setSearchQuery]           = useState('')
+  const [service, setService]                   = useState([])
+  const [categories, setCategories]             = useState([])
+  const [filteredData, setFilteredData]         = useState([])
+  const [loading, setLoading]                   = useState(false)
+  const [error, setError]                       = useState(null)
+  const [modalVisible, setModalVisible]         = useState(false)
+  const [selectedService, setSelectedService]   = useState(null)
   const [viewModalVisible, setViewModalVisible] = useState(false)
+  const [editServiceMode, setEditServiceMode]   = useState(false)
+  const [isModalVisible, setIsModalVisible]     = useState(false)
+  const [serviceIdToDelete, setServiceIdToDelete] = useState(null)
+  const [currentPage, setCurrentPage]           = useState(1)
+  const [itemsPerPage, setItemsPerPage]         = useState(5)
 
-  const [errors, setErrors] = useState({
-    serviceName: '',
-    categoryId: '',
-    description: '',
-    serviceImage: '',
-  })
-
-  const [newService, setNewService] = useState({
-    serviceName: '',
-    categoryId: '',
-    description: '',
-    serviceImage: null,
-  })
-
-  const [updatedService, setUpdatedService] = useState({
-    ServiceId: '',
-    ServiceName: '',
-    categoryId: '',
-    description: '',
-    serviceImage: null,
-    existingImageName: ''
-  })
-
+  const [errors, setErrors]         = useState({ serviceName: '', categoryId: '', description: '', serviceImage: '' })
   const [editErrors, setEditErrors] = useState({})
 
+  const [newService, setNewService] = useState({
+    serviceName: '', categoryId: '', description: '', serviceImage: null,
+  })
+  const [updatedService, setUpdatedService] = useState({
+    ServiceId: '', ServiceName: '', categoryId: '',
+    description: '', serviceImage: null, existingImageName: '',
+  })
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────
   const fetchData = async () => {
     setLoading(true)
     try {
-      const servicesResponse = await getAllServices()
-      if (!servicesResponse || !servicesResponse.data) {
-        throw new Error('Invalid services response')
-      }
-
-      const categoriesResponse = await CategoryData()
-      if (!categoriesResponse || !categoriesResponse.data) {
-        throw new Error('Invalid categories response')
-      }
-
-      setService(servicesResponse.data.data || servicesResponse.data)
-      setCategories(categoriesResponse.data)
-    } catch (error) {
-      console.error('Fetch error:', error)
+      const [svcRes, catRes] = await Promise.all([getAllServices(), CategoryData()])
+      setService(svcRes.data?.data || svcRes.data)
+      setCategories(catRes.data)
+    } catch {
       setError('Failed to fetch data')
       toast.error('Error loading data')
     } finally {
       setLoading(false)
     }
   }
-  const handleViewService = async (serviceId) => {
-    const data = await getServiceByServiceId(serviceId);
-    setSelectedService(data);
-    setViewModalVisible(true);
-  };
+
+  useEffect(() => { fetchData() }, [])
 
   useEffect(() => {
-    fetchData()
-  }, [])
-
-  // Replace the useEffect with the search functionality:
-  useEffect(() => {
-    const handleSearch = () => {
-      const trimmedQuery = searchQuery.toLowerCase().trim()
-      if (!trimmedQuery) {
-        setFilteredData(service)
-        return
-      }
-      const filtered = service.filter((services) => {
-        const serviceNameMatch = services.serviceName?.toLowerCase().includes(trimmedQuery)
-        const categoryMatch = services.categoryName?.toLowerCase().includes(trimmedQuery)
-
-        return serviceNameMatch || categoryMatch
-      })
-      setFilteredData(filtered)
-    }
-
-    handleSearch()
+    const q = searchQuery.toLowerCase().trim()
+    setFilteredData(
+      q ? service.filter(s =>
+        s.serviceName?.toLowerCase().includes(q) ||
+        s.categoryName?.toLowerCase().includes(q)
+      ) : service
+    )
+    setCurrentPage(1)
   }, [searchQuery, service])
 
-
-  // Calculate pagination values
-  // Make sure these variables use filteredData instead of filteredServices:
-  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfLastItem  = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const currentItems     = filteredData.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages       = Math.ceil(filteredData.length / itemsPerPage)
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
-
-    if (!file) return
-
-    if (!file.type.startsWith("image/")) {
-      setErrors((prev) => ({ ...prev, serviceImage: "Only image files are allowed" }))
-      return
-    }
-
-    // if (file.size > 100 * 1024) {
-    //   setErrors((prev) => ({ ...prev, serviceImage: "File size must be < 100kb" }))
-    //   return
-    // }
-
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      let base64String = reader.result.split(",")[1]
-      setNewService((prev) => ({ ...prev, serviceImage: base64String }))
-      setErrors((prev) => ({ ...prev, serviceImage: '' }))
-    }
-    reader.readAsDataURL(file)
+  // ── View ──────────────────────────────────────────────────────────────────
+  const handleViewService = async (serviceId) => {
+    const data = await getServiceByServiceId(serviceId)
+    setSelectedService(data)
+    setViewModalVisible(true)
   }
 
+  // ── File helpers ──────────────────────────────────────────────────────────
+  const readBase64 = (file) => new Promise((res) => {
+    const r = new FileReader(); r.readAsDataURL(file)
+    r.onloadend = () => res(r.result?.split(',')[1])
+  })
 
-  const handleServiceChange = (e) => {
-    const { name, value } = e.target;
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0]; if (!file) return
+    if (!file.type.startsWith('image/')) { setErrors(p => ({ ...p, serviceImage: 'Only image files allowed' })); return }
+    const b64 = await readBase64(file)
+    setNewService(p => ({ ...p, serviceImage: b64 }))
+    setErrors(p => ({ ...p, serviceImage: '' }))
+  }
 
-    let formatted = value.replace(/\s+/g, ' '); // remove extra spaces
-
-    setNewService((prev) => ({
-      ...prev,
-      [name]: formatted,
-    }));
-
-    // Clear error when updating value
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
-
-
-  const validateEditField = (name, value) => {
-    let error = "";
-
-    if (name === "ServiceName" && !value.trim())
-      error = "Service name is required.";
-
-    if (name === "description" && !value.trim())
-      error = "Description is required.";
-
-    if (name === "categoryId" && !value)
-      error = "Category is required.";
-
-    if (name === "serviceImage" && !value && !updatedService.existingImageName)
-      error = "Service image is required.";
-
-    setEditErrors(prev => ({ ...prev, [name]: error }));
-    return error === "";
-  };
-
+  // ── Add ───────────────────────────────────────────────────────────────────
   const handleAddService = async () => {
-    setErrors({}); // reset
-
-    const trimmedName = newService.serviceName.trim();
-    const trimmedDescription = newService.description.trim();
-
-    const newErrors = {};
-
-    // ⭐ SERVICE NAME VALIDATION (NO NUMBERS)
-    if (!trimmedName)
-      newErrors.serviceName = "Service Name is required.";
-    else if (!/^[A-Za-z\s@&\-\.,()]+$/.test(trimmedName))
-      newErrors.serviceName = "Only letters, spaces & @, &, -, ., (, ) allowed. Numbers are NOT allowed.";
-    else if (/^\d+$/.test(trimmedName))
-      newErrors.serviceName = "Service Name cannot be only numbers.";
-    else if (trimmedName.length < 3)
-      newErrors.serviceName = "Minimum 3 characters required.";
-
-    // ⭐ DESCRIPTION VALIDATION (NUMBERS ALLOWED)
-    if (!trimmedDescription)
-      newErrors.description = "Description is required.";
-    else if (trimmedDescription.length < 10)
-      newErrors.description = "Minimum 10 characters required.";
-    else if (!/^[A-Za-z0-9\s@&\-\.,()]+$/.test(trimmedDescription))
-      newErrors.description = "Only letters, numbers, spaces & @, &, -, ., (, ) allowed.";
-
-    // ⭐ CATEGORY VALIDATION
-    if (!newService.categoryId)
-      newErrors.categoryId = "Category is required.";
-
-    // ⭐ IMAGE VALIDATION
-    if (!newService.serviceImage)
-      newErrors.serviceImage = "Service image is required.";
-
-    // ❌ STOP IF ERRORS
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
+    const newErrors = {}
+    const name = newService.serviceName.trim()
+    const desc = newService.description.trim()
+    if (!name) newErrors.serviceName = 'Service Name is required.'
+    else if (!/^[A-Za-z\s@&\-\.,()]+$/.test(name)) newErrors.serviceName = 'Only letters and basic symbols allowed.'
+    else if (name.length < 3) newErrors.serviceName = 'Minimum 3 characters required.'
+    if (!desc) newErrors.description = 'Description is required.'
+    else if (desc.length < 10) newErrors.description = 'Minimum 10 characters required.'
+    if (!newService.categoryId) newErrors.categoryId = 'Category is required.'
+    if (!newService.serviceImage) newErrors.serviceImage = 'Service image is required.'
+    if (Object.keys(newErrors).length) { setErrors(newErrors); return }
+    if (service.some(s => s.serviceName?.toLowerCase() === name.toLowerCase())) {
+      setErrors({ serviceName: 'Service already exists.' }); return
     }
-
-    // 🔁 DUPLICATE CHECK
-    const duplicate = service.some(
-      (s) => s.serviceName?.toLowerCase() === trimmedName.toLowerCase()
-    );
-    if (duplicate) {
-      setErrors({ serviceName: "Service already exists." });
-      return;
-    }
-
-    const payload = {
-      ...newService,
-      serviceName: trimmedName,
-      description: trimmedDescription,
-    };
-
     try {
-      await postServiceData(payload);
-      toast.success("Service added successfully!");
-      setModalVisible(false);
+      await postServiceData({ ...newService, serviceName: name, description: desc })
+      toast.success('Service added successfully!')
+      setModalVisible(false)
+      setNewService({ serviceName: '', categoryId: '', description: '', serviceImage: null })
+      fetchData()
+    } catch { toast.error('Failed to add service') }
+  }
 
-      // Reset Form
-      setNewService({
-        serviceName: "",
-        categoryId: "",
-        description: "",
-        serviceImage: null,
-      });
-
-      fetchData();
-    } catch {
-      toast.error("Failed to add service");
-    }
-  };
-
-
-
-  const handleServiceEdit = (service) => {
+  // ── Edit ──────────────────────────────────────────────────────────────────
+  const handleServiceEdit = (svc) => {
     setUpdatedService({
-      ServiceId: service.serviceId,
-      ServiceName: service.serviceName,
-      categoryId: service.categoryId || '',
-      description: service.description || '',
-      serviceImage: service.serviceImage,
-      existingImageName: service.serviceImage ? "Existing image" : ''
+      ServiceId: svc.serviceId, ServiceName: svc.serviceName,
+      categoryId: svc.categoryId || '', description: svc.description || '',
+      serviceImage: svc.serviceImage, existingImageName: svc.serviceImage ? 'Existing image' : '',
     })
+    setEditErrors({})
     setEditServiceMode(true)
   }
 
   const handleUpdateService = async () => {
-    setEditErrors({});
-
-    const trimmedName = updatedService.ServiceName.trim();
-    const trimmedDescription = updatedService.description.trim();
-
-    const newErrors = {};
-
-    // ⭐ SERVICE NAME VALIDATION (NO NUMBERS)
-    if (!trimmedName)
-      newErrors.ServiceName = "Service Name is required.";
-    else if (!/^[A-Za-z\s@&\-\.,()]+$/.test(trimmedName))
-      newErrors.ServiceName = "Only letters, spaces & @, &, -, ., (, ) allowed. Numbers are NOT allowed.";
-    else if (/^\d+$/.test(trimmedName))
-      newErrors.ServiceName = "Service Name cannot be only numbers.";
-    else if (trimmedName.length < 3)
-      newErrors.ServiceName = "Minimum 3 characters required.";
-
-    // ⭐ DESCRIPTION VALIDATION (NUMBERS ALLOWED)
-    if (!trimmedDescription)
-      newErrors.description = "Description is required.";
-    else if (trimmedDescription.length < 5)
-      newErrors.description = "Minimum 5 characters required.";
-    else if (!/^[A-Za-z0-9\s@&\-\.,()]+$/.test(trimmedDescription))
-      newErrors.description = "Only letters, numbers, spaces & @, &, -, ., (, ) allowed.";
-
-    // ⭐ CATEGORY VALIDATION
-    if (!updatedService.categoryId)
-      newErrors.categoryId = "Category is required.";
-
-    // ⭐ IMAGE VALIDATION
-    if (!updatedService.serviceImage && !updatedService.existingImageName)
-      newErrors.serviceImage = "Service image is required.";
-
-    // ❌ STOP IF ERRORS
-    if (Object.keys(newErrors).length > 0) {
-      setEditErrors(newErrors);
-      return;
+    const newErrors = {}
+    const name = updatedService.ServiceName.trim()
+    const desc = updatedService.description.trim()
+    if (!name) newErrors.ServiceName = 'Service Name is required.'
+    else if (!/^[A-Za-z\s@&\-\.,()]+$/.test(name)) newErrors.ServiceName = 'Only letters and basic symbols allowed.'
+    else if (name.length < 3) newErrors.ServiceName = 'Minimum 3 characters required.'
+    if (!desc) newErrors.description = 'Description is required.'
+    else if (desc.length < 5) newErrors.description = 'Minimum 5 characters required.'
+    if (!updatedService.categoryId) newErrors.categoryId = 'Category is required.'
+    if (!updatedService.serviceImage && !updatedService.existingImageName) newErrors.serviceImage = 'Service image is required.'
+    if (Object.keys(newErrors).length) { setEditErrors(newErrors); return }
+    if (service.some(s => s.serviceName?.toLowerCase() === name.toLowerCase() && s.serviceId !== updatedService.ServiceId)) {
+      setEditErrors({ ServiceName: 'Service already exists.' }); return
     }
-
-    // 🔁 DUPLICATE CHECK
-    const duplicate = service.some(
-      (s) =>
-        s.serviceName.toLowerCase() === trimmedName.toLowerCase() &&
-        s.serviceId !== updatedService.ServiceId
-    );
-    if (duplicate) {
-      setEditErrors({ ServiceName: "Service already exists." });
-      return;
-    }
-
-    // IMAGE HANDLING
-    let imageBase64 = updatedService.serviceImage;
-    if (imageBase64 && typeof imageBase64 !== "string") {
-      imageBase64 = await toBase64(imageBase64);
-    }
-
-    const payload = {
-      serviceId: updatedService.ServiceId,
-      serviceName: trimmedName,
-      categoryId: updatedService.categoryId,
-      description: trimmedDescription,
-      serviceImage: imageBase64?.includes("base64,")
-        ? imageBase64.split(",")[1]
-        : imageBase64,
-    };
-
+    let img = updatedService.serviceImage
+    if (img && typeof img !== 'string') img = (await readBase64(img))
+    else if (img?.includes('base64,')) img = img.split(',')[1]
     try {
-      await updateServiceData(payload, updatedService.ServiceId);
-      toast.success("Service updated successfully!");
-      setEditServiceMode(false);
-      fetchData();
-    } catch {
-      toast.error("Failed to update service");
-    }
-  };
-
-
-  const toBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      reader.onload = () => resolve(reader.result)
-      reader.onerror = (error) => reject(error)
-    })
-
-  const handleServiceDelete = (serviceId) => {
-    setServiceIdToDelete(serviceId)
-    setIsModalVisible(true)
+      await updateServiceData({ serviceId: updatedService.ServiceId, serviceName: name, categoryId: updatedService.categoryId, description: desc, serviceImage: img }, updatedService.ServiceId)
+      toast.success('Service updated successfully!')
+      setEditServiceMode(false); fetchData()
+    } catch { toast.error('Failed to update service') }
   }
 
+  // ── Delete ────────────────────────────────────────────────────────────────
   const handleConfirmDelete = async () => {
     try {
       await deleteServiceData(serviceIdToDelete)
       toast.success('Service deleted successfully!')
-      setIsModalVisible(false)
-      await fetchData()
-    } catch (error) {
-      toast.error('Failed to delete service')
-    }
+      setIsModalVisible(false); fetchData()
+    } catch { toast.error('Failed to delete service') }
   }
 
-  const handleCancelDelete = () => {
-    setIsModalVisible(false)
+  const categoryOptions = categories?.map(c => ({ value: c.categoryId, label: c.categoryName })) || []
+
+  const reactSelectStyles = {
+    control: (base, state) => ({
+      ...base, fontSize: 13, minHeight: 36,
+      borderColor: state.isFocused ? '#185fa5' : '#d0dce9',
+      borderWidth: '0.5px', borderRadius: 7, boxShadow: 'none',
+      '&:hover': { borderColor: '#185fa5' },
+    }),
+    option: (base, state) => ({
+      ...base, fontSize: 13,
+      backgroundColor: state.isSelected ? '#185fa5' : state.isFocused ? '#f0f5fb' : '#fff',
+      color: state.isSelected ? '#fff' : '#374151',
+    }),
+    menu: (base) => ({ ...base, fontSize: 13, zIndex: 9999 }),
+    placeholder: (base) => ({ ...base, fontSize: 13, color: '#9ca3af' }),
   }
 
-  const handleCancelAdd = () => {
-    setNewService({
-      serviceName: '',
-      categoryId: '',
-      description: '',
-      serviceImage: null,
-    })
-    setErrors({})
-    setModalVisible(false)
-  }
+  // ── Shared field/image helpers ────────────────────────────────────────────
+  const Field = ({ label, required, error, children }) => (
+    <div className="sm-field">
+      <label className="sm-label">{label}{required && <span className="sm-required">*</span>}</label>
+      {children}
+      {error && <span className="sm-error-text">{error}</span>}
+    </div>
+  )
 
-  const categoryOptions =
-    categories?.map((cat) => ({
-      value: cat.categoryId,
-      label: cat.categoryName,
-    })) || []
+  const ImgPreview = ({ src, onRemove }) => (
+    <div className="sm-img-preview-wrap">
+      <img src={src} alt="Preview" className="sm-img-preview" />
+      <button type="button" className="sm-img-remove" onClick={onRemove}><Trash2 size={13} /></button>
+    </div>
+  )
 
   return (
-    <div className="container-fluid p-4">
+    <div className="sm-page">
       <ToastContainer />
-      <CCard>
 
-        <CCardHeader className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Service Management</h5>
-          <div className="d-flex" style={{ gap: '1rem' }}>
-            <CInputGroup style={{ width: '300px' }}>
-              <CFormInput
-                style={{ border: "1px solid #7e3a93" }}
-                placeholder="Search Service / Category..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <CInputGroupText style={{ border: "1px solid #7e3a93" }}>
-                <CIcon icon={cilSearch} />
-              </CInputGroupText>
-            </CInputGroup>
-
-            <CButton color="secondary"
-              style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setModalVisible(true)}>
-              + Add Service
-            </CButton>
+      {/* ── Page header ── */}
+      <div className="sm-page-header">
+        <div className="sm-title-group">
+          <div className="sm-page-icon"><Layers size={20} /></div>
+          <div>
+            <h4 className="sm-page-title">Service Management</h4>
+            <p className="sm-page-sub">{service.length} service{service.length !== 1 ? 's' : ''} registered</p>
           </div>
-        </CCardHeader>
+        </div>
+        <div className="sm-header-right">
+          <div className="sm-search-wrap">
+            <CIcon icon={cilSearch} className="sm-search-icon" />
+            <input className="sm-search-input" type="text"
+              placeholder="Search service / category…"
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          </div>
+          <button className="sm-add-btn" onClick={() => setModalVisible(true)}>+ Add Service</button>
+        </div>
+      </div>
 
-        {loading ? (
-          <LoadingIndicator message="Fetching services, please wait..." />
-        ) : error ? (
-          <div>{error}</div>
-        ) : (
-          <>
-            <CTable striped hover responsive>
-              <CTableHead className='pink-table'>
-                <CTableRow>
-                  <CTableHeaderCell >S.No</CTableHeaderCell>
-                  <CTableHeaderCell>Service Name</CTableHeaderCell>
-                  <CTableHeaderCell>Category Name</CTableHeaderCell>
-                  <CTableHeaderCell>Description</CTableHeaderCell>
-                  <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody className='pink-table'>
-                {currentItems && currentItems.length > 0 ? (
-                  currentItems.map((service, index) => (
-                    <CTableRow key={service.serviceId || index}>
-                      <CTableDataCell>{(currentPage - 1) * itemsPerPage + index + 1}</CTableDataCell>
-                      <CTableDataCell>{service.serviceName}</CTableDataCell>
-                      <CTableDataCell>{service.categoryName}</CTableDataCell>
-                      <CTableDataCell>{service.description || 'N/A'}</CTableDataCell>
-                      <CTableDataCell className="text-center">
-                        <div className="d-flex justify-content-center align-items-center gap-2">
-                          <button
-                            // color="primary"
-                            className="actionBtn"
-                            onClick={() => handleViewService(service.serviceId)}
-                            title="View"
-                          >
-                            <Eye size={18} />
-                          </button>
-
-                          <button
-                            className="actionBtn"
-                            onClick={() => handleServiceEdit(service)}
-                            title="Edit"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            className="actionBtn"
-                            onClick={() => handleServiceDelete(service.serviceId)}
-                            title="Delete"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-
-                        </div>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))
-                ) : (
-                  <CTableRow>
-                    <CTableDataCell colSpan={5} className="text-center">
-                      No records found
-                    </CTableDataCell>
-                  </CTableRow>
-                )}
-              </CTableBody>
-            </CTable>
-
-            {/* Pagination Controls */}
-            {filteredData.length > 0 && (
-              <div className="d-flex justify-content-between align-items-center mt-3">
-                <div>
-                  <span className="me-2 ms-2">Rows per page:</span>
-                  <CFormSelect
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value))
-                      setCurrentPage(1)
-                    }}
-                    style={{ width: '80px', display: 'inline-block' }}
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </CFormSelect>
-                </div>
-                <div>
-                  <span className="me-3">
-                    Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} entries
-                  </span>
-                  <CPagination>
-                    <CPaginationItem
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </CPaginationItem>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <CPaginationItem
-                        key={i + 1}
-                        active={i + 1 === currentPage}
-                        onClick={() => setCurrentPage(i + 1)}
-                      >
-                        {i + 1}
-                      </CPaginationItem>
-                    ))}
-                    <CPaginationItem
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </CPaginationItem>
-                  </CPagination>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Add Service Modal */}
-        <CModal visible={modalVisible} onClose={handleCancelAdd} backdrop="static" className='custom-modal'>
-          <CModalHeader>
-            <CModalTitle>Add New Service</CModalTitle>
-          </CModalHeader>
-          <CModalBody>
-            <CForm
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAddService();
-              }}
-              id="addServiceForm"
-            >
-              {/* Category */}
-              <div className="mb-3">
-                <label className="form-label">
-                  Category <span style={{ color: 'red' }}>*</span>
-                </label>
-                <Select
-                  name="categoryId"
-                  options={categoryOptions}
-                  value={categoryOptions.find((opt) => opt.value === newService.categoryId) || null}
-                  onChange={(selectedOption) =>
-                    handleServiceChange({
-                      target: {
-                        name: 'categoryId',
-                        value: selectedOption ? selectedOption.value : '',
-                      },
-                    })
-                  }
-                  placeholder="Search or select a category"
-                  isClearable
-                  className={errors.categoryId ? 'is-invalid' : ''}
-                />
-                {errors.categoryId && (
-                  <div className="invalid-feedback d-block">{errors.categoryId}</div>
-                )}
-              </div>
-
-              {/* Service Name */}
-              <div className="mb-3">
-                <label className="form-label">
-                  Service Name <span style={{ color: 'red' }}>*</span>
-                </label>
-                <CFormInput
-                  type="text"
-                  name="serviceName"
-                  value={newService.serviceName || ''}
-                  onChange={handleServiceChange}
-                  className={errors.serviceName ? 'is-invalid' : ''}
-                  autoCapitalize="none"
-                  autoComplete="off"
-                  style={{ textTransform: 'none' }}
-                />
-
-                {errors.serviceName && (
-                  <div className="invalid-feedback d-block">{errors.serviceName}</div>
-                )}
-              </div>
-
-              {/* Description */}
-              <div className="mb-3">
-                <label className="form-label">
-                  Description <span style={{ color: 'red' }}>*</span>
-                </label>
-                <CFormInput
-                  type="text"
-                  name="description"
-                  value={newService.description || ''}
-                  onChange={handleServiceChange}
-                  className={errors.description ? 'is-invalid' : ''}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddService();
-                    }
-                  }}
-                />
-                {errors.description && (
-                  <div className="invalid-feedback d-block">{errors.description}</div>
-                )}
-              </div>
-
-              {/* Service Image */}
-              <div className="mb-3 position-relative">
-                <label className="form-label">
-                  Service Image <span style={{ color: 'red' }}>*</span>
-                </label>
-
-                {/* <div className="mb-3 position-relative">
-  <label className="form-label">
-    Service Image <span style={{ color: "red" }}>*</span>
-  </label> */}
-
-                {/* File Input */}
-                <CFormInput
-                  type="file"
-                  name="serviceImage"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className={errors.serviceImage ? "is-invalid" : ""}
-                  ref={fileInputRef}
-                />
-
-                {/* Preview Image */}
-                {newService.serviceImage && (
-                  <div
-                    className="position-relative mt-2"
-                    style={{ display: "inline-block", width: "auto", height: "auto" }}
-                  >
-                    <img
-                      src={
-                        newService.serviceImage.startsWith("data:image")
-                          ? newService.serviceImage
-                          : `data:image/png;base64,${newService.serviceImage}`
-                      }
-                      alt="Service"
-                      className="rounded shadow-md"
-                      style={{ width: "150px", height: "150px", objectFit: "cover", display: "block" }}
-                    />
-
-                    {/* Close Icon Overlay */}
-                    <CIcon
-                      icon={cilTrash}
-                      size="xl"
-                      className="position-absolute bg-white rounded-circle p-1 shadow"
-                      style={{
-                        top: "-10px", // negative to overlap the corner
-                        right: "-10px", // negative to overlap the corner
-                        color: "red",
-                        cursor: "pointer",
-                        border: "1px solid #ddd",
-                      }}
-                      onClick={() => {
-                        setNewService((prev) => ({ ...prev, serviceImage: null }));
-                        setErrors((prev) => ({ ...prev, serviceImage: "" }));
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Validation Error */}
-                {errors.serviceImage && (
-                  <div className="invalid-feedback d-block">{errors.serviceImage}</div>
-                )}
-              </div>
-            </CForm>
-          </CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" onClick={handleCancelAdd}>
-              Cancel
-            </CButton>
-            <CButton
-              type="submit"
-              color="primary"
-              form="addServiceForm"
-            >
-              Add Service
-            </CButton>
-          </CModalFooter>
-        </CModal>
-
-        {/* View Service Modal */}
-        <CModal
-          visible={viewModalVisible}
-          onClose={() => setViewModalVisible(false)}
-          size="lg"
-          backdrop="static"
-          className="service-details-modal"
-        >
-          <CModalHeader className="bg-info text-white text-center justify-content-center">
-            <CModalTitle className="fw-bold fs-4" style={{ color: "white" }}>
-              <i className="bi bi-info-circle me-2" ></i> Service Details
-            </CModalTitle>
-          </CModalHeader>
-
-          <CModalBody className="bg-light">
-            {selectedService ? (
-              <div className="p-3">
-                <CCard className="shadow-sm border-0 rounded-4 overflow-hidden">
-                  {selectedService.serviceImage && (
-                    <div className="text-center bg-white py-3 border-bottom">
-                      <img
-                        src={`data:image/jpeg;base64,${selectedService.serviceImage}`}
-                        alt={selectedService.serviceName}
-                        style={{
-                          maxWidth: "180px",
-                          borderRadius: "12px",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                        }}
-                      />
+      {/* ── Table ── */}
+      {loading ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 200 }}>
+          <LoadingIndicator message="Loading services…" />
+        </div>
+      ) : error ? (
+        <div className="sm-error">{error}</div>
+      ) : (
+        <div className="sm-table-wrapper">
+          <CTable className="sm-table">
+            <CTableHead>
+              <CTableRow>
+                <CTableHeaderCell className="sm-th" style={{ width: 60 }}>S.No</CTableHeaderCell>
+                <CTableHeaderCell className="sm-th">Service Name</CTableHeaderCell>
+                <CTableHeaderCell className="sm-th">Category</CTableHeaderCell>
+                <CTableHeaderCell className="sm-th">Description</CTableHeaderCell>
+                <CTableHeaderCell className="sm-th" style={{ width: 120 }}>Actions</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
+            <CTableBody>
+              {currentItems.length > 0 ? currentItems.map((svc, index) => (
+                <CTableRow key={svc.serviceId || index} className="sm-tr">
+                  <CTableDataCell className="sm-td sm-td-num">{indexOfFirstItem + index + 1}</CTableDataCell>
+                  <CTableDataCell className="sm-td"><span className="sm-name">{svc.serviceName}</span></CTableDataCell>
+                  <CTableDataCell className="sm-td sm-muted">{svc.categoryName}</CTableDataCell>
+                  <CTableDataCell className="sm-td sm-muted" style={{ maxWidth: 260 }}>
+                    <span className="sm-desc">{svc.description || 'N/A'}</span>
+                  </CTableDataCell>
+                  <CTableDataCell className="sm-td">
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="sm-action-btn sm-view-btn" title="View" onClick={() => handleViewService(svc.serviceId)}><Eye size={14} /></button>
+                      <button className="sm-action-btn sm-edit-btn" title="Edit" onClick={() => handleServiceEdit(svc)}><Edit2 size={14} /></button>
+                      <button className="sm-action-btn sm-delete-btn" title="Delete" onClick={() => { setServiceIdToDelete(svc.serviceId); setIsModalVisible(true) }}><Trash2 size={14} /></button>
                     </div>
-                  )}
-                  <CCardBody>
-                    <CRow className="gy-3">
-                      <CCol sm={6}>
-                        <p className="mb-1 text-secondary fw-semibold">Service Name</p>
-                        <p className="fs-6 fw-bold text-dark">
-                          {selectedService.serviceName}
-                        </p>
-                      </CCol>
-                      <CCol sm={6}>
-                        <p className="mb-1 text-secondary fw-semibold">Category</p>
-                        <p className="fs-6 fw-bold text-dark">
-                          {selectedService.categoryName}
-                        </p>
-                      </CCol>
-                      <CCol xs={12}>
-                        <p className="mb-1 text-secondary fw-semibold">Description</p>
-                        <p className="fs-6 text-dark">
-                          {selectedService.description || "N/A"}
-                        </p>
-                      </CCol>
-                    </CRow>
-                  </CCardBody>
-                </CCard>
+                  </CTableDataCell>
+                </CTableRow>
+              )) : (
+                <CTableRow>
+                  <CTableDataCell colSpan={5}>
+                    <div className="sm-empty">
+                      <Layers size={38} className="sm-empty-icon" />
+                      <p>{searchQuery ? 'No matching services found.' : 'No services available.'}</p>
+                    </div>
+                  </CTableDataCell>
+                </CTableRow>
+              )}
+            </CTableBody>
+          </CTable>
+        </div>
+      )}
+
+      {/* ── Pagination ── */}
+      {filteredData.length > 0 && (
+        <div className="sm-pagination">
+          {/* Left: rows per page */}
+          <div className="sm-rows-select">
+            <span>Rows per page:</span>
+            <select className="sm-select" value={itemsPerPage}
+              onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}>
+              {[5, 10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          {/* Right: prev / page numbers / next / page info */}
+          <div className="sm-page-controls">
+            <button className="sm-page-btn" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>
+              ‹ Prev
+            </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button key={i} className={`sm-page-btn sm-page-num ${i + 1 === currentPage ? 'sm-page-btn--active' : ''}`}
+                onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
+            ))}
+            <button className="sm-page-btn" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>
+              Next ›
+            </button>
+            <span className="sm-page-label">Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong></span>
+          </div>
+        </div>
+      )}
+
+      {/* ── View Modal ── */}
+      <CModal visible={viewModalVisible} onClose={() => setViewModalVisible(false)} backdrop="static" alignment="center">
+        <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>
+          <CModalTitle style={{ fontSize: 15, fontWeight: 600, color: '#0c447c', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Layers size={16} color="#185fa5" /> Service Details
+          </CModalTitle>
+        </CModalHeader>
+        <CModalBody style={{ padding: '20px' }}>
+          {selectedService ? (
+            <div className="sm-view-body">
+              {selectedService.serviceImage && (
+                <div className="sm-view-img-wrap">
+                  <img src={`data:image/jpeg;base64,${selectedService.serviceImage}`} alt={selectedService.serviceName} className="sm-view-img" />
+                </div>
+              )}
+              <div className="sm-view-grid">
+                <div className="sm-view-field"><span className="sm-view-label">Service Name</span><span className="sm-view-value">{selectedService.serviceName}</span></div>
+                <div className="sm-view-field"><span className="sm-view-label">Category</span><span className="sm-view-value">{selectedService.categoryName}</span></div>
+                <div className="sm-view-field" style={{ gridColumn: '1/-1' }}><span className="sm-view-label">Description</span><span className="sm-view-value">{selectedService.description || 'N/A'}</span></div>
               </div>
-            ) : (
-              <div className="text-center py-4 text-muted">
-                <i className="bi bi-exclamation-triangle fs-3 text-warning"></i>
-                <p className="mt-2">No details available</p>
-              </div>
+            </div>
+          ) : <p style={{ color: '#9ca3af', textAlign: 'center' }}>No details available</p>}
+        </CModalBody>
+        <CModalFooter style={{ borderTop: '0.5px solid #d0dce9', padding: '12px 20px' }}>
+          <button className="sm-btn-cancel" onClick={() => setViewModalVisible(false)}><X size={13} /> Close</button>
+        </CModalFooter>
+      </CModal>
+
+      {/* ── Add Modal ── */}
+      <CModal visible={modalVisible} onClose={() => { setModalVisible(false); setNewService({ serviceName: '', categoryId: '', description: '', serviceImage: null }); setErrors({}) }} backdrop="static" alignment="center">
+        <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>
+          <CModalTitle style={{ fontSize: 15, fontWeight: 600, color: '#0c447c', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Layers size={16} color="#185fa5" /> Add New Service
+          </CModalTitle>
+        </CModalHeader>
+        <CModalBody style={{ padding: '20px' }}>
+          <Field label="Category" required error={errors.categoryId}>
+            <Select styles={reactSelectStyles} options={categoryOptions} isClearable
+              value={categoryOptions.find(o => o.value === newService.categoryId) || null}
+              onChange={(sel) => { setNewService(p => ({ ...p, categoryId: sel?.value || '' })); if (errors.categoryId) setErrors(p => ({ ...p, categoryId: '' })) }}
+              placeholder="Search or select a category" />
+          </Field>
+          <Field label="Service Name" required error={errors.serviceName}>
+            <input className="sm-input" type="text" value={newService.serviceName}
+              onChange={(e) => { setNewService(p => ({ ...p, serviceName: e.target.value })); if (errors.serviceName) setErrors(p => ({ ...p, serviceName: '' })) }} />
+          </Field>
+          <Field label="Description" required error={errors.description}>
+            <input className="sm-input" type="text" value={newService.description}
+              onChange={(e) => { setNewService(p => ({ ...p, description: e.target.value })); if (errors.description) setErrors(p => ({ ...p, description: '' })) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddService() } }} />
+          </Field>
+          <Field label="Service Image" required error={errors.serviceImage}>
+            <input className="sm-input" type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} />
+            {newService.serviceImage && (
+              <ImgPreview src={`data:image/png;base64,${newService.serviceImage}`}
+                onRemove={() => { setNewService(p => ({ ...p, serviceImage: null })); if (fileInputRef.current) fileInputRef.current.value = '' }} />
             )}
-          </CModalBody>
+          </Field>
+        </CModalBody>
+        <CModalFooter style={{ borderTop: '0.5px solid #d0dce9', padding: '12px 20px', gap: 8 }}>
+          <button className="sm-btn-cancel" onClick={() => { setModalVisible(false); setNewService({ serviceName: '', categoryId: '', description: '', serviceImage: null }); setErrors({}) }}><X size={13} /> Cancel</button>
+          <button className="sm-btn-save" onClick={handleAddService}><Save size={13} /> Add Service</button>
+        </CModalFooter>
+      </CModal>
 
-          <CModalFooter className="justify-content-center">
-            <CButton
-              color="light"
-              className="px-4 py-2 border-0 shadow-sm"
-              style={{ backgroundColor: '#6c757d', color: 'white', borderRadius: '8px' }}
-              onClick={() => setViewModalVisible(false)}
-            >
-              Close
-            </CButton>
-          </CModalFooter>
-        </CModal>
+      {/* ── Edit Modal ── */}
+      <CModal visible={editServiceMode} onClose={() => { setEditServiceMode(false); setEditErrors({}) }} backdrop="static" alignment="center">
+        <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>
+          <CModalTitle style={{ fontSize: 15, fontWeight: 600, color: '#0c447c', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Layers size={16} color="#185fa5" /> Edit Service
+          </CModalTitle>
+        </CModalHeader>
+        <CModalBody style={{ padding: '20px' }}>
+          <Field label="Category" required error={editErrors.categoryId}>
+            <select className="sm-input" value={updatedService.categoryId}
+              onChange={(e) => { setUpdatedService(p => ({ ...p, categoryId: e.target.value })); if (editErrors.categoryId) setEditErrors(p => ({ ...p, categoryId: '' })) }}>
+              <option value="">Select Category</option>
+              {categories.map(c => <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>)}
+            </select>
+          </Field>
+          <Field label="Service Name" required error={editErrors.ServiceName}>
+            <input className="sm-input" type="text" value={updatedService.ServiceName}
+              onChange={(e) => { setUpdatedService(p => ({ ...p, ServiceName: e.target.value })); if (editErrors.ServiceName) setEditErrors(p => ({ ...p, ServiceName: '' })) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUpdateService() } }} />
+          </Field>
+          <Field label="Description" required error={editErrors.description}>
+            <input className="sm-input" type="text" value={updatedService.description}
+              onChange={(e) => { setUpdatedService(p => ({ ...p, description: e.target.value })); if (editErrors.description) setEditErrors(p => ({ ...p, description: '' })) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUpdateService() } }} />
+          </Field>
+          <Field label="Service Image" required error={editErrors.serviceImage}>
+            <input className="sm-input" type="file" accept="image/*" ref={editFileInputRef}
+              onChange={async (e) => {
+                const file = e.target.files[0]; if (!file) return
+                if (file.size > 2 * 1024 * 1024) { setEditErrors(p => ({ ...p, serviceImage: 'File size must be less than 2MB' })); return }
+                setUpdatedService(p => ({ ...p, serviceImage: file, existingImageName: file.name }))
+                setEditErrors(p => ({ ...p, serviceImage: '' }))
+              }} />
+            {(updatedService.serviceImage || updatedService.existingImage) && (
+              <ImgPreview
+                src={typeof updatedService.serviceImage === 'string'
+                  ? updatedService.serviceImage.startsWith('data:image')
+                    ? updatedService.serviceImage
+                    : `data:image/png;base64,${updatedService.serviceImage}`
+                  : URL.createObjectURL(updatedService.serviceImage)}
+                onRemove={() => { setUpdatedService(p => ({ ...p, serviceImage: null, existingImageName: '' })); if (editFileInputRef.current) editFileInputRef.current.value = '' }} />
+            )}
+          </Field>
+        </CModalBody>
+        <CModalFooter style={{ borderTop: '0.5px solid #d0dce9', padding: '12px 20px', gap: 8 }}>
+          <button className="sm-btn-cancel" onClick={() => { setEditServiceMode(false); setEditErrors({}) }}><X size={13} /> Cancel</button>
+          <button className="sm-btn-save" onClick={handleUpdateService}><Save size={13} /> Update</button>
+        </CModalFooter>
+      </CModal>
 
+      <ConfirmationModal isVisible={isModalVisible} message="Are you sure you want to delete this service?"
+        onConfirm={handleConfirmDelete} onCancel={() => setIsModalVisible(false)} />
 
-        {/* Edit Service Modal */}
-        <CModal
-          visible={editServiceMode}
-          onClose={() => {
-            setEditServiceMode(false)
-            setEditErrors({})
-          }}
-          backdrop="static" className='custom-modal'
-        >
-          <CModalHeader>
-            <CModalTitle>Edit Service</CModalTitle>
-          </CModalHeader>
-          <CModalBody>
-            <CForm
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleUpdateService();
-              }}
-              id="editServiceForm"
-            >
-              {/* Category */}
-              <div className="mb-3">
-                <label className="form-label">Category <span style={{ color: 'red' }}>*</span></label>
-                <CFormSelect
-                  value={updatedService.categoryId}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setUpdatedService({ ...updatedService, categoryId: value })
-                    validateEditField("categoryId", value)
-                  }}
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.categoryId} value={cat.categoryId}>
-                      {cat.categoryName}
-                    </option>
-                  ))}
-                </CFormSelect>
-                {editErrors.categoryId && (
-                  <div className="text-danger">{editErrors.categoryId}</div>
-                )}
-              </div>
-              {/* Service Name */}
-              <div className="mb-3">
-                <label className="form-label">Service Name <span style={{ color: 'red' }}>*</span></label>
-                <CFormInput
-                  value={updatedService.ServiceName}
-                  onChange={(e) => {
-                    const value = e.target.value
+      {/* ── Styles ── */}
+      <style>{`
+        .sm-page { padding: 4px 0; }
 
-                    setUpdatedService({ ...updatedService, ServiceName: value })
-                    validateEditField("ServiceName", value)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleUpdateService();
-                    }
-                  }}
-                />
-                {editErrors.ServiceName && (
-                  <div className="text-danger">{editErrors.ServiceName}</div>
-                )}
-              </div>
+        /* Header */
+        .sm-page-header {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 12px;
+          margin-bottom: 18px; padding-bottom: 14px;
+          border-bottom: 0.5px solid #d0dce9;
+        }
+        .sm-title-group { display: flex; align-items: center; gap: 12px; }
+        .sm-page-icon {
+          width: 42px; height: 42px; border-radius: 10px;
+          background: #e6f1fb; display: flex; align-items: center;
+          justify-content: center; color: #185fa5; flex-shrink: 0;
+        }
+        .sm-page-title { font-size: 17px; font-weight: 600; color: #0c447c; margin: 0; }
+        .sm-page-sub   { font-size: 12px; color: #6b7280; margin: 0; }
+        .sm-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-              {/* Description */}
-              <div className="mb-3">
-                <label className="form-label">Description <span style={{ color: 'red' }}>*</span></label>
-                <CFormInput
-                  value={updatedService.description}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setUpdatedService({ ...updatedService, description: value })
-                    validateEditField("description", value)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleUpdateService();
-                    }
-                  }}
-                />
-                {editErrors.description && (
-                  <div className="text-danger">{editErrors.description}</div>
-                )}
-              </div>
+        /* Search */
+        .sm-search-wrap { position: relative; }
+        .sm-search-icon {
+          position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+          color: #9ca3af; width: 15px; pointer-events: none;
+        }
+        .sm-search-input {
+          padding: 8px 12px 8px 34px; font-size: 13px; color: #374151;
+          border: 0.5px solid #d0dce9; border-radius: 8px; outline: none;
+          width: 260px; transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .sm-search-input:focus { border-color: #185fa5; box-shadow: 0 0 0 2.5px rgba(24,95,165,0.12); }
 
+        .sm-add-btn {
+          background: #185fa5; color: #fff; border: none;
+          border-radius: 8px; padding: 8px 18px;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          transition: filter 0.15s; white-space: nowrap;
+        }
+        .sm-add-btn:hover { filter: brightness(0.9); }
 
+        /* Table */
+        .sm-table-wrapper {
+          border: 0.5px solid #d0dce9; border-radius: 10px;
+          overflow: hidden; overflow-x: auto; margin-bottom: 12px;
+        }
+        .sm-table { margin-bottom: 0 !important; font-size: 13px; }
+        .sm-th {
+          background: #185fa5 !important; color: #fff !important;
+          font-size: 12px !important; font-weight: 600 !important;
+          padding: 11px 14px !important; white-space: nowrap; border: none !important;
+        }
+        .sm-tr { transition: background 0.12s; }
+        .sm-tr:hover { background: #f0f5fb !important; }
+        .sm-td {
+          padding: 11px 14px !important; vertical-align: middle !important;
+          font-size: 13px; color: #374151;
+          border-bottom: 0.5px solid #eef2f7 !important; border-top: none !important;
+        }
+        .sm-td-num  { color: #9ca3af; font-size: 12px; }
+        .sm-muted   { color: #6b7280; }
+        .sm-name    { font-weight: 600; color: #0c447c; }
+        .sm-desc    {
+          display: -webkit-box; -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical; overflow: hidden;
+        }
 
-              {/* Service Image */}
-              <div className="mb-3">
-                <label className="form-label">Service Image <span style={{ color: 'red' }}>*</span></label>
-                <CFormInput
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    if (file.size > 2 * 1024 * 1024) {
-                      setEditErrors((prev) => ({
-                        ...prev,
-                        serviceImage: "File size must be less than 2MB",
-                      }));
-                      return;
-                    } else {
-                      setEditErrors((prev) => ({
-                        ...prev,
-                        serviceImage: "",
-                      }));
-                    }
-                    setUpdatedService((prev) => ({
-                      ...prev,
-                      serviceImage: file,
-                      existingImageName: file?.name || prev.existingImageName,
-                    }));
-                    validateEditField("serviceImage", file);
-                  }}
-                  ref={fileInputRef}
-                  className={editErrors.serviceImage ? "is-invalid" : ""}
-                />
+        /* Action buttons */
+        .sm-action-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 30px; height: 30px; border: none; border-radius: 7px;
+          cursor: pointer; transition: filter 0.12s, transform 0.1s;
+        }
+        .sm-action-btn:hover  { filter: brightness(0.88); transform: scale(1.07); }
+        .sm-action-btn:active { transform: scale(0.95); }
+        .sm-view-btn   { background: #e6f1fb; color: #185fa5; }
+        .sm-edit-btn   { background: #eaf3de; color: #3b6d11; }
+        .sm-delete-btn { background: #fcebeb; color: #a32d2d; }
 
-                {/* Image Preview with Delete Icon */}
-                {(updatedService.serviceImage || updatedService.existingImage) && (
-                  <div className="position-relative mt-3 d-inline-block">
-                    <img
-                      src={
-                        typeof updatedService.serviceImage === "string"
-                          ? updatedService.serviceImage.startsWith("data:image")
-                            ? updatedService.serviceImage
-                            : `data:image/png;base64,${updatedService.serviceImage}`
-                          : URL.createObjectURL(updatedService.serviceImage)
-                      }
-                      alt="Service Preview"
-                      className="rounded shadow"
-                      style={{ width: "120px", height: "120px", objectFit: "cover" }}
-                    />
-                    <CIcon
-                      icon={cilTrash}
-                      size="xxl"
-                      className="position-absolute bg-white rounded-circle p-2 shadow"
-                      style={{
-                        top: "-10px",
-                        right: "-10px",
-                        color: "red",
-                        cursor: "pointer",
-                        border: "1px solid #ddd",
-                        transition: "transform 0.2s ease, background 0.2s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#ffe5e5";
-                        e.currentTarget.style.transform = "scale(1.1)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "white";
-                        e.currentTarget.style.transform = "scale(1)";
-                      }}
-                      onClick={() => {
-                        setUpdatedService((prev) => ({
-                          ...prev,
-                          serviceImage: null,
-                          existingImageName: "",
-                        }));
-                        setEditErrors((prev) => ({ ...prev, serviceImage: "" }));
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                      }}
-                    />
-                  </div>
-                )}
+        /* Empty */
+        .sm-empty {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 10px; padding: 40px 0; color: #9ca3af; font-size: 14px;
+        }
+        .sm-empty-icon { color: #d0dce9; }
+        .sm-error { color: #a32d2d; padding: 20px; text-align: center; }
 
-                {editErrors.serviceImage && (
-                  <div className="text-danger">{editErrors.serviceImage}</div>
-                )}
-              </div>
+        /* ── Pagination (matches screenshot) ── */
+        .sm-pagination {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 12px; padding: 10px 0;
+        }
+        .sm-rows-select { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; }
+        .sm-select {
+          font-size: 12px; padding: 5px 8px;
+          border: 0.5px solid #d0dce9; border-radius: 6px;
+          outline: none; color: #374151; background: #fff;
+        }
+        .sm-page-controls { display: flex; align-items: center; gap: 4px; }
+        .sm-page-btn {
+          height: 32px; min-width: 32px; padding: 0 10px;
+          border: 0.5px solid #d0dce9; border-radius: 6px;
+          background: #fff; color: #374151;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center;
+          transition: background 0.12s, color 0.12s;
+          white-space: nowrap;
+        }
+        .sm-page-num { min-width: 32px; padding: 0; }
+        .sm-page-btn:hover:not(:disabled) { background: #e6f1fb; color: #185fa5; border-color: #b5d4f4; }
+        .sm-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .sm-page-btn--active {
+          background: #185fa5 !important; color: #fff !important;
+          border-color: #185fa5 !important; font-weight: 700 !important;
+        }
+        .sm-page-label { font-size: 12px; color: #6b7280; margin-left: 6px; }
 
-            </CForm>
-          </CModalBody>
-          <CModalFooter>
-            <CButton
-              color="secondary"
-              onClick={() => {
-                setEditServiceMode(false)
-                setEditErrors({})
-              }}
-            >
-              Cancel
-            </CButton>
-            <CButton
-              type="submit"
-              color="primary"
-              form="editServiceForm"
-            >
-              Update
-            </CButton>
-          </CModalFooter>
-        </CModal>
-        <ConfirmationModal
-          isVisible={isModalVisible}
-          message="Are you sure you want to delete this service?"
-          onConfirm={handleConfirmDelete}
-          onCancel={handleCancelDelete}
-        />
+        /* Modal field */
+        .sm-field { margin-bottom: 14px; }
+        .sm-label { display: block; font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+        .sm-required { color: #e24b4a; }
+        .sm-error-text { font-size: 11px; color: #e24b4a; display: block; margin-top: 4px; }
+        .sm-input {
+          width: 100%; padding: 7px 10px; font-size: 12.5px; color: #374151;
+          background: #fff; border: 0.5px solid #d0dce9; border-radius: 7px;
+          outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+          appearance: none; -webkit-appearance: none;
+        }
+        .sm-input:focus { border-color: #185fa5; box-shadow: 0 0 0 2.5px rgba(24,95,165,0.12); }
 
-      </CCard>
+        /* Image preview */
+        .sm-img-preview-wrap { position: relative; display: inline-block; margin-top: 10px; }
+        .sm-img-preview { width: 110px; height: 110px; object-fit: cover; border-radius: 8px; border: 0.5px solid #d0dce9; display: block; }
+        .sm-img-remove {
+          position: absolute; top: -8px; right: -8px;
+          width: 24px; height: 24px; border-radius: 50%;
+          background: #fcebeb; color: #a32d2d; border: 0.5px solid #f5c6c6;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: background 0.12s;
+        }
+        .sm-img-remove:hover { background: #f5c6c6; }
+
+        /* View modal */
+        .sm-view-body { display: flex; flex-direction: column; gap: 16px; }
+        .sm-view-img-wrap { display: flex; justify-content: center; padding: 16px; background: #f0f5fb; border-radius: 10px; }
+        .sm-view-img { max-width: 160px; border-radius: 10px; border: 0.5px solid #d0dce9; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .sm-view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .sm-view-field { display: flex; flex-direction: column; gap: 3px; }
+        .sm-view-label { font-size: 10.5px; font-weight: 600; color: #185fa5; text-transform: uppercase; letter-spacing: 0.3px; }
+        .sm-view-value { font-size: 13px; color: #374151; font-weight: 500; }
+
+        /* Footer buttons */
+        .sm-btn-cancel {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #fff; color: #374151; border: 0.5px solid #d0dce9;
+          border-radius: 8px; padding: 7px 16px; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: background 0.15s;
+        }
+        .sm-btn-cancel:hover { background: #f3f4f6; }
+        .sm-btn-save {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #185fa5; color: #fff; border: none;
+          border-radius: 8px; padding: 7px 18px; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: filter 0.15s;
+        }
+        .sm-btn-save:hover { filter: brightness(0.9); }
+      `}</style>
     </div>
   )
 }

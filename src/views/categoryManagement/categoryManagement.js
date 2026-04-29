@@ -1,37 +1,25 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   CForm,
   CFormInput,
-  CInputGroup,
-  CInputGroupText,
-  CButton,
+  CFormText,
   CModal,
   CModalHeader,
-  CFormText,
   CModalTitle,
   CModalBody,
   CModalFooter,
-  CRow,
-  CCol,
   CTable,
   CTableHead,
   CTableRow,
   CTableHeaderCell,
   CTableBody,
   CTableDataCell,
-  CPagination,
-  CPaginationItem,
-  CFormSelect,
-  CCard,
-  CCardHeader,
-  CCardBody,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilSearch, cilTrash } from '@coreui/icons'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { Edit2, Eye, Trash2 } from 'lucide-react'
+import { Edit2, Eye, Trash2, Tag, Save, X, RotateCcw } from 'lucide-react'
 
 import {
   CategoryData,
@@ -40,11 +28,12 @@ import {
   deleteCategoryData,
 } from './CategoryAPI'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
-import { COLORS } from '../../Constant/Themes'
 import LoadingIndicator from '../../Utils/loader'
 
 const CategoryManagement = () => {
   const fileInputRef = useRef(null)
+  const editFileInputRef = useRef(null)
+
   const [searchQuery, setSearchQuery] = useState('')
   const [category, setCategory] = useState([])
   const [filteredData, setFilteredData] = useState([])
@@ -53,399 +42,245 @@ const CategoryManagement = () => {
   const [modalVisible, setModalVisible] = useState(false)
   const [viewCategory, setViewCategory] = useState(null)
   const [editCategoryMode, setEditCategoryMode] = useState(false)
-  const [categoryToEdit, setCategoryToEdit] = useState(null)
-  const [fileKey, setFileKey] = useState(Date.now()) // used to reset file input
+  const [fileKey, setFileKey] = useState(Date.now())
 
-  const [errors, setErrors] = useState({
-    categoryName: '',
-    categoryImage: '',
-  })
+  const [errors, setErrors] = useState({ categoryName: '', categoryImage: '' })
 
-  const [newCategory, setNewCategory] = useState({
-    categoryName: '',
-    categoryImage: null,
-  })
+  const [newCategory, setNewCategory] = useState({ categoryName: '', categoryImage: null })
 
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [categoryIdToDelete, setCategoryIdToDelete] = useState(null)
   const [updatedCategory, setUpdatedCategory] = useState({
-    categoryId: '',
-    categoryName: '',
-    categoryImage: null,
+    categoryId: '', categoryName: '', categoryImage: null,
   })
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
 
+  // ── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true); setError(null)
     try {
-      console.log('CategoryData calling')
       const data = await CategoryData()
-      console.log('API success:', data.data)
       setCategory(data.data)
-      setFilteredData(data.data) // Initialize filteredData with all data
-    } catch (error) {
-      console.error('Fetch error:', error)
+      setFilteredData(data.data)
+    } catch {
       setError('Failed to fetch category data.')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    console.log('useEffect triggered')
-    fetchData()
-  }, [])
+  useEffect(() => { fetchData() }, [])
 
   useEffect(() => {
-    const handleSearch = () => {
-      const trimmedQuery = searchQuery.toLowerCase().trim()
-
-      if (!trimmedQuery) {
-        setFilteredData(category) // If no search query, show all data
-        return
-      }
-
-      const filtered = category.filter((category) => {
-        const categoryMatch = category.categoryName?.toLowerCase().includes(trimmedQuery)
-        return categoryMatch
-      })
-
-      setFilteredData(filtered)
-      setCurrentPage(1) // Reset to first page when searching
-    }
-
-    handleSearch()
+    const q = searchQuery.toLowerCase().trim()
+    const filtered = q
+      ? category.filter(c => c.categoryName?.toLowerCase().includes(q))
+      : category
+    setFilteredData(filtered)
+    setCurrentPage(1)
   }, [searchQuery, category])
 
-  // Calculate pagination values
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
 
-  // Handle Enter key submission
   useEffect(() => {
-    const handleEnterKey = (e) => {
-      if (e.key === 'Enter' && modalVisible) {
-        e.preventDefault()
-        handleAddCategory()
-      } else if (e.key === 'Enter' && editCategoryMode) {
-        e.preventDefault()
-        handleUpdateCategory()
-      }
-    }
+    if (currentPage > totalPages && currentPage !== 1) setCurrentPage(totalPages || 1)
+  }, [filteredData])
 
-    window.addEventListener('keydown', handleEnterKey)
-
-    return () => {
-      window.removeEventListener('keydown', handleEnterKey)
-    }
-  }, [modalVisible, editCategoryMode, newCategory, updatedCategory])
-
+  // ── Validation ───────────────────────────────────────────────────────────
   const validateField = (name, value) => {
-    let error = "";
-
-    const trimmedValue = value?.trim() || "";
-
-    if (name === "categoryName") {
-      if (!trimmedValue) {
-        error = "Category Name is required.";
-      } else if (trimmedValue.length < 3) {
-        error = "Category Name must be at least 3 characters long.";
-      } else if (/^\d+$/.test(trimmedValue)) {
-        error = "Category Name cannot be only numbers.";
-      } else if (!/^[A-Za-z\s@&\-\.,()]+$/.test(trimmedValue)) {
-        error = "Only letters, spaces & @, &, -, ., (, ) are allowed. Numbers are not permitted.";
-      }
+    let error = ''
+    const t = value?.trim?.() || ''
+    if (name === 'categoryName') {
+      if (!t) error = 'Category Name is required.'
+      else if (t.length < 3) error = 'At least 3 characters required.'
+      else if (/^\d+$/.test(t)) error = 'Cannot be only numbers.'
+      else if (!/^[A-Za-z\s@&\-\.,()]+$/.test(t)) error = 'Only letters and basic symbols allowed.'
     }
-
-    if (name === "categoryImage") {
-      if (!value) {
-        error = "Category Image is required.";
-      }
-    }
-
-    setErrors((prev) => ({ ...prev, [name]: error }));
-    return error === "";
-  };
-
-
-
-  const handleDeleteCategoryImage = () => {
-    setUpdatedCategory((prev) => ({
-      ...prev,
-      categoryImage: null,
-    }))
-    if (fileInputRef.current) {
-      fileInputRef.current.value = null;
-    }
+    if (name === 'categoryImage' && !value) error = 'Category Image is required.'
+    setErrors(prev => ({ ...prev, [name]: error }))
+    return error === ''
   }
-  const handleFileChange = (e) => {
+
+  const getPaginationPages = () => {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+      .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+      .reduce((acc, p, idx, arr) => {
+        if (idx > 0 && p - arr[idx - 1] > 1) acc.push('…')
+        acc.push(p)
+        return acc
+      }, [])
+  }
+
+  // ── File helpers ─────────────────────────────────────────────────────────
+  const readFileAsBase64 = (file) => new Promise((res) => {
+    const r = new FileReader()
+    r.onloadend = () => res(r.result?.split(',')[1])
+    r.readAsDataURL(file)
+  })
+
+  const handleFileChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        setErrors((prev) => ({ ...prev, categoryImage: "Only image files are allowed." }))
-        setNewCategory((prev) => ({ ...prev, categoryImage: null }));
-
-        return
-      }
-      // if (file.size > 100 * 1024) {
-      //   setErrors((prev) => ({ ...prev, categoryImage: "File size must be less than 100kb." }))
-      //   return
-      // }
-
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        let base64String = reader.result?.split(",")[1]
-        setNewCategory((prev) => ({ ...prev, categoryImage: base64String }))
-        validateField("categoryImage", base64String)
-      }
-      reader.readAsDataURL(file)
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, categoryImage: 'Only image files are allowed.' }))
+      return
     }
+    const b64 = await readFileAsBase64(file)
+    setNewCategory(prev => ({ ...prev, categoryImage: b64 }))
+    validateField('categoryImage', b64)
   }
 
-  const validateForm = () => {
-    const fields = ["categoryName", "categoryImage"]
-    const results = fields.map((field) => validateField(field, newCategory[field]))
-    return results.every((res) => res)
+  const handleEditFileChange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, categoryImage: 'Only image files are allowed.' }))
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, categoryImage: 'File size must be less than 2MB.' }))
+      return
+    }
+    const b64 = await readFileAsBase64(file)
+    setUpdatedCategory(prev => ({ ...prev, categoryImage: b64 }))
+    setErrors(prev => ({ ...prev, categoryImage: '' }))
   }
 
+  // ── CRUD ─────────────────────────────────────────────────────────────────
   const handleAddCategory = async () => {
-    const isValidName = validateField("categoryName", newCategory.categoryName);
-    const isValidImage = validateField("categoryImage", newCategory.categoryImage);
-
-    if (!isValidName || !isValidImage) return;
-
+    if (!validateField('categoryName', newCategory.categoryName)) return
+    if (!validateField('categoryImage', newCategory.categoryImage)) return
     try {
-      const payload = {
-        categoryName: newCategory.categoryName.trim(),
-        categoryImage: newCategory.categoryImage,
-      };
-
-      await postCategoryData(payload);
-      toast.success("Category added successfully!");
-
-      fetchData();
-      setModalVisible(false);
-      setNewCategory({ categoryName: "", categoryImage: null });
-    } catch (error) {
-      const message = error.response?.data?.message?.toLowerCase() || "";
-      if (message.includes("exists")) {
-        setErrors(prev => ({ ...prev, categoryName: "Category Name already exists." }));
-      } else toast.error("Failed to add category");
+      await postCategoryData({ categoryName: newCategory.categoryName.trim(), categoryImage: newCategory.categoryImage })
+      toast.success('Category added successfully!')
+      fetchData()
+      setModalVisible(false)
+      setNewCategory({ categoryName: '', categoryImage: null })
+    } catch (err) {
+      const msg = err.response?.data?.message?.toLowerCase() || ''
+      if (msg.includes('exists')) setErrors(prev => ({ ...prev, categoryName: 'Category Name already exists.' }))
+      else toast.error('Failed to add category')
     }
-  };
+  }
 
-
-
-  const handleCategoryEdit = (category) => {
-    console.log('Category to edit:', category)
-    setCategoryToEdit(category)
-    setUpdatedCategory({
-      categoryId: category.categoryId || '',
-      categoryName: category.categoryName || '',
-      categoryImage: category.categoryImage || null,
-    })
+  const handleCategoryEdit = (cat) => {
+    setUpdatedCategory({ categoryId: cat.categoryId || '', categoryName: cat.categoryName || '', categoryImage: cat.categoryImage || null })
     setEditCategoryMode(true)
   }
 
   const handleUpdateCategory = async () => {
-    const isValidName = validateField("categoryName", updatedCategory.categoryName);
-    const isValidImage = validateField("categoryImage", updatedCategory.categoryImage);
-
-    if (!isValidName || !isValidImage) return;
-
+    if (!validateField('categoryName', updatedCategory.categoryName)) return
+    if (!validateField('categoryImage', updatedCategory.categoryImage)) return
     try {
-      const payload = {
-        categoryName: updatedCategory.categoryName.trim(),
-        categoryImage: updatedCategory.categoryImage,
-      };
-
-      await updateCategoryData(payload, updatedCategory.categoryId);
-      toast.success("Category updated successfully!");
-
-      setEditCategoryMode(false);
-      fetchData();
-    } catch (error) {
-      const message = error.response?.data?.message?.toLowerCase() || "";
-      if (message.includes("exists")) {
-        setErrors(prev => ({ ...prev, categoryName: "Category Name already exists." }));
-      } else toast.error("Failed to update category");
+      await updateCategoryData({ categoryName: updatedCategory.categoryName.trim(), categoryImage: updatedCategory.categoryImage }, updatedCategory.categoryId)
+      toast.success('Category updated successfully!')
+      setEditCategoryMode(false)
+      fetchData()
+    } catch (err) {
+      const msg = err.response?.data?.message?.toLowerCase() || ''
+      if (msg.includes('exists')) setErrors(prev => ({ ...prev, categoryName: 'Category Name already exists.' }))
+      else toast.error('Failed to update category')
     }
-  };
+  }
 
+  const handleConfirmDelete = async () => {
+    try {
+      const data = await deleteCategoryData(categoryIdToDelete)
+      setIsModalVisible(false)
+      toast.success(`${data.data}`)
+      await fetchData()
+    } catch { alert('Failed to delete category.') }
+  }
 
+  const resetAdd = () => {
+    setNewCategory({ categoryName: '', categoryImage: null })
+    setErrors({ categoryName: '', categoryImage: '' })
+    setFileKey(Date.now())
+    setModalVisible(false)
+  }
 
-
-  const handleCancel = () => {
-    setUpdatedCategory({
-      categoryId: '',
-      categoryName: '',
-      categoryImage: null,
-    })
+  const resetEdit = () => {
+    setUpdatedCategory({ categoryId: '', categoryName: '', categoryImage: null })
     setErrors({ categoryName: '', categoryImage: '' })
     setEditCategoryMode(false)
   }
 
-  const handleEditFileChange = (e) => {
-    const file = e.target.files[0]
-
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        setErrors((prev) => ({ ...prev, categoryImage: "Only image files are allowed." }))
-        return
-      }
-
-      if (file.size > 2 * 1024 * 1024) {
-        setErrors((prev) => ({ ...prev, categoryImage: "File size must be less than 2MB." }))
-        return
-      }
-
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result?.split(",")[1]
-        setUpdatedCategory((prev) => ({
-          ...prev,
-          categoryImage: base64String,
-        }))
-        setErrors((prev) => ({ ...prev, categoryImage: "" }))
-      }
-      reader.readAsDataURL(file)
-    } else {
-      setErrors((prev) => ({ ...prev, categoryImage: "Category image is required." }))
-    }
-  }
-  const handleClearImage = () => {
-    setNewCategory((prev) => ({ ...prev, categoryImage: null }))
-    setErrors((prev) => ({ ...prev, categoryImage: "" }))
-    setFileKey(Date.now()) // reset input
-  }
-
-  const handleCategoryDelete = (categoryId) => {
-    setCategoryIdToDelete(categoryId)
-    setIsModalVisible(true)
-  }
-  const adjustPageAfterDelete = () => {
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    if (currentPage > totalPages && currentPage !== 1) {
-      setCurrentPage(totalPages || 1);
-    }
-  };
-  useEffect(() => {
-    adjustPageAfterDelete();
-  }, [filteredData]);
-
-  const handleConfirmDelete = async () => {
-    try {
-      const data = await deleteCategoryData(categoryIdToDelete);
-      setIsModalVisible(false);
-      toast.success(`${data.data}`, { position: 'top-right' });
-
-      await fetchData();
-      adjustPageAfterDelete();  // 👈 ADD THIS LINE
-    } catch (error) {
-      alert('Failed to delete category.');
-    }
-  };
-
-  const handleCancelAdd = () => {
-    setNewCategory({
-      categoryName: '',
-      categoryImage: null,
-    })
-    setErrors({ categoryName: '', categoryImage: '' })
-    setModalVisible(false)
-  }
-
-  const handleCancelDelete = () => {
-    setIsModalVisible(false)
-  }
+  // ── Shared name input formatter ───────────────────────────────────────────
+  const formatName = (val) =>
+    val.replace(/[0-9]/g, '').replace(/\s+/g, ' ')
+      .split(' ').filter(w => w).map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ')
 
   return (
-    <CCard className="mt-4">
+    <div className="cm-page">
       <ToastContainer />
-      <CCardHeader>
-        <div className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Categories</h5>
-          <CButton color="secondary"
-            style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }} onClick={() => setModalVisible(true)}>
-            Add Category
-          </CButton>
-        </div>
-      </CCardHeader>
 
-      <CCardBody>
-        <CForm className="d-flex justify-content-between align-items-center mb-4">
-          <div className="col-4 mx-2">
-
-            <CInputGroup style={{ width: '300px' }}>
-              <CFormInput
-                type="text"
-                style={{ border: "1px solid #7e3a93" }}
-                placeholder="Search by Category Name"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-
-              <CInputGroupText style={{ border: "1px solid #7e3a93" }}>
-                <CIcon icon={cilSearch} />
-              </CInputGroupText>
-            </CInputGroup>
+      {/* ── Page header ── */}
+      <div className="cm-page-header">
+        <div className="cm-title-group">
+          <div className="cm-page-icon"><Tag size={20} /></div>
+          <div>
+            <h4 className="cm-page-title">Category Management</h4>
+            <p className="cm-page-sub">{category.length} categor{category.length !== 1 ? 'ies' : 'y'} registered</p>
           </div>
-        </CForm>
-        {loading ? (
-          <LoadingIndicator message="Fetching Categories, please wait..." />
-        ) : error ? (
-          <div>{error}</div>
-        ) : (
-          <CTable striped hover responsive>
-            <CTableHead className="pink-table">
+        </div>
+        <button className="cm-add-btn" onClick={() => setModalVisible(true)}>
+          + Add Category
+        </button>
+      </div>
+
+      {/* ── Search ── */}
+      <div className="cm-search-wrap">
+        <CIcon icon={cilSearch} className="cm-search-icon" />
+        <input
+          className="cm-search-input"
+          type="text"
+          placeholder="Search by category name…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* ── Table ── */}
+      {loading ? (
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 200 }}>
+          <LoadingIndicator message="Loading categories…" />
+        </div>
+      ) : error ? (
+        <div className="cm-error">{error}</div>
+      ) : (
+        <div className="cm-table-wrapper">
+          <CTable className="cm-table">
+            <CTableHead>
               <CTableRow>
-                <CTableHeaderCell className="text-center">S.No</CTableHeaderCell>
-                <CTableHeaderCell>Category Name</CTableHeaderCell>
-                <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
+                <CTableHeaderCell className="cm-th" style={{ width: 60 }}>S.No</CTableHeaderCell>
+                <CTableHeaderCell className="cm-th">Category Name</CTableHeaderCell>
+                <CTableHeaderCell className="cm-th" style={{ width: 130 }}>Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
-
-            <CTableBody className="pink-table">
+            <CTableBody>
               {currentItems.length > 0 ? (
-                currentItems.map((category, index) => (
-                  <CTableRow key={category.categoryId}>
-                    <CTableDataCell className="text-center">
-                      {(currentPage - 1) * itemsPerPage + index + 1}
+                currentItems.map((cat, index) => (
+                  <CTableRow key={cat.categoryId} className="cm-tr">
+                    <CTableDataCell className="cm-td cm-td-num">
+                      {indexOfFirstItem + index + 1}
                     </CTableDataCell>
-
-                    <CTableDataCell>{category.categoryName}</CTableDataCell>
-
-                    <CTableDataCell className="text-center">
-                      <div className="d-flex justify-content-center align-items-center gap-2">
-                        <button
-                          className="actionBtn view"
-                          onClick={() => setViewCategory(category)}
-                          title="View"
-                        >
-                          <Eye size={18} />
-                        </button>
-
-                        <button
-                          className="actionBtn edit"
-                          onClick={() => handleCategoryEdit(category)}
-                          title="Edit"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-
-                        <button
-                          className="actionBtn delete"
-                          onClick={() => handleCategoryDelete(category.categoryId)}
-                          title="Delete"
-                        >
-                          <Trash2 size={18} />
+                    <CTableDataCell className="cm-td">
+                      <span className="cm-cat-name">{cat.categoryName}</span>
+                    </CTableDataCell>
+                    <CTableDataCell className="cm-td">
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="cm-action-btn cm-view-btn" title="View"
+                          onClick={() => setViewCategory(cat)}><Eye size={14} /></button>
+                        <button className="cm-action-btn cm-edit-btn" title="Edit"
+                          onClick={() => handleCategoryEdit(cat)}><Edit2 size={14} /></button>
+                        <button className="cm-action-btn cm-delete-btn" title="Delete"
+                          onClick={() => { setCategoryIdToDelete(cat.categoryId); setIsModalVisible(true) }}>
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </CTableDataCell>
@@ -453,398 +288,408 @@ const CategoryManagement = () => {
                 ))
               ) : (
                 <CTableRow>
-                  <CTableDataCell colSpan={3} className="text-center text-muted">
-                    {searchQuery
-                      ? 'No matching categories found.'
-                      : 'No categories available.'}
+                  <CTableDataCell colSpan={3}>
+                    <div className="cm-empty">
+                      <Tag size={38} className="cm-empty-icon" />
+                      <p>{searchQuery ? 'No matching categories found.' : 'No categories available.'}</p>
+                    </div>
                   </CTableDataCell>
                 </CTableRow>
               )}
             </CTableBody>
           </CTable>
-        )}
+        </div>
+      )}
 
-        {/* Pagination */}
-        {filteredData.length && (
-          <div className="d-flex justify-content-between align-items-center mt-3">
-            <div>
-              <span className="me-2">Rows per page:</span>
-              <CFormSelect
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value))
-                  setCurrentPage(1)
-                }}
-                style={{ width: '80px', display: 'inline-block' }}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </CFormSelect>
-            </div>
-            <div>
-              <span className="me-3">
-                Showing {indexOfFirstItem + 1} to{' '}
-                {Math.min(indexOfLastItem, filteredData.length)} of{' '}
-                {filteredData.length} entries
-              </span>
-              <CPagination>
-                <CPaginationItem
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </CPaginationItem>
-                {[...Array(totalPages)].map((_, i) => (
-                  <CPaginationItem
-                    key={i + 1}
-                    active={i + 1 === currentPage}
-                    onClick={() => setCurrentPage(i + 1)}
-                  >
-                    {i + 1}
-                  </CPaginationItem>
-                ))}
-                <CPaginationItem
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(p + 1, totalPages))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </CPaginationItem>
-              </CPagination>
-            </div>
+      {/* ── Pagination ── */}
+      {filteredData.length > 0 && (
+        <div className="cm-pagination">
+          {/* Left: rows per page */}
+          <div className="cm-rows-select">
+            <span>Rows per page:</span>
+            <select className="cm-select" value={itemsPerPage}
+              onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}>
+              {[5, 10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
           </div>
-        )}
-      </CCardBody>
-      {/* View Category Modal */}
+
+          {/* Right: prev / page numbers / next / page label */}
+          <div className="cm-page-controls">
+            <button
+              className="cm-page-btn"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(currentPage - 1)}
+            >
+              ‹ Prev
+            </button>
+
+            {getPaginationPages().map((p, i) =>
+              p === '…' ? (
+                <span key={`e${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 4px' }}>
+                  …
+                </span>
+              ) : (
+                <button
+                  key={p}
+                  className={`cm-page-btn cm-page-num ${currentPage === p ? 'cm-page-btn--active' : ''}`}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              className="cm-page-btn"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
+              Next ›
+            </button>
+
+            <span className="cm-page-label">
+              Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── View Modal ── */}
       {viewCategory && (
-        <CModal
-          visible={!!viewCategory}
-          onClose={() => setViewCategory(null)}
-          size="lg"
-          backdrop="static"
-          className="category-details-modal"
-        >
-          {/* Header */}
-          <CModalHeader className="bg-info text-white text-center justify-content-center">
-            <CModalTitle className="fw-bold fs-4" style={{ color: "white" }}>
-              <i className="bi bi-tags-fill me-2"></i> Category Details
+        <CModal visible={!!viewCategory} onClose={() => setViewCategory(null)} backdrop="static" alignment="center">
+          <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>
+            <CModalTitle style={{ fontSize: 15, fontWeight: 600, color: '#0c447c', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Tag size={16} color="#185fa5" /> Category Details
             </CModalTitle>
           </CModalHeader>
-
-          {/* Body */}
-          <CModalBody className="bg-light">
-            {viewCategory ? (
-              <div className="p-3">
-                <CCard className="shadow-sm border-0 rounded-4 overflow-hidden">
-                  {viewCategory.categoryImage && (
-                    <div className="text-center bg-white py-3 border-bottom">
-                      <img
-                        src={`data:image/png;base64,${viewCategory.categoryImage}`}
-                        alt="Category"
-                        style={{
-                          maxWidth: "180px",
-                          borderRadius: "12px",
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  <CCardBody>
-                    <CRow className="gy-3">
-                      <CCol sm={6}>
-                        <p className="mb-1 text-secondary fw-semibold">Category ID</p>
-                        <p className="fs-6 fw-bold text-dark">
-                          {viewCategory.categoryId || "N/A"}
-                        </p>
-                      </CCol>
-
-                      <CCol sm={6}>
-                        <p className="mb-1 text-secondary fw-semibold">Category Name</p>
-                        <p className="fs-6 fw-bold text-dark">
-                          {viewCategory.categoryName || "N/A"}
-                        </p>
-                      </CCol>
-                    </CRow>
-                  </CCardBody>
-                </CCard>
+          <CModalBody style={{ padding: '20px' }}>
+            <div className="cm-view-body">
+              {viewCategory.categoryImage && (
+                <div className="cm-view-img-wrap">
+                  <img src={`data:image/png;base64,${viewCategory.categoryImage}`} alt="Category"
+                    className="cm-view-img" />
+                </div>
+              )}
+              <div className="cm-view-grid">
+                <div className="cm-view-field">
+                  <span className="cm-view-label">Category ID</span>
+                  <span className="cm-view-value">{viewCategory.categoryId || 'N/A'}</span>
+                </div>
+                <div className="cm-view-field">
+                  <span className="cm-view-label">Category Name</span>
+                  <span className="cm-view-value">{viewCategory.categoryName || 'N/A'}</span>
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-4 text-muted">
-                <i className="bi bi-exclamation-triangle fs-3 text-warning"></i>
-                <p className="mt-2">No details available</p>
-              </div>
-            )}
+            </div>
           </CModalBody>
-
-          {/* Footer */}
-          <CModalFooter className="justify-content-center">
-            <CButton
-              color="light"
-              className="px-4 py-2 border-0 shadow-sm"
-              style={{ backgroundColor: '#6c757d', color: 'white', borderRadius: '8px' }}
-              onClick={() => setViewCategory(null)}
-            >
-              Close
-            </CButton>
+          <CModalFooter style={{ borderTop: '0.5px solid #d0dce9', padding: '12px 20px' }}>
+            <button className="cm-btn-cancel" onClick={() => setViewCategory(null)}><X size={13} /> Close</button>
           </CModalFooter>
         </CModal>
       )}
 
-      <CModal visible={modalVisible} onClose={handleCancelAdd} backdrop="static" className='custom-modal'>
-        <CModalHeader>
-          <CModalTitle>Add New Category</CModalTitle>
+      {/* ── Add Modal ── */}
+      <CModal visible={modalVisible} onClose={resetAdd} backdrop="static" alignment="center">
+        <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>
+          <CModalTitle style={{ fontSize: 15, fontWeight: 600, color: '#0c447c', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tag size={16} color="#185fa5" /> Add New Category
+          </CModalTitle>
         </CModalHeader>
-        <CModalBody>
-          <CForm
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleAddCategory()
-            }}
-            id="addCategoryForm"
-          >
-            <h6>
-              Category Name <span style={{ color: 'red' }}>*</span>
-            </h6>
+        <CModalBody style={{ padding: '20px' }}>
+          <CForm onSubmit={(e) => { e.preventDefault(); handleAddCategory() }}>
 
-            <CFormInput
-              type="text"
-              placeholder="Category Name"
-              value={newCategory.categoryName || ''}
-              name="categoryName"
-              onChange={(e) => {
-                let value = e.target.value;
+            <div className="cm-field">
+              <label className="cm-label">Category Name <span className="cm-required">*</span></label>
+              <input
+                className="cm-input"
+                type="text"
+                placeholder="Enter category name"
+                value={newCategory.categoryName}
+                onChange={(e) => {
+                  const val = formatName(e.target.value)
+                  setNewCategory(prev => ({ ...prev, categoryName: val }))
+                  if (errors.categoryName) setErrors(prev => ({ ...prev, categoryName: '' }))
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
+              />
+              {errors.categoryName && <span className="cm-error-text">{errors.categoryName}</span>}
+            </div>
 
-                // Replace multiple spaces with single space
-                value = value.replace(/\s+/g, ' ');
-
-                // Block numbers
-                value = value.replace(/[0-9]/g, '');
-
-                // Capitalize each word
-                const formatted = value
-                  .split(' ')
-                  .filter(word => word.length > 0)
-                  .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                  .join(' ');
-
-                setNewCategory(prev => ({ ...prev, categoryName: formatted }));
-
-                // 🔥 Only remove error while typing
-                if (errors.categoryName) {
-                  setErrors(prev => ({ ...prev, categoryName: '' }));
-                }
-              }}
-
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddCategory();
-                }
-              }}
-            />
-
-            {errors.categoryName && (
-              <CFormText className="text-danger">{errors.categoryName}</CFormText>
-            )}
-
-
-            <h6>
-              Category Image <span style={{ color: "red" }}>*</span>
-            </h6>
-            <CFormInput
-              key={fileKey} // changing key resets the input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  handleAddCategory()
-                }
-              }}
-            />
-
-            {/* Image Preview */}
-            {newCategory?.categoryImage && (
-              <div className="position-relative d-inline-block mt-2">
-                <img
-                  src={`data:image/png;base64,${newCategory.categoryImage}`}
-                  alt="Category"
-                  style={{
-                    width: "150px",
-                    height: "150px",
-                    objectFit: "cover",
-                    display: "block",
-                    borderRadius: "8px",
-                  }}
-                />
-                {/* Clear Icon */}
-                <CIcon
-                  icon={cilTrash}
-                  size="xl"
-                  className="position-absolute bg-white rounded-circle p-1 shadow text-danger"
-                  style={{ top: "-8px", right: "-8px", cursor: "pointer", border: "1px solid #ddd" }}
-                  onClick={handleClearImage}
-                />
-              </div>
-            )}
-
-            {/* Validation Error */}
-            {errors.categoryImage && <CFormText className="text-danger">{errors.categoryImage}</CFormText>}
+            <div className="cm-field">
+              <label className="cm-label">Category Image <span className="cm-required">*</span></label>
+              <input key={fileKey} className="cm-input" type="file" accept="image/*"
+                ref={fileInputRef} onChange={handleFileChange} />
+              {newCategory.categoryImage && (
+                <div className="cm-img-preview-wrap">
+                  <img src={`data:image/png;base64,${newCategory.categoryImage}`} alt="Preview" className="cm-img-preview" />
+                  <button type="button" className="cm-img-remove"
+                    onClick={() => { setNewCategory(prev => ({ ...prev, categoryImage: null })); setFileKey(Date.now()) }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              )}
+              {errors.categoryImage && <span className="cm-error-text">{errors.categoryImage}</span>}
+            </div>
 
           </CForm>
         </CModalBody>
-
-        <CModalFooter>
-          <CButton
-            type="submit"
-            color="primary"
-            form="addCategoryForm"
-          >
-            Add
-          </CButton>
-          <CButton color="secondary" onClick={handleCancelAdd}>
-            Cancel
-          </CButton>
+        <CModalFooter style={{ borderTop: '0.5px solid #d0dce9', padding: '12px 20px', gap: 8 }}>
+          <button className="cm-btn-cancel" onClick={resetAdd}><X size={13} /> Cancel</button>
+          <button className="cm-btn-save" onClick={handleAddCategory}><Save size={13} /> Add</button>
         </CModalFooter>
       </CModal>
 
-      <CModal
-        visible={editCategoryMode}
-        onClose={() => {
-          setErrors({ categoryName: '', categoryImage: '' })
-          setEditCategoryMode(false)
-        }}
-        backdrop="static" className='custom-modal'
-      >
-        <CModalHeader>
-          <CModalTitle>Edit Category</CModalTitle>
+      {/* ── Edit Modal ── */}
+      <CModal visible={editCategoryMode} onClose={resetEdit} backdrop="static" alignment="center">
+        <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>
+          <CModalTitle style={{ fontSize: 15, fontWeight: 600, color: '#0c447c', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tag size={16} color="#185fa5" /> Edit Category
+          </CModalTitle>
         </CModalHeader>
-        <CModalBody>
-          <CForm
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleUpdateCategory()
-            }}
-            id="editCategoryForm"
-          >
-            <h6>
-              Category Name <span style={{ color: 'red' }}>*</span>
-            </h6>
+        <CModalBody style={{ padding: '20px' }}>
+          <CForm onSubmit={(e) => { e.preventDefault(); handleUpdateCategory() }}>
 
-            <CFormInput
-              type="text"
-              placeholder="Category Name"
-              value={updatedCategory.categoryName || ''}
-              onChange={(e) => {
-                let value = e.target.value;
+            <div className="cm-field">
+              <label className="cm-label">Category Name <span className="cm-required">*</span></label>
+              <input
+                className="cm-input"
+                type="text"
+                placeholder="Enter category name"
+                value={updatedCategory.categoryName}
+                onChange={(e) => {
+                  const val = formatName(e.target.value)
+                  setUpdatedCategory(prev => ({ ...prev, categoryName: val }))
+                  if (errors.categoryName) setErrors(prev => ({ ...prev, categoryName: '' }))
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUpdateCategory() } }}
+              />
+              {errors.categoryName && <span className="cm-error-text">{errors.categoryName}</span>}
+            </div>
 
-                // Block numbers
-                value = value.replace(/[0-9]/g, '');
+            <div className="cm-field">
+              <label className="cm-label">Category Image <span className="cm-required">*</span></label>
+              <input className="cm-input" type="file" accept="image/*"
+                ref={editFileInputRef} onChange={handleEditFileChange} />
+              {updatedCategory.categoryImage ? (
+                <div className="cm-img-preview-wrap">
+                  <img src={`data:image/png;base64,${updatedCategory.categoryImage}`} alt="Preview" className="cm-img-preview" />
+                  <button type="button" className="cm-img-remove"
+                    onClick={() => {
+                      setUpdatedCategory(prev => ({ ...prev, categoryImage: null }))
+                      if (editFileInputRef.current) editFileInputRef.current.value = null
+                    }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ) : (
+                <span style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginTop: 6 }}>No image available</span>
+              )}
+              {errors.categoryImage && <span className="cm-error-text">{errors.categoryImage}</span>}
+            </div>
 
-                // Remove multiple spaces
-                value = value.replace(/\s+/g, ' ');
-
-                // Capitalize each word
-                value = value
-                  .split(' ')
-                  .filter(word => word.length > 0)
-                  .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                  .join(' ');
-
-                // Update state
-                setUpdatedCategory(prev => ({ ...prev, categoryName: value }));
-
-                // ⭐ ONLY CLEAR ERROR WHEN USER FIXES INPUT
-                if (errors.categoryName) {
-                  setErrors(prev => ({ ...prev, categoryName: '' }));
-                }
-              }}
-
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleUpdateCategory();
-                }
-              }}
-            />
-
-
-
-            {errors.categoryName && (
-              <CFormText className="text-danger">{errors.categoryName}</CFormText>
-            )}
-
-
-
-            <h6>
-              Category Image <span style={{ color: 'red' }}>*</span>
-            </h6>
-            <CFormInput
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleEditFileChange}
-            />
-
-            {updatedCategory?.categoryImage ? (
-              <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px' }}>
-                <img
-                  src={`data:image/png;base64,${updatedCategory.categoryImage}`}
-                  alt="Category"
-                  style={{ width: '200px', height: 'auto', borderRadius: '5px' }}
-                />
-                <CIcon
-                  icon={cilTrash}
-                  size="lg"
-                  onClick={handleDeleteCategoryImage}
-                  style={{
-                    position: 'absolute',
-                    top: '5px',
-                    right: '5px',
-                    color: 'white',
-                    backgroundColor: 'red',
-                    borderRadius: '50%',
-                    padding: '4px',
-                    cursor: 'pointer',
-                  }}
-                />
-              </div>
-            ) : (
-              <span style={{ display: 'block', marginTop: '10px' }}>No image available</span>
-            )}
-
-            {errors.categoryImage && (
-              <CFormText className="text-danger">{errors.categoryImage}</CFormText>
-            )}
           </CForm>
         </CModalBody>
-        <CModalFooter>
-          <CButton
-            type="submit"
-            color="primary"
-            form="editCategoryForm"
-          >
-            Update
-          </CButton>
-          <CButton color="secondary" onClick={handleCancel}>
-            Cancel
-          </CButton>
+        <CModalFooter style={{ borderTop: '0.5px solid #d0dce9', padding: '12px 20px', gap: 8 }}>
+          <button className="cm-btn-cancel" onClick={resetEdit}><X size={13} /> Cancel</button>
+          <button className="cm-btn-save" onClick={handleUpdateCategory}><Save size={13} /> Update</button>
         </CModalFooter>
       </CModal>
 
+      {/* ── Delete Confirmation ── */}
       <ConfirmationModal
         isVisible={isModalVisible}
-        message="Are you sure you want to delete this category?"
+        message="Are you sure you want to delete this category? This action cannot be undone."
         onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
+        onCancel={() => setIsModalVisible(false)}
       />
-    </CCard>
+
+      {/* ── Styles ── */}
+      <style>{`
+        /* Page layout */
+        .cm-page { padding: 4px 0; }
+
+        /* Header */
+        .cm-page-header {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 12px;
+          margin-bottom: 18px; padding-bottom: 14px;
+          border-bottom: 0.5px solid #d0dce9;
+        }
+        .cm-title-group { display: flex; align-items: center; gap: 12px; }
+        .cm-page-icon {
+          width: 42px; height: 42px; border-radius: 10px;
+          background: #e6f1fb; display: flex; align-items: center;
+          justify-content: center; color: #185fa5; flex-shrink: 0;
+        }
+        .cm-page-title { font-size: 17px; font-weight: 600; color: #0c447c; margin: 0; }
+        .cm-page-sub   { font-size: 12px; color: #6b7280; margin: 0; }
+
+        .cm-add-btn {
+          background: #185fa5; color: #fff; border: none;
+          border-radius: 8px; padding: 8px 18px;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          transition: filter 0.15s; white-space: nowrap;
+        }
+        .cm-add-btn:hover { filter: brightness(0.9); }
+
+        /* Search */
+        .cm-search-wrap {
+          position: relative; margin-bottom: 16px; max-width: 320px;
+        }
+        .cm-search-icon {
+          position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+          color: #9ca3af; width: 15px; height: 15px; pointer-events: none;
+        }
+        .cm-search-input {
+          width: 100%; padding: 8px 12px 8px 34px;
+          font-size: 13px; color: #374151;
+          border: 0.5px solid #d0dce9; border-radius: 8px;
+          outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .cm-search-input:focus {
+          border-color: #185fa5;
+          box-shadow: 0 0 0 2.5px rgba(24,95,165,0.12);
+        }
+
+        /* Table */
+        .cm-table-wrapper {
+          border: 0.5px solid #d0dce9; border-radius: 10px;
+          overflow: hidden; overflow-x: auto; margin-bottom: 12px;
+        }
+        .cm-table { margin-bottom: 0 !important; font-size: 13px; }
+        .cm-th {
+          background: #185fa5 !important; color: #fff !important;
+          font-size: 12px !important; font-weight: 600 !important;
+          padding: 11px 14px !important; white-space: nowrap; border: none !important;
+        }
+        .cm-tr { transition: background 0.12s; }
+        .cm-tr:hover { background: #f0f5fb !important; }
+        .cm-td {
+          padding: 11px 14px !important; vertical-align: middle !important;
+          font-size: 13px; color: #374151;
+          border-bottom: 0.5px solid #eef2f7 !important; border-top: none !important;
+        }
+        .cm-td-num  { color: #9ca3af; font-size: 12px; }
+        .cm-cat-name { font-weight: 600; color: #0c447c; }
+
+        /* Action buttons */
+        .cm-action-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 30px; height: 30px; border: none; border-radius: 7px;
+          cursor: pointer; transition: filter 0.12s, transform 0.1s; flex-shrink: 0;
+        }
+        .cm-action-btn:hover  { filter: brightness(0.88); transform: scale(1.07); }
+        .cm-action-btn:active { transform: scale(0.95); }
+        .cm-view-btn   { background: #e6f1fb; color: #185fa5; }
+        .cm-edit-btn   { background: #eaf3de; color: #3b6d11; }
+        .cm-delete-btn { background: #fcebeb; color: #a32d2d; }
+
+        /* Empty state */
+        .cm-empty {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 10px; padding: 40px 0; color: #9ca3af; font-size: 14px;
+        }
+        .cm-empty-icon { color: #d0dce9; }
+        .cm-error { color: #a32d2d; padding: 20px; text-align: center; }
+
+        /* Pagination */
+        .cm-pagination {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 12px; padding: 10px 0;
+        }
+        .cm-rows-select { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; }
+        .cm-select {
+          font-size: 12px; padding: 5px 8px; border: 0.5px solid #d0dce9;
+          border-radius: 6px; outline: none; color: #374151; background: #fff;
+        }
+        .cm-page-controls { display: flex; align-items: center; gap: 4px; }
+        .cm-page-btn {
+          height: 32px; min-width: 32px; padding: 0 10px;
+          border: 0.5px solid #d0dce9; border-radius: 6px;
+          background: #fff; color: #374151;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center;
+          transition: background 0.12s, color 0.12s;
+          white-space: nowrap;
+        }
+        .cm-page-num { min-width: 32px; padding: 0; }
+        .cm-page-btn:hover:not(:disabled) { background: #e6f1fb; color: #185fa5; border-color: #b5d4f4; }
+        .cm-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .cm-page-btn--active { background: #185fa5 !important; color: #fff !important; border-color: #185fa5 !important; font-weight: 700 !important; }
+        .cm-page-label { font-size: 12px; color: #6b7280; margin-left: 6px; }
+
+        /* Modal field */
+        .cm-field { margin-bottom: 16px; }
+        .cm-label {
+          display: block; font-size: 11px; font-weight: 600;
+          color: #374151; margin-bottom: 5px;
+        }
+        .cm-required { color: #e24b4a; }
+        .cm-input {
+          width: 100%; padding: 7px 10px; font-size: 12.5px; color: #374151;
+          background: #fff; border: 0.5px solid #d0dce9; border-radius: 7px;
+          outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .cm-input:focus {
+          border-color: #185fa5;
+          box-shadow: 0 0 0 2.5px rgba(24,95,165,0.12);
+        }
+        .cm-error-text { font-size: 11px; color: #e24b4a; display: block; margin-top: 4px; }
+
+        /* Image preview */
+        .cm-img-preview-wrap {
+          position: relative; display: inline-block; margin-top: 10px;
+        }
+        .cm-img-preview {
+          width: 120px; height: 120px; object-fit: cover;
+          border-radius: 8px; border: 0.5px solid #d0dce9;
+          display: block;
+        }
+        .cm-img-remove {
+          position: absolute; top: -8px; right: -8px;
+          width: 24px; height: 24px; border-radius: 50%;
+          background: #fcebeb; color: #a32d2d; border: 0.5px solid #f5c6c6;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: background 0.12s;
+        }
+        .cm-img-remove:hover { background: #f5c6c6; }
+
+        /* View modal body */
+        .cm-view-body { display: flex; flex-direction: column; gap: 16px; }
+        .cm-view-img-wrap {
+          display: flex; justify-content: center;
+          padding: 16px; background: #f0f5fb; border-radius: 10px;
+        }
+        .cm-view-img {
+          max-width: 160px; border-radius: 10px;
+          border: 0.5px solid #d0dce9;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .cm-view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .cm-view-field { display: flex; flex-direction: column; gap: 3px; }
+        .cm-view-label {
+          font-size: 10.5px; font-weight: 600; color: #185fa5;
+          text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .cm-view-value { font-size: 13px; color: #374151; font-weight: 500; }
+
+        /* Footer buttons */
+        .cm-btn-cancel {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #fff; color: #374151; border: 0.5px solid #d0dce9;
+          border-radius: 8px; padding: 7px 16px;
+          font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+        }
+        .cm-btn-cancel:hover { background: #f3f4f6; }
+        .cm-btn-save {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #185fa5; color: #fff; border: none;
+          border-radius: 8px; padding: 7px 18px;
+          font-size: 12px; font-weight: 600; cursor: pointer; transition: filter 0.15s;
+        }
+        .cm-btn-save:hover { filter: brightness(0.9); }
+      `}</style>
+    </div>
   )
 }
 

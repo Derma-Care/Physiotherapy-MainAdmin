@@ -1,208 +1,355 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import { CButton, CCard, CCardBody, CModalFooter, CModalHeader, CModalTitle, CCardHeader, CBadge, CRow, CCol } from '@coreui/react'
-
-import { useState, useEffect } from 'react'
+import { CButton, CCard, CCardBody, CCardHeader, CRow, CCol } from '@coreui/react'
 import { toast } from 'react-toastify'
-import { deleteBookingData } from './AppointmentAPI' // adjust this path as per your project
-import { getBookingBy_DoctorId } from './AppointmentAPI'
+import { deleteBookingData, getBookingBy_DoctorId } from './AppointmentAPI'
+import { ArrowLeft, Trash2, User, Calendar, CreditCard, Stethoscope, Clock, Phone, Activity } from 'lucide-react'
+
+const STATUS_CONFIG = {
+  completed:   { bg: '#dcfce7', color: '#166534', dot: '#22c55e', label: 'Completed' },
+  confirmed:   { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6', label: 'Confirmed' },
+  pending:     { bg: '#fef9c3', color: '#854d0e', dot: '#eab308', label: 'Pending' },
+  rejected:    { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444', label: 'Rejected' },
+  'in-progress':{ bg: '#ede9fe', color: '#5b21b6', dot: '#8b5cf6', label: 'Active' },
+  rescheduled: { bg: '#f0f9ff', color: '#0369a1', dot: '#0ea5e9', label: 'Rescheduled' },
+}
+
+const DetailRow = ({ label, value, highlight }) => (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '3px',
+    padding: '10px 14px',
+    borderRadius: '10px',
+    background: highlight ? '#eef4fb' : '#f9fafb',
+    border: '1px solid #f0f0f0',
+  }}>
+    <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      {label}
+    </span>
+    <span style={{ fontSize: '13px', color: '#1f2937', fontWeight: '500' }}>
+      {value || '—'}
+    </span>
+  </div>
+)
+
+const SectionHeader = ({ icon: Icon, title }) => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '14px',
+  }}>
+    <div style={{
+      width: '32px', height: '32px',
+      borderRadius: '8px',
+      background: '#eef4fb',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <Icon size={16} color="#1B4F8A" />
+    </div>
+    <h6 style={{ margin: 0, color: '#1B4F8A', fontWeight: '700', fontSize: '14px' }}>
+      {title}
+    </h6>
+  </div>
+)
 
 const AppointmentDetails = () => {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
   const [isDeleting, setIsDeleting] = useState(false)
-  const [doctor, setDoctor] = useState([])
+  const [doctor, setDoctor] = useState(null)
 
   const appointment = location.state?.appointment
-
-  if (!appointment) {
-    return (
-      <div>
-        <h3>No Appointment Data Found for ID: {id}</h3>
-        <CButton color="primary" onClick={() => navigate(-1)}>
-          Back
-        </CButton>
-      </div>
-    )
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this booking?')) return
-
-    try {
-      setIsDeleting(true)
-      await deleteBookingData(appointment.bookingId)
-      toast.success('Booking deleted successfully!', { position: 'top-right' })
-      navigate('/appointment-management') // redirect to appointment list
-    } catch (error) {
-      toast.error('Failed to delete booking.', { position: 'top-right' })
-    } finally {
-      setIsDeleting(false)
-    }
-  }
 
   useEffect(() => {
     const fetchDoctorDetails = async () => {
       if (
-        appointment?.status.toLowerCase() === 'confirmed' ||
-        (appointment?.status.toLowerCase() === 'completed' && appointment?.doctorId)
+        appointment &&
+        (appointment.status?.toLowerCase() === 'confirmed' ||
+          appointment.status?.toLowerCase() === 'completed') &&
+        appointment.doctorId
       ) {
         try {
           const res = await getBookingBy_DoctorId(appointment.doctorId)
-          console.log(res)
           setDoctor(res)
         } catch (error) {
           console.error('Failed to fetch doctor details:', error)
         }
       }
     }
-
     fetchDoctorDetails()
   }, [appointment])
+
+  if (!appointment) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+        <h5 style={{ color: '#1B4F8A', marginBottom: '8px' }}>No Appointment Found</h5>
+        <p style={{ color: '#9ca3af', marginBottom: '20px', fontSize: '13px' }}>
+          No data found for booking ID: {id}
+        </p>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            padding: '8px 20px', borderRadius: '10px',
+            background: '#1B4F8A', color: '#fff',
+            border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px',
+          }}
+        >
+          Go Back
+        </button>
+      </div>
+    )
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this booking?')) return
+    try {
+      setIsDeleting(true)
+      await deleteBookingData(appointment.bookingId)
+      toast.success('Booking deleted successfully!', { position: 'top-right' })
+      navigate('/appointment-management')
+    } catch {
+      toast.error('Failed to delete booking.', { position: 'top-right' })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const getDoctorImage = (picture) => {
     if (!picture) return '/default-doctor.png'
     return picture.startsWith('data:image') ? picture : `data:image/jpeg;base64,${picture}`
   }
-  const getStatusColor = (status) => {
-    console.log(status)
-    switch (status?.toLowerCase()) {
-      case 'completed':
-        return 'success'
-      case 'Rejected':
-        return 'danger'
-      case 'pending':
-        return 'warning'
-      case 'confirmed':
-        return 'info'
-      case 'in progress':
-        return 'primary'
-      case 'rescheduled':
-        return 'secondary'
-      default:
-        return 'dark'
-    }
-  }
 
-  console.log(doctor?.availableDays)
-  console.log(doctor)
+  const statusKey = appointment.status?.toLowerCase()
+  const statusCfg = STATUS_CONFIG[statusKey] || { bg: '#f3f4f6', color: '#374151', dot: '#9ca3af', label: appointment.status }
+
   return (
-    <div className="container mt-4">
-      {/* Header Section with blue background */}
-      <div className="bg-info text-white p-3 d-flex justify-content-between align-items-center rounded">
-        {/* Left section: Booking ID and Status */}
+    <div style={{ padding: '4px 0', maxWidth: '960px' }}>
+      <style>{`
+        .detail-card {
+          background: #fff;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 2px 16px rgba(27,79,138,0.08);
+          border: 1px solid #e8eef5;
+          margin-bottom: 20px;
+        }
+        .detail-card-header {
+          padding: 16px 22px;
+          background: linear-gradient(135deg, #1B4F8A 0%, #1a6bbf 100%);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .detail-card-body {
+          padding: 20px 22px;
+        }
+        .divider {
+          border: none;
+          border-top: 1px solid #f0f4f8;
+          margin: 18px 0;
+        }
+      `}</style>
+
+      {/* Top Bar */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '10px',
+      }}>
         <div>
-          <h5 className="mb-1 text" style={{ color: "white" }}>Booking ID: {appointment.bookingId}</h5>
+          <h5 style={{ color: '#1B4F8A', fontWeight: '700', margin: 0, fontSize: '18px' }}>
+            Appointment Details
+          </h5>
+          <p style={{ color: '#9ca3af', fontSize: '12px', margin: '2px 0 0' }}>
+            Booking ID: <strong style={{ color: '#374151' }}>#{appointment.bookingId}</strong>
+          </p>
         </div>
 
-        <div className="d-flex gap-2">
-          <CButton
-            size="sm"
-            style={{
-              background: '#fff',
-              color: '#00838F',
-              border: 'none',
-              fontWeight: '600',
-              borderRadius: '8px',
-              padding: '6px 14px',
-            }}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {/* Status badge */}
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '5px 14px', borderRadius: '20px',
+            background: statusCfg.bg, color: statusCfg.color,
+            fontSize: '12px', fontWeight: '700',
+          }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: statusCfg.dot }} />
+            {statusCfg.label}
+          </span>
+
+          <button
             onClick={() => navigate(-1)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '7px 16px', borderRadius: '10px',
+              background: '#fff', color: '#1B4F8A',
+              border: '1.5px solid #1B4F8A',
+              fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+            }}
           >
-            Back
-          </CButton>
-          {/* Optional Delete */}
-          {/* <CButton color="danger" size="sm" onClick={handleConfirmDelete} disabled={isDeleting}>
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </CButton> */}
+            <ArrowLeft size={14} /> Back
+          </button>
         </div>
       </div>
-      {/* Appointment Details */}
-      <CCard className="mt-4 shadow border-0 rounded-4">
-        <CCardHeader
-          className="border-0 py-3 d-flex justify-content-between align-items-center rounded-top-4"
-          style={{ backgroundColor: '#D9F3F2' }}
-        >
-          <h5 className="fw-bold mb-0" style={{ color: '#7e3a93' }}>
-            Patient Details
-          </h5>
-          <CBadge color={getStatusColor(appointment.status)} className="px-3 py-2 text-uppercase fs-6">
-            {appointment.status}
-          </CBadge>
-        </CCardHeader>
 
-        <CCardBody className="px-4 py-4" style={{ backgroundColor: '#FFFFFF' }}>
-          <CRow className="mb-3">
-            <CCol md={4}><strong>Patient Name:</strong> <span className="text-dark">{appointment?.name}</span></CCol>
-            <CCol md={4}><strong>Mobile Number:</strong> {appointment?.mobileNumber}</CCol>
-            <CCol md={4}><strong>Booking For:</strong> {appointment?.bookingFor}</CCol>
-            <CCol md={4}><strong>Age:</strong> {appointment?.age} Yrs</CCol>
-            <CCol md={4}><strong>Gender:</strong> {appointment?.gender}</CCol>
-            <CCol md={12}><strong>Problem:</strong>{appointment?.problem || 'N/A'}</CCol>
+      {/* Patient Details Card */}
+      <div className="detail-card">
+        <div className="detail-card-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '34px', height: '34px', borderRadius: '9px',
+              background: 'rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <User size={17} color="#fff" />
+            </div>
+            <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px' }}>Patient Details</span>
+          </div>
+        </div>
+
+        <div className="detail-card-body">
+          <CRow className="g-3">
+            <CCol md={4} xs={6}><DetailRow label="Patient Name" value={appointment?.name} highlight /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Mobile Number" value={appointment?.mobileNumber} /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Booking For" value={appointment?.bookingFor} /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Age" value={appointment?.age ? `${appointment.age} Yrs` : null} /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Gender" value={appointment?.gender} /></CCol>
+            <CCol md={8} xs={12}><DetailRow label="Problem / Complaint" value={appointment?.problem || 'N/A'} /></CCol>
           </CRow>
+        </div>
+      </div>
 
-          <hr className="my-4" />
+      {/* Slot & Payment Card */}
+      <div className="detail-card">
+        <div className="detail-card-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '34px', height: '34px', borderRadius: '9px',
+              background: 'rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <CreditCard size={17} color="#fff" />
+            </div>
+            <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px' }}>Slot & Payment Details</span>
+          </div>
+        </div>
 
-          {/* Slot & Payment */}
-          <h6 className="fw-bold mb-3" style={{ color: '#00838F' }}>
-            Slot & Payment Details
-          </h6>
-          <CRow className="mb-3">
-            <CCol md={4}><strong>Date:</strong> {appointment?.serviceDate}</CCol>
-            <CCol md={4}><strong>Time:</strong> {appointment?.servicetime}</CCol>
-            <CCol md={4}><strong>Paid Amount:</strong> ₹{appointment?.totalFee}</CCol>
-            <CCol md={4}><strong>Consultation Fee:</strong> ₹{appointment?.consultationFee}</CCol>
+        <div className="detail-card-body">
+          <CRow className="g-3">
+            <CCol md={3} xs={6}>
+              <DetailRow label="Date" value={appointment?.serviceDate} highlight />
+            </CCol>
+            <CCol md={3} xs={6}>
+              <DetailRow label="Time" value={appointment?.servicetime} />
+            </CCol>
+            <CCol md={3} xs={6}>
+              <DetailRow label="Paid Amount" value={appointment?.totalFee ? `₹${appointment.totalFee}` : null} highlight />
+            </CCol>
+            <CCol md={3} xs={6}>
+              <DetailRow label="Consultation Fee" value={appointment?.consultationFee ? `₹${appointment.consultationFee}` : null} />
+            </CCol>
           </CRow>
+        </div>
+      </div>
 
-          <hr className="my-4" />
+      {/* Doctor & Service Card */}
+      <div className="detail-card">
+        <div className="detail-card-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '34px', height: '34px', borderRadius: '9px',
+              background: 'rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Stethoscope size={17} color="#fff" />
+            </div>
+            <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px' }}>Doctor & Service Details</span>
+          </div>
+        </div>
 
-          {/* Doctor & Service */}
-          <h6 className="fw-bold mb-3" style={{ color: '#00838F' }}>
-            Doctor & Service Details
-          </h6>
-          <CRow>
-            <CCol md={4}><strong>Doctor ID:</strong> {appointment?.doctorId}</CCol>
-            <CCol md={4}><strong>Consultation Type:</strong> {appointment?.consultationType}</CCol>
-            <CCol md={4}><strong>Service Name:</strong> {appointment?.subServiceName}</CCol>
-            <CCol md={4}><strong>Service ID:</strong> {appointment?.subServiceId}</CCol>
-            <CCol md={4}><strong>Clinic Name:</strong> {appointment?.clinicName || 'N/A'}</CCol>
+        <div className="detail-card-body">
+          <CRow className="g-3">
+            <CCol md={4} xs={6}><DetailRow label="Doctor ID" value={appointment?.doctorId} /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Consultation Type" value={appointment?.consultationType} highlight /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Service Name" value={appointment?.subServiceName} /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Service ID" value={appointment?.subServiceId} /></CCol>
+            <CCol md={4} xs={6}><DetailRow label="Clinic Name" value={appointment?.clinicName || 'N/A'} /></CCol>
           </CRow>
-        </CCardBody>
-      </CCard>
+        </div>
+      </div>
 
+      {/* Doctor Profile Card */}
+      {(statusKey === 'confirmed' || statusKey === 'completed') && doctor && (
+        <div className="detail-card">
+          <div className="detail-card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '34px', height: '34px', borderRadius: '9px',
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Activity size={17} color="#fff" />
+              </div>
+              <span style={{ color: '#fff', fontWeight: '700', fontSize: '15px' }}>Assigned Doctor</span>
+            </div>
+          </div>
 
-      {/* Doctor Section */}
-      {(appointment?.status.toLowerCase() === 'confirmed' ||
-        appointment?.status.toLowerCase() === 'completed') && doctor && (
-          <CCard className="mt-4 shadow border-0 rounded-4">
-            <CCardHeader
-              className="border-0 py-3 rounded-top-4"
-              style={{ backgroundColor: '#D9F3F2' }}
-            >
-              <h5 className="fw-bold mb-0" style={{ color: '#7e3a93' }}>
-                Doctor Details
-              </h5>
-            </CCardHeader>
-            <CCardBody className="px-4 py-4 d-flex align-items-center gap-4" style={{ backgroundColor: '#FFFFFF' }}>
-              <img
-                src={getDoctorImage(doctor.doctorPicture)}
-                alt={doctor.doctorName}
-                width={90}
-                height={90}
-                className="rounded-circle border shadow-sm"
-                style={{ borderColor: '#00ACC1' }}
-              />
-              <div>
-                <h6 className="fw-bold mb-2" style={{ color: '#006666' }}>
+          <div className="detail-card-body">
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              {/* Doctor photo */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <img
+                  src={getDoctorImage(doctor.doctorPicture)}
+                  alt={doctor.doctorName}
+                  style={{
+                    width: '80px', height: '80px',
+                    borderRadius: '14px',
+                    objectFit: 'cover',
+                    border: '3px solid #eef4fb',
+                    boxShadow: '0 4px 12px rgba(27,79,138,0.15)',
+                  }}
+                />
+                <div style={{
+                  position: 'absolute', bottom: '-4px', right: '-4px',
+                  width: '20px', height: '20px', borderRadius: '50%',
+                  background: '#22c55e', border: '2px solid #fff',
+                }} />
+              </div>
+
+              {/* Doctor info */}
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <h6 style={{ color: '#1B4F8A', fontWeight: '700', fontSize: '15px', margin: '0 0 4px' }}>
                   {doctor.doctorName}
                 </h6>
-                <p className="mb-1"><strong>Specialization:</strong> {doctor.specialization}</p>
-                <p className="mb-1"><strong>Experience:</strong> {doctor.experience} years</p>
-                <p className="mb-1"><strong>Qualification:</strong> {doctor.qualification}</p>
-                <p className="mb-0"><strong>Languages:</strong> {doctor.languages?.join(', ')}</p>
+                <span style={{
+                  display: 'inline-block',
+                  background: '#eef4fb', color: '#1B4F8A',
+                  padding: '2px 10px', borderRadius: '20px',
+                  fontSize: '11px', fontWeight: '600', marginBottom: '12px',
+                }}>
+                  {doctor.specialization}
+                </span>
+
+                <CRow className="g-2">
+                  <CCol md={4} xs={6}><DetailRow label="Experience" value={doctor.experience ? `${doctor.experience} years` : null} /></CCol>
+                  <CCol md={4} xs={6}><DetailRow label="Qualification" value={doctor.qualification} /></CCol>
+                  <CCol md={4} xs={6}><DetailRow label="Languages" value={doctor.languages?.join(', ')} /></CCol>
+                </CRow>
               </div>
-            </CCardBody>
-          </CCard>
-        )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

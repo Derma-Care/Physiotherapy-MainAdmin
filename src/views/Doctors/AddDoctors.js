@@ -1,1692 +1,743 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import DoctorCard from './DoctorCard'
+import React, { useEffect, useState } from 'react'
 import CIcon from '@coreui/icons-react'
-import { cilUser } from '@coreui/icons'
 import axios from 'axios'
 import { AddDoctorByAdmin } from './DoctorAPI'
-// import { useHospital } from "../../Usecontext/HospitalContext"
-
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
 import { useNavigate } from 'react-router-dom'
-import { useSearchParams } from "react-router-dom";
-import emailjs from 'emailjs-com'
-
-
 import {
-  CModal,
-  CModalHeader,
-  CModalBody,
-  CModalFooter,
-  CButton,
-  CFormInput,
-  CFormSelect,
-  CFormTextarea,
-  CRow,
-  CCol,
-  CFormLabel,
-  CFormCheck,
+  CModal, CModalHeader, CModalBody, CModalFooter,
+  CFormInput, CFormSelect, CFormTextarea, CRow, CCol,
+  CFormLabel, CFormCheck,
 } from '@coreui/react'
 import Select from 'react-select'
 import {
-  BASE_URL,
-  // subService_URL,
-  MainAdmin_URL,
-  getSubServicesbyserviceId,
-  getadminSubServicesbyserviceId,
-  getservice,
-  GetBy_DoctorId
+  BASE_URL, MainAdmin_URL, getSubServicesbyserviceId,
+  getadminSubServicesbyserviceId, getservice, GetBy_DoctorId,
 } from '../../baseUrl'
-import {
-  serviceData,
-  // CategoryData,
-  subServiceData,
-  getSubServiceById,
-} from '../ProcedureManagement/ProcedureAPI'
-import {
-  CategoryData,
-} from '../categoryManagement/CategoryAPI'
+import { serviceData, subServiceData, getSubServiceById } from '../ProcedureManagement/ProcedureAPI'
+import { CategoryData } from '../categoryManagement/CategoryAPI'
 import { GetClinicBranches } from '../Doctors/DoctorAPI'
+import {
+  User, Briefcase, Clock, CreditCard, FileText,
+  Layers, Save, X, Plus, Trash2,
+} from 'lucide-react'
+
 const AddDoctors = ({ modalVisible, setModalVisible, clinicId, closeForm, branchId, fetchAllDoctors }) => {
-  const navigate = useNavigate() // ✅ define navigate here
+  const navigate = useNavigate()
 
-  // const { doctorData, errorMessage, setDoctorData, fetchHospitalDetails, fetchDoctorDetails } =
-  //   useHospital()
-  const [activeTab, setActiveTab] = useState(1);
+  const [activeTab, setActiveTab]             = useState(1)
   const [selectedHospital, setSelectedHospital] = useState(null)
-  const [doctors, setDoctors] = useState([]);
-  const [branchOptions, setBranchOptions] = useState([])
-  const [branchLoading, setBranchLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [doctorData, setDoctorData] = useState(null)
-  const [errorMessage, setErrorMessage] = useState("")
-  // const [modalVisible, setModalVisible] = useState(false)
-  const [newService, setNewService] = useState({
-    serviceName: '',
-    serviceId: '',
-  })
+  const [branchOptions, setBranchOptions]     = useState([])
+  const [branchLoading, setBranchLoading]     = useState(false)
+  const [isSaving, setIsSaving]               = useState(false)
+  const [doctorData, setDoctorData]           = useState(null)
+  const [errorMessage, setErrorMessage]       = useState('')
+  const [newService, setNewService]           = useState({ serviceName: '', serviceId: '' })
   const [selectedServices, setSelectedServices] = useState([])
-  const clearFieldError = (field) => {
-    setFormErrors((prev) => {
-      const updated = { ...prev }
-      delete updated[field]
-      return updated
-    })
-  }
-  const [enabledTypes, setEnabledTypes] = useState({
-    inClinic: false,
-    online: false,
-    serviceTreatment: false,
+  const [enabledTypes, setEnabledTypes]       = useState({ inClinic: false, online: false, serviceTreatment: false })
+
+  const [form, setForm] = useState({
+    doctorPicture: null, doctorLicence: '', doctorMobileNumber: '',
+    doctorEmail: '', doctorName: '', service: [], subServices: [],
+    specialization: '', gender: '', experience: '', qualification: '',
+    associationsOrMemberships: '', branch: [], availableDays: '',
+    availableTimes: '', profileDescription: '', doctorSignature: null,
+    doctorFees: { inClinicFee: '', vedioConsultationFee: '' },
+    focusAreas: [], languages: [], highlights: [], availableConsultations: [],
   })
-  useEffect(() => {
-    // Load hospitals + selected hospital from localStorage
-    const storedHospitals = JSON.parse(localStorage.getItem("Hospitals")) || []
-    const storedSelectedId = localStorage.getItem("SelectedHospitalId")
 
-    if (storedHospitals.length) {
-      setHospitals(storedHospitals)
-    }
+  const [startDay, setStartDay]               = useState('')
+  const [endDay, setEndDay]                   = useState('')
+  const [startTime, setStartTime]             = useState('')
+  const [endTime, setEndTime]                 = useState('')
+  const [category, setCategory]               = useState([])
+  const [service, setService]                 = useState([])
+  const [serviceOptions, setServiceOptions]   = useState([])
+  const [serviceOptionsFormatted, setServiceOptionsFormatted] = useState([])
+  const [subServiceOptions, setSubServiceOptions] = useState([])
+  const [selectedSubService, setSelectedSubService] = useState([])
+  const [formErrors, setFormErrors]           = useState({})
+  const [loading, setLoading]                 = useState(false)
+  const [showErrorMessage, setShowErrorMessage] = useState('')
+  const [isSubServiceComplete, setIsSubServiceComplete] = useState(true)
 
-    if (storedSelectedId) {
-      fetchHospitalDetails(storedSelectedId)
-      fetchDoctorDetails(storedSelectedId)
-      fetchSubServices(storedSelectedId)
-    }
-  }, [])
+  const clearFieldError = (field) => setFormErrors(prev => { const u = { ...prev }; delete u[field]; return u })
 
   const toggleType = (type) => {
-    setEnabledTypes((prev) => {
+    setEnabledTypes(prev => {
       const updated = { ...prev, [type]: !prev[type] }
-
-      // Build availableConsultations array based on updated enabledTypes
-      const consultations = []
-      if (updated.serviceTreatment) consultations.push('Services & Treatments')
-      if (updated.inClinic) consultations.push('In-Clinic')
-      if (updated.online) consultations.push('Video/Online')
-
-      setForm((prevForm) => ({
-        ...prevForm,
-        availableConsultations: consultations,
-      }))
-
-      console.log('Available Consultations:', consultations)
-
+      const c = []
+      if (updated.serviceTreatment) c.push('Services & Treatments')
+      if (updated.inClinic) c.push('In-Clinic')
+      if (updated.online) c.push('Video/Online')
+      setForm(f => ({ ...f, availableConsultations: c }))
       return updated
     })
   }
-  const [formData, setFormData] = useState({
-    doctorName: '',
-    doctorMobileNumber: '',
-    specialization: '',
-    subServices: [],
-    // ...other fields
-  });
-
-  const handleClose = () => {
-    // Reset the form
-    setFormData({
-      doctorName: '',
-      doctorMobileNumber: '',
-      specialization: '',
-      subServices: [],
-    });
-    // Close modal
-    closeForm();
-  };
-  const [form, setForm] = useState({
-    doctorPicture: null, // file input or image URL
-    doctorLicence: '',
-    doctorMobileNumber: '',
-    doctorEmail: '',
-    doctorName: '',
-    service: [],
-    subServices: [], // Note: 'subSerives' in Java, but 'subServices' is more consistent in JS
-    specialization: '',
-    gender: '',
-    experience: '',
-    qualification: '',
-    associationsOrMemberships: '',
-    branch: [],
-    availableDays: '', // array of selected days
-    availableTimes: '', // array of selected time slots
-    profileDescription: '',
-    doctorSignature: null,
-    doctorFees: {
-      inClinicFee: '',
-      vedioConsultationFee: '',
-    },
-    focusAreas: [], // array of objects like [{label: '', value: ''}]
-    languages: [],
-    highlights: [],
-    availableConsultations: [],
-  })
-
-  // console.log(doctorData.data)
-
-  const [startDay, setStartDay] = useState('')
-  const [endDay, setEndDay] = useState('')
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
-  const [category, setCategory] = useState([])
-  const [service, setService] = useState([])
-  const [selectedCategoryId, setSelectedCategoryId] = useState('')
-  const [filteredServices, setFilteredServices] = useState([])
-  const [serviceOptions, setServiceOptions] = useState([])
-  const [subServiceOptions, setSubServiceOptions] = useState([]) // ✅ ARRAY
-
-  const [selectedSubServices, setSelectedSubServices] = useState([])
-  const [selectedSubService, setSelectedSubService] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [formErrors, setFormErrors] = useState({})
-  const [loading, setLoading] = useState(false)
-  const [showErrorMessage, setShowErrorMessage] = useState('')
-
-  const [serviceOptionsFormatted, setServiceOptionsFormatted] = useState([]) // ✅ Add this
-  const [isSubServiceComplete, setIsSubServiceComplete] = useState(true)
-  const [errors, setErrors] = useState({})
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const availableDays = (value, type) => {
-    if (type === 'start') {
-      setStartDay(value)
-      const updated = `${value} - ${endDay || ''}`.trim()
-      setForm((prev) => ({ ...prev, availableDays: updated }))
-    } else if (type === 'end') {
-      setEndDay(value)
-      const updated = `${startDay || ''} - ${value}`.trim()
-      setForm((prev) => ({ ...prev, availableDays: updated }))
-    }
+    if (type === 'start') { setStartDay(value); setForm(p => ({ ...p, availableDays: `${value} - ${endDay || ''}`.trim() })) }
+    else { setEndDay(value); setForm(p => ({ ...p, availableDays: `${startDay || ''} - ${value}`.trim() })) }
   }
 
-  // const serviceOptionsFormatted = serviceOptions.map((s) => ({
-  //   value: s.serviceId,
-  //   label: s.serviceName,
-  // }))
-
   const handleTimeChange = (value, type) => {
-    if (type === 'start') {
-      setStartTime(value)
-      const updated = `${value} - ${endTime || ''}`.trim()
-      setForm((prev) => ({ ...prev, availableTimes: updated }))
-    } else if (type === 'end') {
-      setEndTime(value)
-      const updated = `${startTime || ''} - ${value}`.trim()
-      setForm((prev) => ({ ...prev, availableTimes: updated }))
-    }
+    if (type === 'start') { setStartTime(value); setForm(p => ({ ...p, availableTimes: `${value} - ${endTime || ''}`.trim() })) }
+    else { setEndTime(value); setForm(p => ({ ...p, availableTimes: `${startTime || ''} - ${value}`.trim() })) }
   }
 
   const fetchSubServices = async (serviceIds) => {
-    if (!Array.isArray(serviceIds) || serviceIds.length === 0) return
-
+    if (!Array.isArray(serviceIds) || !serviceIds.length) return
     try {
-      const allResponses = await Promise.all(
-        serviceIds.map(async (id) => {
-          const res = await subServiceData(id)
-          console.log(res.data)
-          return res.data || [] // Extract the "data" array directly
-        }),
-      )
-
-      // Flatten all subServices from each category block
-      const allSubServices = allResponses
-        .flat() // flatten the top-level array
-        .flatMap((block) => block.subServices || []) // extract subServices from each category
-
-      setSubServiceOptions(allSubServices)
-    } catch (error) {
-      console.error('Failed to fetch subservices:', error)
-      setSubServiceOptions([])
-    }
+      const all = await Promise.all(serviceIds.map(id => subServiceData(id)))
+      const flat = all.flatMap(r => (r.data || []).flatMap(b => b.subServices || []))
+      setSubServiceOptions(flat)
+    } catch { setSubServiceOptions([]) }
   }
 
   const handleChanges = async (e) => {
     const { name, value } = e.target
-
     if (name === 'categoryId') {
-      setNewService((prev) => ({
-        ...prev,
-        categoryId: value,
-        serviceId: [],
-        serviceName: [],
-      }))
-
+      setNewService(p => ({ ...p, categoryId: value, serviceId: [], serviceName: [] }))
       try {
-        const allServices = await Promise.all(
-          value.map(async (catId) => {
-            const res = await axios.get(`${BASE_URL}/${getservice}/${catId}`)
-            return res.data?.data || []
-          }),
-        )
-
-        const merged = allServices.flat()
-
-        // Save the raw service list
+        const all = await Promise.all(value.map(id => axios.get(`${BASE_URL}/${getservice}/${id}`)))
+        const merged = all.flatMap(r => r.data?.data || [])
         setServiceOptions(merged)
-
-        // Save formatted list for dropdowns or selects
-        const formatted = merged.map((s) => ({
-          label: s.serviceName,
-          value: s.serviceId,
-        }))
-
-        setServiceOptionsFormatted(formatted)
-      } catch (err) {
-        console.error('❌ Failed to fetch services:', err)
-        setServiceOptions([])
-        setServiceOptionsFormatted([])
-      }
+        setServiceOptionsFormatted(merged.map(s => ({ label: s.serviceName, value: s.serviceId })))
+      } catch { setServiceOptions([]); setServiceOptionsFormatted([]) }
     }
   }
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const times = [
-    '07:00 AM',
-    '08:00 AM',
-    '09:00 AM',
-    '10:00 AM',
-    '11:00 AM',
-    '12:00 PM',
-    '01:00 PM',
-    '02:00 PM',
-    '03:00 PM',
-    '04:00 PM',
-    '05:00 PM',
-    '06:00 PM',
-    '07:00 PM',
-    '08:00 PM',
-    '09:00 PM',
-    '10:00 PM',
-  ]
+
+  const days  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const times = ['07:00 AM','08:00 AM','09:00 AM','10:00 AM','11:00 AM','12:00 PM',
+                 '01:00 PM','02:00 PM','03:00 PM','04:00 PM','05:00 PM','06:00 PM',
+                 '07:00 PM','08:00 PM','09:00 PM','10:00 PM']
 
   const fetchData = async () => {
     try {
-      const categoryResponse = await CategoryData()
-      if (categoryResponse.data && Array.isArray(categoryResponse.data)) {
-        setCategory(categoryResponse.data)
-      } else {
-        throw new Error('Invalid category data format')
-      }
-
-      const serviceResponse = await serviceData()
-      console.log(serviceResponse.data)
-      setService(serviceResponse.data)
-    } catch (error) {
-      console.error('Error fetching data:', error)
-      setErrors('Failed to fetch data. Please try again later.')
-    } finally {
-    }
+      const catRes = await CategoryData()
+      if (catRes.data && Array.isArray(catRes.data)) setCategory(catRes.data)
+      const svcRes = await serviceData()
+      setService(svcRes.data)
+    } catch (e) { console.error(e) }
   }
-  // const hospitalId = localStorage.getItem('HospitalId')
+
   const fetchHospitalDetails = async (id) => {
-    setLoading(true)
     try {
-      const url = `${BASE_URL}/admin/getClinicById/${id}`
-      const response = await axios.get(url)
-      if (response.status === 200 && response.data) {
-        setSelectedHospital(response.data)
-      }
-    } catch (err) {
-      console.error("Fetch clinic error:", err)
-      setErrorMessage("Error fetching clinic details.")
-    } finally {
-      setLoading(false)
-    }
+      const res = await axios.get(`${BASE_URL}/admin/getClinicById/${id}`)
+      if (res.status === 200) setSelectedHospital(res.data)
+    } catch (e) { setErrorMessage('Error fetching clinic details.') }
   }
+
+  const fetchDoctorDetails = async (id) => {
+    try {
+      const res = await axios.get(`${BASE_URL}/${GetBy_DoctorId}/${id}`)
+      if (res.status === 200) setDoctorData(res.data)
+    } catch { setErrorMessage('Error fetching doctor details.') }
+  }
+
   useEffect(() => {
-    const fetchAllData = async () => {
+    const init = async () => {
+      setLoading(true)
       try {
-        setLoading(true) // ✅ set loading true before fetch
-
         await fetchData()
-        await serviceData()
-
-        const data = await fetchHospitalDetails(clinicId)
-
-        if (data) {
-          // setDoctorData(data)
-          setShowErrorMessage('')
-        } else {
-          setShowErrorMessage('Hospital data not found')
-        }
+        await fetchHospitalDetails(clinicId)
         setBranchLoading(true)
-        const response = await GetClinicBranches(clinicId)
-        console.log('branches response :', response.data)
-        const branches = response.data || [] // ✅ get the array safely
-        console.log('Branch API response:', response)
-
-        // 🟢 assume API returns array of { branchId, branchName }
-        const formatted = branches.map((b) => ({
-          value: b.branchId || b.id || b.name, // adjust based on actual API
-          label: b.branchName || b.name,
-        }))
-
-        setBranchOptions(formatted)
-      } catch (err) {
-        console.error(err)
-        setShowErrorMessage('Failed to fetch hospital details')
-      } finally {
-        setLoading(false) // ✅ always set to false at the end
-        setBranchLoading(false)
-
-      }
+        const res = await GetClinicBranches(clinicId)
+        const branches = res.data || []
+        setBranchOptions(branches.map(b => ({ value: b.branchId || b.id || b.name, label: b.branchName || b.name })))
+      } catch (e) { setShowErrorMessage('Failed to fetch hospital details') }
+      finally { setLoading(false); setBranchLoading(false) }
     }
-
-    fetchAllData()
-  }, [])
-  const fetchDoctorDetails = async (clinicId) => {
-    setLoading(true)
-    try {
-      const url = `${BASE_URL}/${GetBy_DoctorId}/${clinicId}`
-
-      const response = await axios.get(url)
-      if (response.status === 200 && response.data) {
-        setDoctorData(response.data)
-      }
-    } catch (err) {
-      console.error("Fetch doctor error:", err)
-      setErrorMessage("Error fetching doctor details.")
-    } finally {
-      setLoading(false)
-    }
-  }
-  useEffect(() => {
-    // const clnicId = localStorage.getItem('HospitalId')
-    fetchHospitalDetails(clinicId)
-
+    init()
     fetchDoctorDetails(clinicId)
   }, [])
 
   const validateDoctorForm = () => {
-    const errors = {}
-    let isValid = true
+    const errs = {}
     const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
-    if (!newService.categoryId || newService.categoryId.length === 0) {
-      errors.categoryId = 'Please select at least one category.'
-      isValid = false
-    }
-
-    if (!selectedServices || selectedServices.length === 0) {
-      errors.serviceId = 'Please select at least one service.'
-      isValid = false
-    }
-
-    if (!selectedSubService || selectedSubService.length === 0) {
-      errors.subServiceName = 'Please select at least one sub service.'
-      isValid = false
-    }
-
-    if (!form.doctorName.trim()) {
-      errors.doctorName = 'Doctor name is required'
-      isValid = false
-    }
-    if (!form.gender.trim()) {
-      errors.gender = 'gender is required'
-      isValid = false
-    }
-
-    if (!form.doctorLicence.trim()) {
-      errors.doctorLicence = 'License number is required'
-      isValid = false
-    }
-
-    if (!form.doctorMobileNumber || !/^[789]\d{9}$/.test(form.doctorMobileNumber)) {
-      errors.doctorMobileNumber = 'Enter a valid 10-digit mobile number starting with 7, 8, or 9'
-      isValid = false
-    }
-    if (
-      !form.doctorEmail ||
-      !/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(form.doctorEmail)
-    ) {
-      errors.doctorEmail = 'Please enter a valid Email'
-      isValid = false
-    }
-
-    if (!form.experience || isNaN(form.experience) || form.experience < 0) {
-      errors.experience = 'Enter valid experience'
-      isValid = false
-    }
-
-    if (!form.qualification.trim()) {
-      errors.qualification = 'Qualification is required'
-      isValid = false
-    }
-    // if (!form.qualification.trim()) {
-    //   errors.qualification = 'Qualification is required'
-    //   isValid = false
-    // }
-    // if (!form.qualification.trim()) {
-    //   errors.qualification = 'Qualification is required'
-    //   isValid = false
-    // }
-
-    if (!form.specialization.trim()) {
-      errors.specialization = 'Specialization is required'
-      isValid = false
-    }
-
-    if (!form.profileDescription.trim()) {
-      errors.profileDescription = 'Profile description is required'
-      isValid = false
-    }
-
-    // In-Clinic Fee validation
-    if (enabledTypes.inClinic) {
-      if (
-        !form.doctorFees.inClinicFee ||
-        isNaN(form.doctorFees.inClinicFee) ||
-        Number(form.doctorFees.inClinicFee) <= 0
-      ) {
-        errors.inClinicFee = 'Enter valid in-clinic fee'
-        isValid = false
-      }
-    }
-
-    // Video/Online Fee validation
-    if (enabledTypes.online) {
-      if (
-        !form.doctorFees.vedioConsultationFee ||
-        isNaN(form.doctorFees.vedioConsultationFee) ||
-        Number(form.doctorFees.vedioConsultationFee) <= 0
-      ) {
-        errors.vedioConsultationFee = 'Enter valid video consultation fee'
-        isValid = false
-      }
-    }
-
-    if (!form.doctorPicture) {
-      errors.doctorPicture = 'Profile picture is required'
-      isValid = false
-    }
-    if (!form.doctorSignature) {
-      errors.doctorSignature = 'Doctor Signature is required'
-      isValid = false
-    }
-
-    if (!form.languages || form.languages.length === 0) {
-      errors.languages = 'Please add at least one language.'
-      isValid = false
-    }
-
-    if (!startDay || !endDay) {
-      errors.availableDays = 'Start and end days are required'
-      isValid = false
-    } else if (dayOrder.indexOf(startDay) > dayOrder.indexOf(endDay)) {
-      errors.availableDays = 'Start day cannot be after end day'
-      isValid = false
-    }
-
-    const convertTo24Hrs = (time) => {
-      const [rawTime, modifier] = time.split(' ')
-      let [hours, minutes] = rawTime.split(':').map(Number)
-      if (modifier === 'PM' && hours !== 12) hours += 12
-      if (modifier === 'AM' && hours === 12) hours = 0
-      return hours * 60 + minutes
-    }
-
-    if (!startTime || !endTime) {
-      errors.availableTimes = 'Start and end times are required'
-      isValid = false
-    } else if (convertTo24Hrs(startTime) >= convertTo24Hrs(endTime)) {
-      errors.availableTimes = 'Start time must be before end time'
-      isValid = false
-    }
-
-    setFormErrors(errors)
-    return isValid
+    if (!newService.categoryId?.length) errs.categoryId = 'Select at least one category.'
+    if (!selectedServices?.length) errs.serviceId = 'Select at least one service.'
+    if (!selectedSubService?.length) errs.subServiceName = 'Select at least one sub service.'
+    if (!form.doctorName.trim()) errs.doctorName = 'Doctor name is required'
+    if (!form.gender.trim()) errs.gender = 'Gender is required'
+    if (!form.doctorLicence.trim()) errs.doctorLicence = 'License number is required'
+    if (!form.doctorMobileNumber || !/^[789]\d{9}$/.test(form.doctorMobileNumber)) errs.doctorMobileNumber = 'Enter valid 10-digit number starting with 7, 8, or 9'
+    if (!form.doctorEmail || !/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(form.doctorEmail)) errs.doctorEmail = 'Enter a valid email'
+    if (!form.experience || isNaN(form.experience) || form.experience < 0) errs.experience = 'Enter valid experience'
+    if (!form.qualification.trim()) errs.qualification = 'Qualification is required'
+    if (!form.specialization.trim()) errs.specialization = 'Specialization is required'
+    if (!form.profileDescription.trim()) errs.profileDescription = 'Profile description is required'
+    if (enabledTypes.inClinic && (!form.doctorFees.inClinicFee || Number(form.doctorFees.inClinicFee) <= 0)) errs.inClinicFee = 'Enter valid in-clinic fee'
+    if (enabledTypes.online && (!form.doctorFees.vedioConsultationFee || Number(form.doctorFees.vedioConsultationFee) <= 0)) errs.vedioConsultationFee = 'Enter valid video fee'
+    if (!form.doctorPicture) errs.doctorPicture = 'Profile picture is required'
+    if (!form.doctorSignature) errs.doctorSignature = 'Doctor signature is required'
+    if (!form.languages?.length) errs.languages = 'Add at least one language.'
+    if (!startDay || !endDay) errs.availableDays = 'Start and end days are required'
+    else if (dayOrder.indexOf(startDay) > dayOrder.indexOf(endDay)) errs.availableDays = 'Start day cannot be after end day'
+    const to24 = (t) => { const [r, m] = t.split(' '); let [h, mm] = r.split(':').map(Number); if (m==='PM'&&h!==12) h+=12; if (m==='AM'&&h===12) h=0; return h*60+mm }
+    if (!startTime || !endTime) errs.availableTimes = 'Start and end times are required'
+    else if (to24(startTime) >= to24(endTime)) errs.availableTimes = 'Start time must be before end time'
+    setFormErrors(errs)
+    return Object.keys(errs).length === 0
   }
 
-  const categoryOptions = category.map((cat) => ({
-    value: cat.categoryId,
-    label: cat.categoryName,
-  }))
+  const categoryOptions = category.map(c => ({ value: c.categoryId, label: c.categoryName }))
 
-  //select
-
-  // ✅ Helper function to reset form
   const resetForm = () => {
-    setForm({
-      doctorPicture: null,
-      doctorSignature: null,
-      doctorLicence: '',
-      doctorMobileNumber: '',
-      doctorEmail: '',
-      doctorName: '',
-      gender: '',
-      experience: '',
-      qualification: '',
-      associationsOrMemberships: '',
-      branch: '',
-      specialization: '',
-      availableDays: '',
-      availableTimes: '',
-      profileDescription: '',
-      focusAreas: [],
-      languages: [],
-      highlights: [],
-      doctorFees: {
-        inClinicFee: '',
-        vedioConsultationFee: '',
-      },
-    });
-
-    setNewService({
-      serviceId: '',
-      serviceName: '',
-      categoryId: '',
-      categoryName: '',
-    });
-
-    setSelectedServices([]);
-    setSelectedSubServices([]);
-    setServiceOptions([]);
-    setSubServiceOptions([]);
-    setStartDay('');
-    setEndDay('');
-    setStartTime('');
-    setEndTime('');
-  };
+    setForm({ doctorPicture: null, doctorSignature: null, doctorLicence: '', doctorMobileNumber: '',
+      doctorEmail: '', doctorName: '', gender: '', experience: '', qualification: '',
+      associationsOrMemberships: '', branch: '', specialization: '', availableDays: '',
+      availableTimes: '', profileDescription: '', focusAreas: [], languages: [], highlights: [],
+      doctorFees: { inClinicFee: '', vedioConsultationFee: '' }, service: [], subServices: [],
+      availableConsultations: [] })
+    setNewService({ serviceId: '', serviceName: '', categoryId: '', categoryName: '' })
+    setSelectedServices([]); setSelectedSubService([]); setServiceOptions([])
+    setSubServiceOptions([]); setStartDay(''); setEndDay(''); setStartTime(''); setEndTime('')
+  }
 
   const handleSubmit = async () => {
-    console.log("📢 handleSubmit triggered!");
-
+    if (!validateDoctorForm()) return
+    setIsSaving(true)
     try {
-      // ✅ Step 1: Log essential dependencies
-      console.log("🟢 doctorData:", doctorData);
-      console.log("🟢 clinicId:", clinicId, "branchId:", branchId);
+      const subObjs = (subServiceOptions || [])
+        .filter(s => selectedSubService.includes(s.subServiceId))
+        .map(s => ({ subServiceId: s.subServiceId, subServiceName: s.subServiceName }))
 
-      // ✅ Step 2: Null-check before accessing .data
-      if (!doctorData || !doctorData.data) {
-        console.warn("⚠ doctorData or doctorData.data is null. Skipping duplicate check.");
-      }
-
-      // ✅ Step 3: Check duplicates safely
-      const mobileExists = doctorData?.data?.some(
-        (doc) => doc.doctorMobileNumber === form.doctorMobileNumber
-      );
-      const emailExists = doctorData?.data?.some(
-        (doc) => doc.doctorEmail === form.doctorEmail
-      );
-
-      console.log("🔎 Duplicate Check → Mobile Exists:", mobileExists, "Email Exists:", emailExists);
-
-      // Optional: Show warning & stop if duplicates exist
-      // if (mobileExists || emailExists) return;
-
-      // ✅ Step 4: Prepare sub-service objects
-      const selectedSubServiceObjects = (subServiceOptions || [])
-        .filter((sub) => selectedSubService.includes(sub.subServiceId))
-        .map((sub) => ({
-          subServiceId: sub.subServiceId,
-          subServiceName: sub.subServiceName,
-        }));
-
-      // ✅ Step 5: Construct payload
       const payload = {
-        branchId,
-        hospitalId: clinicId,
-        doctorPicture: form.doctorPicture,
-        doctorSignature: form.doctorSignature,
-        doctorName: form.doctorName,
-        doctorMobileNumber: form.doctorMobileNumber,
-        doctorEmail: form.doctorEmail,
-        doctorLicence: form.doctorLicence,
-        category: categoryOptions
-          .filter((cat) => newService.categoryId.includes(cat.value))
-          .map((cat) => ({
-            categoryId: cat.value,
-            categoryName: cat.label,
-          })),
-        service: selectedServices.map((s) => ({
-          serviceId: s.serviceId,
-          serviceName: s.serviceName,
-        })),
-        subServices: selectedSubServiceObjects,
-        gender: form.gender,
-        experience: form.experience,
-        qualification: form.qualification,
-        associationsOrMemberships: form.associationsOrMemberships,
-        branches: form.branch,
-        specialization: form.specialization,
-        availableDays: form.availableDays,
-        availableTimes: form.availableTimes,
-        profileDescription: form.profileDescription,
-        focusAreas: form.focusAreas,
-        languages: form.languages,
-        highlights: form.highlights,
-        doctorFees: {
-          inClinicFee: form.doctorFees?.inClinicFee ?? null,
-          vedioConsultationFee: form.doctorFees?.vedioConsultationFee ?? null,
-        },
-      };
-
-      // ✅ Step 6: Log payload clearly before API call
-      console.log("📦 Final Payload Ready to Send:", JSON.stringify(payload, null, 2));
-
-      // ✅ Step 7: Call API
-      const response = await AddDoctorByAdmin(payload);
-      console.log("✅ API Response:", response);
-
-      if (!response?.data) {
-        throw new Error("Invalid API response structure");
+        branchId, hospitalId: clinicId,
+        doctorPicture: form.doctorPicture, doctorSignature: form.doctorSignature,
+        doctorName: form.doctorName, doctorMobileNumber: form.doctorMobileNumber,
+        doctorEmail: form.doctorEmail, doctorLicence: form.doctorLicence,
+        category: categoryOptions.filter(c => newService.categoryId?.includes(c.value)).map(c => ({ categoryId: c.value, categoryName: c.label })),
+        service: selectedServices.map(s => ({ serviceId: s.serviceId, serviceName: s.serviceName })),
+        subServices: subObjs, gender: form.gender, experience: form.experience,
+        qualification: form.qualification, associationsOrMemberships: form.associationsOrMemberships,
+        branches: form.branch, specialization: form.specialization,
+        availableDays: form.availableDays, availableTimes: form.availableTimes,
+        profileDescription: form.profileDescription, focusAreas: form.focusAreas,
+        languages: form.languages, highlights: form.highlights,
+        doctorFees: { inClinicFee: form.doctorFees?.inClinicFee ?? null, vedioConsultationFee: form.doctorFees?.vedioConsultationFee ?? null },
       }
 
+      const response = await AddDoctorByAdmin(payload)
+      if (!response?.data) throw new Error('Invalid API response')
       if (response.data.status === 201) {
-        console.log("🎉 Doctor added successfully!");
-        const newDoctor = response.data.data?.doctor || response.data.data || payload;
-
-        setDoctorData((prev) => ({
-          ...prev,
-          data: [...(prev?.data || []), newDoctor],
-        }));
-
+        const newDoc = response.data.data?.doctor || response.data.data || payload
+        setDoctorData(prev => ({ ...prev, data: [...(prev?.data || []), newDoc] }))
         if (response.data.data?.temporaryPassword) {
-          await sendDermaCareOnboardingEmail({
-            name: form.doctorName,
-            email: form.doctorEmail,
-            password: response.data.data.temporaryPassword,
-            userID: response.data.data.username,
-            clinicName: localStorage.getItem("HospitalName"),
-          });
+          await sendDermaCareOnboardingEmail({ name: form.doctorName, email: form.doctorEmail,
+            password: response.data.data.temporaryPassword, userID: response.data.data.username,
+            clinicName: localStorage.getItem('HospitalName') })
         }
-
-        toast.success(response.data.message || "Doctor added successfully");
-        fetchAllDoctors();  // <- this will update BranchDetails allDoctors state
-
-        resetForm();
-        setModalVisible(false);
-      } else {
-        throw new Error(response.data.message || `Unexpected status: ${response.data.status}`);
-      }
-    } catch (error) {
-      console.error("❌ Add Doctor API Error (handleSubmit):", error);
-      toast.error(error.message || "Something went wrong");
-      setModalVisible(true);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-
-  const ChipSection = ({ label, items, onAdd }) => {
-    const [input, setInput] = useState('')
-
-    const handleAdd = () => {
-      const trimmed = input.trim()
-      if (trimmed && !items.includes(trimmed)) {
-        onAdd([...items, trimmed])
-        setInput('')
-      }
-    }
-
-    const handleRemove = (indexToRemove) => {
-      const updated = items.filter((_, index) => index !== indexToRemove)
-      onAdd(updated)
-    }
-
-    return (
-      <div className="mb-3">
-        <label className="form-label fw-semibold">{label}</label>
-        <div className="d-flex mb-2">
-          <input
-            type="text"
-            className="form-control me-2"
-            placeholder={`Add ${label}`}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          />
-          <button className="btn btn-info text-white" onClick={handleAdd}>
-            Add
-          </button>
-        </div>
-        <div className="d-flex flex-wrap gap-2">
-          {items.map((item, index) => (
-            <div
-              key={index}
-              className="badge d-flex align-items-center"
-              style={{ padding: '8px 12px', borderRadius: '20px' }}
-            >
-              <span className="me-2">{item}</span>
-              <span
-                style={{ cursor: 'pointer', fontSize: '10px' }}
-                onClick={() => handleRemove(index)}
-              >
-                ❌
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
+        toast.success(response.data.message || 'Doctor added successfully')
+        fetchAllDoctors(); resetForm(); setModalVisible(false)
+      } else { throw new Error(response.data.message || 'Unexpected error') }
+    } catch (err) { toast.error(err.message || 'Something went wrong'); setModalVisible(true) }
+    finally { setIsSaving(false) }
   }
-  // console.log(selectedHospital)
+
   const checkSubServiceDetails = async (ids) => {
     let incomplete = false
-    // const hospitalId = localStorage.getItem('HospitalId')
     for (const id of ids) {
-      const data = await getSubServiceById(clinicId, id) // Use actual hospitalId
-      if (!data || !data.price || !data.finalCost) {
-        incomplete = true
-        break
-      }
+      const data = await getSubServiceById(clinicId, id)
+      if (!data || !data.price || !data.finalCost) { incomplete = true; break }
     }
-
     setIsSubServiceComplete(!incomplete)
   }
 
-  const [enableFees, setEnableFees] = useState({
-    inClinic: true,
-    videoConsultation: true,
-  })
+  // ── Shared helpers ────────────────────────────────────────────────────────
+  const reactSelectStyles = {
+    control: (base, state) => ({
+      ...base, fontSize: 13, minHeight: 36,
+      borderColor: state.isFocused ? '#185fa5' : '#d0dce9',
+      borderWidth: '0.5px', borderRadius: 7, boxShadow: 'none',
+      '&:hover': { borderColor: '#185fa5' },
+    }),
+    option: (base, state) => ({
+      ...base, fontSize: 13,
+      backgroundColor: state.isSelected ? '#185fa5' : state.isFocused ? '#f0f5fb' : '#fff',
+      color: state.isSelected ? '#fff' : '#374151',
+    }),
+    multiValue:       (b) => ({ ...b, background: '#e6f1fb', borderRadius: 20 }),
+    multiValueLabel:  (b) => ({ ...b, color: '#0c447c', fontSize: 12 }),
+    multiValueRemove: (b) => ({ ...b, color: '#185fa5', ':hover': { background: '#b5d4f4' } }),
+    // NOTE: menu styles removed here — portal renders outside modal, no clip risk
+    placeholder:      (b) => ({ ...b, fontSize: 13, color: '#9ca3af' }),
+  }
+
+  // Shared props added to every <Select> to fix dropdown clipping inside modal
+  const selectPortalProps = {
+    menuPortalTarget: typeof document !== 'undefined' ? document.body : null,
+    menuPosition: 'fixed',
+    styles: {
+      ...reactSelectStyles,
+      menuPortal: (b) => ({ ...b, zIndex: 99999 }),
+    },
+  }
+
+  const FormSection = ({ icon: Icon, title, children }) => (
+    <div className="ad-section">
+      <div className="ad-section-title"><Icon size={14} className="ad-section-icon" />{title}</div>
+      <div className="ad-section-body">{children}</div>
+    </div>
+  )
+
+  const Field = ({ label, required, error, children, full }) => (
+    <div className={`ad-field ${full ? 'ad-col-full' : ''}`}>
+      <label className="ad-label">{label}{required && <span className="ad-required">*</span>}</label>
+      {children}
+      {error && <span className="ad-error">{error}</span>}
+    </div>
+  )
+
+  const ChipSection = ({ label, items, onAdd, error }) => {
+    const [input, setInput] = useState('')
+    const add = () => {
+      const t = input.trim()
+      if (t && !items.includes(t)) { onAdd([...items, t]); setInput('') }
+    }
+    const remove = (i) => onAdd(items.filter((_, idx) => idx !== i))
+    return (
+      <div className="ad-field ad-col-full">
+        <label className="ad-label">{label}</label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <input className="ad-input" placeholder={`Add ${typeof label === 'string' ? label : ''}…`}
+            value={input} onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} />
+          <button type="button" className="ad-chip-add" onClick={add}><Plus size={13} /> Add</button>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {items.length ? items.map((item, i) => (
+            <span key={i} className="ad-chip">
+              {item}
+              <button type="button" className="ad-chip-remove" onClick={() => remove(i)}><X size={11} /></button>
+            </span>
+          )) : <span style={{ fontSize: 12, color: '#9ca3af' }}>None added</span>}
+        </div>
+        {error && <span className="ad-error">{error}</span>}
+      </div>
+    )
+  }
 
   return (
     <div>
-      {/* <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      /> */}
-      {/* <div className="d-flex justify-content-end mb-3">
-          <button
-            className="btn btn-info text-white d-flex align-items-center gap-2 shadow-sm rounded-pill px-4 py-2"
-            onClick={() => {
-              setFormErrors({})
-              setModalVisible(true)
-            }}
-            style={{
-              background: 'linear-gradient(90deg, #0072CE 0%, #00AEEF 100%)',
-              border: 'none',
-              fontWeight: '600',
-              fontSize: '16px',
-            }}
-          >
-            <CIcon icon={cilUser} size="lg" />
-            <span>Add Doctor</span>
-          </button>
-        </div> */}
+      <ToastContainer />
 
-      {/* {loading ? (
-          <div className="centered-message">
-            <p>Loading doctors...</p>
+      <CModal visible={modalVisible} onClose={() => setModalVisible(false)} size="lg" backdrop="static">
+        <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, background: '#e6f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#185fa5' }}>
+              <User size={17} />
+            </div>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#0c447c' }}>Add Doctor</span>
           </div>
-        ) : showErrorMessage ? (
-          <div className="centered-message">
-            <p>{showErrorMessage}</p>
-          </div>
-        ) : !doctorData || !doctorData.data ? null : doctorData.data.length === 0 ? ( // ✅ DON’T show "Page not found" here — just return null or loading
-          <div className="centered-message">
-            <span>No doctors found for this hospital.</span>{' '}
-            <span
-              onClick={() => {
-                setFormErrors({})
-                setModalVisible(true)
-              }}
-              style={{ fontWeight: 'bold', color: 'blue', cursor: 'pointer' }}
-            >
-              + Add Doctor
-            </span>
-          </div>
-        ) : (
-          doctorData.data.map((doctor, index) => <DoctorCard key={index} doctor={doctor} />)
-        )} */}
-
-      <CModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        size="lg"
-        backdrop="static" className='custom-modal'
-      >
-        <CModalHeader>
-          <strong>Add Doctor</strong>
         </CModalHeader>
-        <CModalBody>
-          <CRow className="g-4 mb-4">
-            <CCol md={6}>
-              <h6>
-                Category Name <span className="text-danger">*</span>
-              </h6>
-              <Select
-                isMulti
-                name="categoryId"
-                value={categoryOptions.filter((opt) => newService.categoryId?.includes(opt.value))}
-                onChange={(selected) => {
-                  handleChanges({
-                    target: {
-                      name: 'categoryId',
-                      value: selected.map((opt) => opt.value),
-                    },
-                  })
 
-                  if (selected.length > 0) {
-                    setFormErrors((prev) => ({ ...prev, categoryId: '' }))
-                  }
-                }}
-                options={categoryOptions}
-                placeholder="Select Category"
-              />
-              {formErrors.categoryId && (
-                <div className="text-danger mt-1">{formErrors.categoryId}</div>
-              )}
-            </CCol>
+        <CModalBody style={{ padding: '20px', maxHeight: '75vh', overflowY: 'auto', position: 'relative' }}>
 
-            <CCol md={6}>
-              <h6>
-                Service Name <span className="text-danger">*</span>
-              </h6>
-              <Select
-                isMulti
-                name="serviceId"
-                value={serviceOptionsFormatted.filter((opt) =>
-                  selectedServices.some((s) => s.serviceId === opt.value),
-                )}
-                onChange={(selected) => {
-                  const selectedServiceObjects = serviceOptions.filter((s) =>
-                    selected.some((sel) => sel.value === s.serviceId),
-                  )
-                  setSelectedServices(selectedServiceObjects)
-                  fetchSubServices(selectedServiceObjects.map((s) => s.serviceId))
+          {/* ── Full-body loading overlay ── */}
+          {loading && (
+            <div className="ad-loading-overlay">
+              <div className="ad-loading-card">
+                <div className="ad-spinner" />
+                <span className="ad-loading-text">Loading form data…</span>
+              </div>
+            </div>
+          )}
 
-                  // Clear error
-                  if (selectedServiceObjects.length > 0) {
-                    setFormErrors((prev) => ({ ...prev, serviceId: '' }))
-                  }
-                }}
-                options={serviceOptionsFormatted}
-                placeholder="Select Services"
-              />
-              {formErrors.serviceId && (
-                <div className="text-danger mt-1">{formErrors.serviceId}</div>
-              )}
-            </CCol>
-
-            <CCol md={12}>
-              <h6>
-                Procedure Name <span className="text-danger">*</span>
-              </h6>
-
-              <Select
-                isMulti
-                name="subServiceName"
-                placeholder="Select Sub Services"
-                options={(subServiceOptions || []).map((sub) => ({
-                  label: sub.subServiceName,
-                  value: sub.subServiceId,
-                }))}
-                value={(subServiceOptions || [])
-                  .filter((opt) => selectedSubService.includes(opt.subServiceId))
-                  .map((opt) => ({
-                    label: opt.subServiceName,
-                    value: opt.subServiceId,
-                  }))}
-                onChange={(selected) => {
-                  setSelectedSubService(selected.map((opt) => opt.value))
-                  const ids = selected.map((opt) => opt.value)
-                  setSelectedSubService(ids)
-
-                  if (selected.length > 0) {
-                    setFormErrors((prev) => ({ ...prev, subServiceName: '' }))
-                  }
-
-                  // ✅ Check if selected sub-services have complete data
-                  checkSubServiceDetails(ids)
-
-                  // Clear validation error on selection
-                  // if (selected.length > 0) {
-                  //   setFormErrors((prev) => ({ ...prev, subServiceName: '' }))
-                  // }
-                }}
-              />
-              {!isSubServiceComplete && (
-                <div className="text-danger mt-2">
-                  Some selected Procedures are missing details like price or final cost.
-                  <br />
-
-                  <span
-                    className="text-primary"
-                    style={{ cursor: "pointer", textDecoration: "underline" }}
-                    onClick={() => {
-                      handleClose();
-                      navigate(`/clinic-management/${clinicId}?tab=3`);
+          {/* ── Services ── */}
+          <FormSection icon={Layers} title="Services & Procedures">
+            <div className="ad-row">
+              <div className="ad-col-half">
+                <Field label="Category" required error={formErrors.categoryId}>
+                  <Select
+                    isMulti
+                    {...selectPortalProps}
+                    options={categoryOptions}
+                    value={categoryOptions.filter(o => newService.categoryId?.includes(o.value))}
+                    onChange={sel => {
+                      handleChanges({ target: { name: 'categoryId', value: sel.map(o => o.value) } })
+                      if (sel.length) clearFieldError('categoryId')
                     }}
-                  >
-                    Please add Procedure details
-                  </span>
+                    placeholder="Select Category"
+                  />
+                </Field>
+              </div>
+              <div className="ad-col-half">
+                <Field label="Service Name" required error={formErrors.serviceId}>
+                  <Select
+                    isMulti
+                    {...selectPortalProps}
+                    options={serviceOptionsFormatted}
+                    value={serviceOptionsFormatted.filter(o => selectedServices.some(s => s.serviceId === o.value))}
+                    onChange={sel => {
+                      const objs = serviceOptions.filter(s => sel.some(x => x.value === s.serviceId))
+                      setSelectedServices(objs)
+                      fetchSubServices(objs.map(s => s.serviceId))
+                      if (objs.length) clearFieldError('serviceId')
+                    }}
+                    placeholder="Select Services"
+                  />
+                </Field>
+              </div>
+            </div>
+            <div className="ad-row">
+              <div className="ad-col-full">
+                <Field label="Procedure Name" required error={formErrors.subServiceName}>
+                  <Select
+                    isMulti
+                    {...selectPortalProps}
+                    options={(subServiceOptions || []).map(s => ({ label: s.subServiceName, value: s.subServiceId }))}
+                    value={(subServiceOptions || []).filter(s => selectedSubService.includes(s.subServiceId)).map(s => ({ label: s.subServiceName, value: s.subServiceId }))}
+                    onChange={sel => {
+                      const ids = sel.map(o => o.value)
+                      setSelectedSubService(ids)
+                      if (ids.length) clearFieldError('subServiceName')
+                      checkSubServiceDetails(ids)
+                    }}
+                    placeholder="Select Procedures"
+                  />
+                  {!isSubServiceComplete && (
+                    <div style={{ fontSize: 12, color: '#e24b4a', marginTop: 6 }}>
+                      Some procedures are missing price details.{' '}
+                      <span style={{ color: '#185fa5', cursor: 'pointer', textDecoration: 'underline' }}
+                        onClick={() => { closeForm?.(); navigate(`/clinic-management/${clinicId}?tab=3`) }}>
+                        Add procedure details
+                      </span>
+                    </div>
+                  )}
+                </Field>
+              </div>
+            </div>
+          </FormSection>
+
+          {/* ── Doctor Details ── */}
+          <FormSection icon={User} title="Doctor Details">
+            <div className="ad-row">
+              <div className="ad-col-half">
+                <Field label="Doctor Name" required error={formErrors.doctorName}>
+                  <input className="ad-input" value={form.doctorName}
+                    onChange={e => {
+                      let v = e.target.value.replace(/[0-9]/g, '')
+                      const w = v.startsWith('Dr.') ? v : `Dr. ${v}`
+                      setForm(p => ({ ...p, doctorName: w }))
+                      if (w.length > 3) clearFieldError('doctorName')
+                    }} />
+                </Field>
+              </div>
+              <div className="ad-col-half">
+                <Field label="License Number" required error={formErrors.doctorLicence}>
+                  <input className="ad-input" value={form.doctorLicence}
+                    onChange={e => { setForm(p => ({ ...p, doctorLicence: e.target.value })); if (e.target.value.trim()) clearFieldError('doctorLicence') }} />
+                </Field>
+              </div>
+            </div>
+            <div className="ad-row">
+              <div className="ad-col-third">
+                <Field label="Gender" required error={formErrors.gender}>
+                  <select className="ad-input" value={form.gender}
+                    onChange={e => { setForm(p => ({ ...p, gender: e.target.value })); if (e.target.value) clearFieldError('gender') }}>
+                    <option value="">Select Gender</option>
+                    <option>Female</option><option>Male</option><option>Other</option>
+                  </select>
+                </Field>
+              </div>
+              <div className="ad-col-third">
+                <Field label="Experience (years)" required error={formErrors.experience}>
+                  <input className="ad-input" type="number" value={form.experience}
+                    onChange={e => { setForm(p => ({ ...p, experience: e.target.value })); if (!isNaN(e.target.value) && Number(e.target.value) >= 0) clearFieldError('experience') }} />
+                </Field>
+              </div>
+              <div className="ad-col-third">
+                <Field label="Qualification" required error={formErrors.qualification}>
+                  <input className="ad-input" value={form.qualification}
+                    onChange={e => { const v = e.target.value.replace(/[0-9]/g, ''); setForm(p => ({ ...p, qualification: v })); setFormErrors(p => ({ ...p, qualification: v.trim() ? '' : 'Required' })) }} />
+                </Field>
+              </div>
+            </div>
+            <div className="ad-row">
+              <div className="ad-col-half">
+                <Field label="Specialization" required error={formErrors.specialization}>
+                  <input className="ad-input" value={form.specialization}
+                    onChange={e => { const v = e.target.value.replace(/[0-9]/g, ''); setForm(p => ({ ...p, specialization: v })); setFormErrors(p => ({ ...p, specialization: v.trim() ? '' : 'Required' })) }} />
+                </Field>
+              </div>
+              <div className="ad-col-half">
+                <Field label="Profile Description" required error={formErrors.profileDescription}>
+                  <textarea className="ad-input ad-textarea" rows={3} value={form.profileDescription}
+                    onChange={e => { const v = e.target.value.replace(/[0-9]/g, ''); setForm(p => ({ ...p, profileDescription: v })); setFormErrors(p => ({ ...p, profileDescription: v.trim() ? '' : 'Required' })) }} />
+                </Field>
+              </div>
+            </div>
+            <div className="ad-row">
+              <div className="ad-col-half">
+                <Field label="Profile Picture" required error={formErrors.doctorPicture}>
+                  <input className="ad-input" type="file" accept="image/jpeg,image/png"
+                    onChange={e => {
+                      const f = e.target.files[0]; if (!f) return
+                      if (!['image/jpeg','image/png'].includes(f.type)) { setFormErrors(p => ({ ...p, doctorPicture: 'Only JPG/PNG allowed' })); return }
+                      if (f.size > 250*1024) { setFormErrors(p => ({ ...p, doctorPicture: 'Max 250KB' })); return }
+                      const r = new FileReader(); r.onloadend = () => { setForm(p => ({ ...p, doctorPicture: r.result })); clearFieldError('doctorPicture') }; r.readAsDataURL(f)
+                    }} />
+                  {form.doctorPicture && <img src={form.doctorPicture} alt="Preview" className="ad-img-preview" />}
+                </Field>
+              </div>
+              <div className="ad-col-half">
+                <Field label="Doctor Signature (for E-Prescription)" required error={formErrors.doctorSignature}>
+                  <input className="ad-input" type="file" accept="image/jpeg,image/png"
+                    onChange={e => {
+                      const f = e.target.files[0]; if (!f) return
+                      if (!['image/jpeg','image/png'].includes(f.type)) { setFormErrors(p => ({ ...p, doctorSignature: 'Only JPG/PNG allowed' })); return }
+                      const r = new FileReader(); r.onloadend = () => { setForm(p => ({ ...p, doctorSignature: r.result })); clearFieldError('doctorSignature') }; r.readAsDataURL(f)
+                    }} />
+                  {form.doctorSignature && <img src={form.doctorSignature} alt="Signature" className="ad-img-preview" />}
+                </Field>
+              </div>
+            </div>
+          </FormSection>
+
+          {/* ── Schedule ── */}
+          <FormSection icon={Clock} title="Working Schedule">
+            <div className="ad-row">
+              <div className="ad-col-quarter">
+                <Field label="Start Day" required error={formErrors.availableDays}>
+                  <select className="ad-input" value={startDay}
+                    onChange={e => { setStartDay(e.target.value); availableDays(e.target.value, 'start'); clearFieldError('availableDays') }}>
+                    <option value="">Select</option>
+                    {days.map(d => <option key={d}>{d}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <div className="ad-col-quarter">
+                <Field label="End Day" required>
+                  <select className="ad-input" value={endDay}
+                    onChange={e => { setEndDay(e.target.value); availableDays(e.target.value, 'end'); clearFieldError('availableDays') }}>
+                    <option value="">Select</option>
+                    {days.map(d => <option key={d}>{d}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <div className="ad-col-quarter">
+                <Field label="Start Time" required error={formErrors.availableTimes}>
+                  <select className="ad-input" value={startTime}
+                    onChange={e => { setStartTime(e.target.value); handleTimeChange(e.target.value, 'start'); clearFieldError('availableTimes') }}>
+                    <option value="">Select</option>
+                    {times.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <div className="ad-col-quarter">
+                <Field label="End Time" required>
+                  <select className="ad-input" value={endTime}
+                    onChange={e => { setEndTime(e.target.value); handleTimeChange(e.target.value, 'end'); clearFieldError('availableTimes') }}>
+                    <option value="">Select</option>
+                    {times.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </Field>
+              </div>
+            </div>
+          </FormSection>
+
+          {/* ── Consultations & Fees ── */}
+          <FormSection icon={CreditCard} title="Consultations & Fees">
+            <div className="ad-row" style={{ marginBottom: 12 }}>
+              <div className="ad-col-full">
+                <label className="ad-label">Consultation Type</label>
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 6 }}>
+                  {[['serviceTreatment','Services & Treatments'],['inClinic','In-Clinic'],['online','Online']].map(([key, lbl]) => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={enabledTypes[key]} onChange={() => toggleType(key)}
+                        style={{ accentColor: '#185fa5', width: 14, height: 14 }} />
+                      {lbl}
+                    </label>
+                  ))}
                 </div>
-              )}
-
-              {formErrors.subServiceName && (
-                <div className="text-danger mt-1">{formErrors.subServiceName}</div>
-              )}
-            </CCol>
-          </CRow>
-
-          <hr />
-
-          <h5 className="mb-3">Doctor Details</h5>
-          <CRow className="g-4 mb-4">
-            <CCol md={6}>
-              <CFormLabel>
-                Doctor Name
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <div className="input-group">
-                <CFormInput
-                  value={form.doctorName}
-                  onChange={(e) => {
-                    let name = e.target.value
-                    // Remove digits
-                    name = name.replace(/[0-9]/g, '')
-                    const withPrefix = name.startsWith('Dr.') ? name : `Dr. ${name}`
-                    setForm((prev) => ({ ...prev, doctorName: withPrefix }))
-                    //Clear error if valid
-                    if (withPrefix.length > 3) {
-                      setFormErrors((prev) => ({ ...prev, doctorName: '' }))
-                    }
-                  }}
-                  invalid={!!formErrors.doctorName}
-                />
               </div>
-              {formErrors.doctorName && (
-                <div className="text-danger mt-1">{formErrors.doctorName}</div>
-              )}
-            </CCol>{' '}
-            <CCol md={6}>
-              <CFormLabel>
-                License Number
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormInput
-                value={form.doctorLicence}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setForm((prev) => ({ ...prev, doctorLicence: value }))
-
-                  if (value.trim()) {
-                    setFormErrors((prev) => {
-                      const updated = { ...prev }
-                      delete updated.doctorLicence
-                      return updated
-                    })
-                  }
-                }}
-                invalid={!!formErrors?.doctorLicence} // CoreUI validation styling
-              />
-              {formErrors?.doctorLicence && (
-                <small className="text-danger">{formErrors.doctorLicence}</small>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>Gender <span className="text-danger">*</span></CFormLabel>
-              <CFormSelect
-                value={form.gender}
-                onChange={(e) => {
-                  setForm((p) => ({ ...p, gender: e.target.value }));
-                  // Clear error immediately when user selects
-                  if (e.target.value) setFormErrors((prev) => ({ ...prev, gender: '' }));
-                }}
-                invalid={!!formErrors.gender} // highlights the select in red
-              >
-                <option value="">Select Gender</option> {/* Add this line */}
-                <option>Female</option>
-                <option>Male</option>
-                <option>Other</option>
-              </CFormSelect>
-              {formErrors.gender && (
-                <div className="text-danger mt-1">{formErrors.gender}</div>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                Experience (years)
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormInput
-                type="number"
-                value={form.experience}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setForm((p) => ({ ...p, experience: value }))
-
-                  // Clear error if value is a valid number >= 0
-                  if (!isNaN(value) && Number(value) >= 0) {
-                    setFormErrors((prev) => ({ ...prev, experience: '' }))
-                  }
-                }}
-                invalid={!!formErrors.experience}
-              />
-              {formErrors.experience && (
-                <div className="text-danger mt-1">{formErrors.experience}</div>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                Qualification
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormInput
-                value={form.qualification}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[0-9]/g, '') // remove numbers
-                  setForm((p) => ({ ...p, qualification: value }))
-                  setFormErrors((prev) => ({
-                    ...prev,
-                    qualification: value.trim() ? '' : 'Qualification is required',
-                  }))
-                }}
-                invalid={!!formErrors.qualification}
-              />
-
-              {formErrors.qualification && (
-                <div className="text-danger mt-1">{formErrors.qualification}</div>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                Specialization
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormInput
-                value={form.specialization}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[0-9]/g, '') // remove numbers
-                  setForm((p) => ({ ...p, specialization: value }))
-                  setFormErrors((prev) => ({
-                    ...prev,
-                    specialization: value.trim() ? '' : 'Specialization is required',
-                  }))
-                }}
-                invalid={!!formErrors.specialization}
-              />
-
-              {formErrors.specialization && (
-                <div className="text-danger mt-1">{formErrors.specialization}</div>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                Profile Description
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormTextarea
-                value={form.profileDescription}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[0-9]/g, '') // remove numbers
-                  setForm((p) => ({ ...p, profileDescription: value }))
-                  setFormErrors((prev) => ({
-                    ...prev,
-                    profileDescription: value.trim() ? '' : 'Profile description is required',
-                  }))
-                }}
-                invalid={!!formErrors.profileDescription}
-                rows={4}
-              />
-
-              {formErrors.profileDescription && (
-                <div className="text-danger mt-1">{formErrors.profileDescription}</div>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                Profile Picture
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormInput
-                type="file"
-                accept="image/jpeg, image/png"
-                onChange={(e) => {
-                  const file = e.target.files[0]
-                  if (file) {
-                    // ✅ Only allow JPEG and PNG
-                    const validTypes = ['image/jpeg', 'image/png']
-                    if (!validTypes.includes(file.type)) {
-                      setFormErrors((prev) => ({
-                        ...prev,
-                        doctorPicture: 'Only JPG and PNG images are allowed',
-                      }))
-                      return
-                    }
-                    if (file.size > 250 * 1024) {
-                      setFormErrors((prev) => ({
-                        ...prev,
-                        doctorPicture: 'File size must be less than 250KB',
-                      }))
-                      return
-                    }
-
-                    const reader = new FileReader()
-                    reader.onloadend = () => {
-                      setForm((p) => ({ ...p, doctorPicture: reader.result }))
-                      setFormErrors((prev) => ({
-                        ...prev,
-                        doctorPicture: '', // clear error
-                      }))
-                    }
-                    reader.readAsDataURL(file)
-                  } else {
-                    setFormErrors((prev) => ({
-                      ...prev,
-                      doctorPicture: 'Profile picture is required',
-                    }))
-                  }
-                }}
-                invalid={!!formErrors.doctorPicture}
-              />
-              {formErrors.doctorPicture && (
-                <div className="text-danger mt-1">{formErrors.doctorPicture}</div>
-              )}
-            </CCol>
-          </CRow>
-
-          <hr />
-
-          <h5 className="mb-3">Working Schedule</h5>
-          <CRow className="g-4 mb-4">
-            <CCol md={6}>
-              <CFormLabel>
-                Start Day
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormSelect
-                value={startDay}
-                onChange={(e) => {
-                  setStartDay(e.target.value)
-                  availableDays(e.target.value, 'start')
-                  setFormErrors((prev) => ({ ...prev, availableDays: '' })) // ✅ clear error
-                }}
-              >
-                <option value="">Select</option>
-                {days.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </CFormSelect>
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                End Day
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormSelect
-                value={endDay}
-                onChange={(e) => {
-                  setEndDay(e.target.value)
-                  availableDays(e.target.value, 'end')
-                  setFormErrors((prev) => ({ ...prev, availableDays: '' }))
-                }}
-              >
-                <option value="">Select</option>
-                {days.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </CFormSelect>
-              {formErrors.availableDays && (
-                <div className="text-danger">{formErrors.availableDays}</div>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                Start Time
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormSelect
-                value={startTime}
-                onChange={(e) => {
-                  setStartTime(e.target.value)
-                  handleTimeChange(e.target.value, 'start')
-                  setFormErrors((prev) => ({ ...prev, availableTimes: '' }))
-                }}
-              >
-                <option value="">Select</option>
-                {times.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </CFormSelect>
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                End Time
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormSelect
-                value={endTime}
-                onChange={(e) => {
-                  setEndTime(e.target.value)
-                  handleTimeChange(e.target.value, 'end')
-                  setFormErrors((prev) => ({ ...prev, availableTimes: '' }))
-                }}
-              >
-                <option value="">Select</option>
-                {times.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </CFormSelect>
-            </CCol>
-            {formErrors.availableTimes && (
-              <div className="text-danger">{formErrors.availableTimes}</div>
-            )}
-          </CRow>
-
-          <hr />
-
-          <CRow className="g-4 mb-4">
-            <CCol xs={12}>
-              <h5 className="mb-3">Consultations & Contact</h5>
-            </CCol>
-
-            {/* Row: Consultation Type (Checkboxes) */}
-            <CCol xs={12}>
-              <div className="d-flex align-items-center flex-wrap gap-4">
-                <strong>Consultation Type:</strong>
-
-                <CFormCheck
-                  type="checkbox"
-                  label="Services & Treatments"
-                  checked={enabledTypes.serviceTreatment}
-                  onChange={() => toggleType('serviceTreatment')}
-                />
-                <CFormCheck
-                  type="checkbox"
-                  label="In-Clinic Consultation"
-                  checked={enabledTypes.inClinic}
-                  onChange={() => toggleType('inClinic')}
-                />
-                <CFormCheck
-                  type="checkbox"
-                  label="Online Consultation"
-                  checked={enabledTypes.online}
-                  onChange={() => toggleType('online')}
-                />
-              </div>
-            </CCol>
-
-            {/* Row: Input fields side-by-side, label below */}
-            <CCol xs={12}>
-              <div className="d-flex gap-4 flex-wrap">
-                {/* In-Clinic Fee Input */}
-                <div style={{ flex: 1 }}>
-                  <CFormLabel>
-                    In-Clinic Consultation Fee
-                    <span className="text-danger">*</span>
-                  </CFormLabel>
-                  <CFormInput
-                    type="number"
-                    placeholder="In-Clinic Consultation Fee"
+            </div>
+            <div className="ad-row">
+              <div className="ad-col-half">
+                <Field label="In-Clinic Consultation Fee" required error={formErrors.inClinicFee}>
+                  <input className="ad-input" type="number" placeholder="Enter fee"
                     disabled={!enabledTypes.inClinic}
                     value={form.doctorFees.inClinicFee}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setForm((prev) => ({
-                        ...prev,
-                        doctorFees: { ...prev.doctorFees, inClinicFee: value },
-                      }))
-                      if (value && !isNaN(value) && Number(value) > 0) {
-                        setFormErrors((prev) => ({ ...prev, inClinicFee: '' }))
-                      }
-                    }}
-                  />
-
-                  {formErrors.inClinicFee && (
-                    <div className="text-danger">{formErrors.inClinicFee}</div>
-                  )}
-                </div>
-
-                {/* Video/Online Fee Input */}
-                <div style={{ flex: 1 }}>
-                  <CFormLabel>
-                    Online Consultation Fee
-                    <span className="text-danger">*</span>
-                  </CFormLabel>
-                  <CFormInput
-                    type="number"
-                    placeholder="Online Consultation Fee"
+                    onChange={e => { const v = e.target.value; setForm(p => ({ ...p, doctorFees: { ...p.doctorFees, inClinicFee: v } })); if (v && Number(v)>0) clearFieldError('inClinicFee') }}
+                    style={{ opacity: enabledTypes.inClinic ? 1 : 0.5 }} />
+                </Field>
+              </div>
+              <div className="ad-col-half">
+                <Field label="Online Consultation Fee" required error={formErrors.vedioConsultationFee}>
+                  <input className="ad-input" type="number" placeholder="Enter fee"
                     disabled={!enabledTypes.online}
                     value={form.doctorFees.vedioConsultationFee}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setForm((prev) => ({
-                        ...prev,
-                        doctorFees: {
-                          ...prev.doctorFees,
-                          vedioConsultationFee: value,
-                        },
-                      }))
-                      if (value && !isNaN(value) && Number(value) > 0) {
-                        setFormErrors((prev) => ({
-                          ...prev,
-                          vedioConsultationFee: '',
-                        }))
-                      }
-                    }}
+                    onChange={e => { const v = e.target.value; setForm(p => ({ ...p, doctorFees: { ...p.doctorFees, vedioConsultationFee: v } })); if (v && Number(v)>0) clearFieldError('vedioConsultationFee') }}
+                    style={{ opacity: enabledTypes.online ? 1 : 0.5 }} />
+                </Field>
+              </div>
+            </div>
+            <div className="ad-row">
+              <div className="ad-col-half">
+                <Field label="Contact Number" required error={formErrors.doctorMobileNumber}>
+                  <input className="ad-input" type="tel" maxLength={10} value={form.doctorMobileNumber}
+                    placeholder="10-digit number"
+                    onChange={e => { if (/^\d{0,10}$/.test(e.target.value)) { setForm(p => ({ ...p, doctorMobileNumber: e.target.value })); if (/^\d{10}$/.test(e.target.value)) clearFieldError('doctorMobileNumber') } }} />
+                </Field>
+              </div>
+              <div className="ad-col-half">
+                <Field label="Email Address" required error={formErrors.doctorEmail}>
+                  <input className="ad-input" type="email" value={form.doctorEmail}
+                    placeholder="doctor@email.com"
+                    onChange={e => { setForm(p => ({ ...p, doctorEmail: e.target.value })); if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.target.value)) clearFieldError('doctorEmail') }} />
+                </Field>
+              </div>
+            </div>
+          </FormSection>
+
+          {/* ── Additional ── */}
+          <FormSection icon={FileText} title="Additional Details">
+            <div className="ad-row">
+              <div className="ad-col-half">
+                <Field label="Association / Membership">
+                  <input className="ad-input" value={form.associationsOrMemberships}
+                    onChange={e => setForm(p => ({ ...p, associationsOrMemberships: e.target.value.replace(/[0-9]/g,'') })) } />
+                </Field>
+              </div>
+              <div className="ad-col-half">
+                <Field label="Branch">
+                  <Select
+                    isMulti
+                    {...selectPortalProps}
+                    options={branchOptions}
+                    value={branchOptions.filter(o => Array.isArray(form.branch) && form.branch.some(b => b.branchId === o.value))}
+                    onChange={sel => setForm(p => ({ ...p, branch: sel.map(o => ({ branchId: o.value, branchName: o.label })) }))}
+                    placeholder="Select branches…"
                   />
-                  {formErrors.vedioConsultationFee && (
-                    <div className="text-danger">{formErrors.vedioConsultationFee}</div>
-                  )}
-                </div>
+                </Field>
               </div>
-            </CCol>
-
-            {/* Mobile Number */}
-            <CCol md={6}>
-              <CFormLabel>
-                Contact Number
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormInput
-                type="tel"
-                maxLength={10}
-                value={form.doctorMobileNumber}
-                onChange={(e) => {
-                  const value = e.target.value
-                  if (/^\d{0,10}$/.test(value)) {
-                    setForm((prev) => ({ ...prev, doctorMobileNumber: value }))
-                    if (/^\d{10}$/.test(value)) {
-                      setFormErrors((prev) => ({ ...prev, doctorMobileNumber: '' }))
-                    }
-                  }
-                }}
-                placeholder="Enter 10-digit number"
-              />
-              {formErrors.doctorMobileNumber && (
-                <div className="text-danger">{formErrors.doctorMobileNumber}</div>
-              )}
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>
-                Email Address
-                <span className="text-danger">*</span>
-              </CFormLabel>
-              <CFormInput
-                type="email"
-                value={form.doctorEmail}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setForm((prev) => ({ ...prev, doctorEmail: value }))
-
-                  // Email validation
-                  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                  if (emailPattern.test(value)) {
-                    setFormErrors((prev) => ({ ...prev, doctorEmail: '' }))
-                  } else {
-                    setFormErrors((prev) => ({
-                      ...prev,
-                      doctorEmail: 'Enter a valid email address',
-                    }))
-                  }
-                }}
-                placeholder="Enter doctor email"
-                invalid={!!formErrors.doctorEmail}
-              />
-              {formErrors.doctorEmail && (
-                <div className="text-danger">{formErrors.doctorEmail}</div>
-              )}
-            </CCol>
-          </CRow>
-
-          <hr />
-
-          <h5 className="mb-3">Additional Details</h5>
-          <CRow>
-            <CCol md={6}>
-              <CFormLabel>Association/Membership</CFormLabel>
-              <CFormInput
-                value={form.associationsOrMemberships}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[0-9]/g, '')
-                  setForm((p) => ({ ...p, associationsOrMemberships: value }))
-                }}
-              />
-            </CCol>
-            <CCol md={6}>
-              <CFormLabel>Branch</CFormLabel>
-              <Select
-                isMulti
-                options={branchOptions} // [{ value: 'H_1-B_1', label: 'punjagutta' }, ...]
-                value={branchOptions.filter(
-                  (opt) =>
-                    Array.isArray(form.branch) && form.branch.some((b) => b.branchId === opt.value),
-                )}
-                onChange={(selected) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    branch: selected.map((opt) => ({
-                      branchId: opt.value,
-                      branchName: opt.label,
-                    })),
-                  }))
-                }
-                placeholder="Select branches..."
-              />
-            </CCol>
-          </CRow>
-          <ChipSection
-            label="Area of Expertise"
-            items={form.focusAreas}
-            onAdd={(items) => setForm((prev) => ({ ...prev, focusAreas: items }))}
-          />
-          <div className="mb-3">
-            {/* <label label="Language">Languages Known</label> */}
-            <ChipSection
-              label={
-                <span>
-                  Languages Known <span className="text-danger">*</span>
-                </span>
-              }
-              items={form.languages}
-              onAdd={(items) => {
-                setForm((prev) => ({ ...prev, languages: items }))
-                if (items.length > 0) {
-                  setFormErrors((prev) => ({ ...prev, languages: '' }))
-                }
-              }}
-            />
-
-            {formErrors.languages && <div className="text-danger mt-1">{formErrors.languages}</div>}
-          </div>
-
-          <ChipSection
-            label="Achievements / Awards"
-            items={form.highlights}
-            onAdd={(items) => setForm((prev) => ({ ...prev, highlights: items }))}
-          />
-          <CCol md={6} className="d-flex align-items-center" style={{ gap: '20px' }}>
-            {/* The container for the custom file input and label */}
-            <div style={{ flex: 1 }}>
-              <CFormLabel htmlFor="doctorSignature">
-                Doctor Signature(to add in the E-Prescription)<span className="text-danger">*</span>
-              </CFormLabel>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  padding: '4px', // Reduced padding
-                  backgroundColor: '#f8f9fa',
-                }}
-              >
-                <CButton
-                  color="secondary"
-                  onClick={() => document.getElementById('file-input-doctor-signature').click()}
-                >
-                  Choose File
-                </CButton>
-                <span
-                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                >
-                  {form.doctorSignatureFileName || 'No file selected'}
-                </span>
-              </div>
-              <CFormInput
-                id="file-input-doctor-signature"
-                type="file"
-                accept="image/jpeg, image/png"
-                style={{ display: 'none' }} // Hide the native file input
-                onChange={(e) => {
-                  const file = e.target.files[0]
-                  if (file) {
-                    const validTypes = ['image/jpeg', 'image/png']
-                    if (!validTypes.includes(file.type)) {
-                      setFormErrors((prev) => ({
-                        ...prev,
-                        doctorSignature: 'Only JPG and PNG images are allowed',
-                      }))
-                      return
-                    }
-                    const reader = new FileReader()
-                    reader.onloadend = () => {
-                      setForm((p) => ({
-                        ...p,
-                        doctorSignature: reader.result,
-                        doctorPictureFileName: file.name,
-                      }))
-                      setFormErrors((prev) => ({
-                        ...prev,
-                        doctorSignature: '',
-                      }))
-                    }
-                    reader.readAsDataURL(file)
-                  } else {
-                    setForm((p) => ({ ...p, doctorSignature: null, doctorSignatureFileName: null }))
-                    setFormErrors((prev) => ({
-                      ...prev,
-                      doctorSignature: 'Profile picture is required',
-                    }))
-                  }
-                }}
-                invalid={!!formErrors.doctorSignature}
-              />
-              {formErrors.doctorSignature && (
-                <div className="text-danger p-2">{formErrors.doctorSignature}</div>
-              )}
             </div>
-
-            {/* Image Preview on the right side */}
-            <div style={{ minWidth: '150px' }}>
-              {form.doctorSignature ? (
-                <img
-                  src={form.doctorSignature}
-                  alt="Doctor Signature Preview"
-                  style={{
-                    width: '150px',
-                    height: 'auto', // Changed to 'auto'
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    objectFit: 'contain', // Changed to 'contain'
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '150px',
-                    height: '80px', // Reduced height
-                    border: '1px dashed #ccc',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    color: '#999',
-                    fontSize: '14px',
-                  }}
-                >
-                  No Image
-                </div>
-              )}
+            <div className="ad-row">
+              <ChipSection label="Area of Expertise" items={form.focusAreas} onAdd={items => setForm(p => ({ ...p, focusAreas: items }))} />
             </div>
-          </CCol>
+            <div className="ad-row">
+              <ChipSection
+                label={<span>Languages Known <span className="ad-required">*</span></span>}
+                items={form.languages}
+                onAdd={items => { setForm(p => ({ ...p, languages: items })); if (items.length) clearFieldError('languages') }}
+                error={formErrors.languages} />
+            </div>
+            <div className="ad-row">
+              <ChipSection label="Achievements / Awards" items={form.highlights} onAdd={items => setForm(p => ({ ...p, highlights: items }))} />
+            </div>
+          </FormSection>
+
         </CModalBody>
 
-        <CModalFooter>
-          <CButton color="secondary" onClick={() => setModalVisible(false)}>
-            Cancel
-          </CButton>
-          <CButton color="info" className="text-white" onClick={handleSubmit}>
-            Submit
-          </CButton>
+        <CModalFooter style={{ borderTop: '0.5px solid #d0dce9', padding: '12px 20px', gap: 8 }}>
+          <button className="ad-btn-cancel" onClick={() => setModalVisible(false)}><X size={13} /> Cancel</button>
+          <button className="ad-btn-save" onClick={handleSubmit} disabled={isSaving}>
+            {isSaving ? <><span className="spinner-border spinner-border-sm me-1" role="status" />Saving…</> : <><Save size={13} /> Submit</>}
+          </button>
         </CModalFooter>
       </CModal>
 
       <style>{`
-          .add-doctor-wrapper {
-            position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-          }
+        /* ── Loading overlay ── */
+        .ad-loading-overlay {
+          position: absolute; inset: 0;
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(3px);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 1000; border-radius: 0 0 10px 10px;
+        }
+        .ad-loading-card {
+          display: flex; flex-direction: column; align-items: center; gap: 14px;
+          background: #fff; border: 0.5px solid #d0dce9;
+          border-radius: 12px; padding: 28px 36px;
+          box-shadow: 0 8px 32px rgba(24, 95, 165, 0.12);
+        }
+        .ad-spinner {
+          width: 36px; height: 36px;
+          border: 3px solid #e6f1fb;
+          border-top-color: #185fa5;
+          border-radius: 50%;
+          animation: ad-spin 0.75s linear infinite;
+        }
+        @keyframes ad-spin { to { transform: rotate(360deg); } }
+        .ad-loading-text {
+          font-size: 13px; font-weight: 600; color: #185fa5; letter-spacing: 0.01em;
+        }
 
-          .add-doctor-btn {
-            display: flex;
-            align-items: center;
-            background-color: #fff;
-            border: 1px solid #00aaff;
-            border-radius: 8px;
-            padding: 8px 16px;
-            color: #00aaff;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-          }
+        /* ── Sections ── */
+        .ad-section { margin-bottom: 18px; border: 0.5px solid #d0dce9; border-radius: 10px; overflow: hidden; }
+        .ad-section-title { display: flex; align-items: center; gap: 8px; background: #185fa5; color: #fff; font-size: 12px; font-weight: 600; padding: 9px 14px; }
+        .ad-section-icon  { color: #b5d4f4; }
+        .ad-section-body  { padding: 14px; }
 
-          .add-doctor-btn:hover {
-            background-color: #e0f7ff;
-          }
+        /* ── Layout ── */
+        .ad-row         { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 4px; }
+        .ad-col-full    { flex: 1 1 100%; }
+        .ad-col-half    { flex: 1 1 calc(50% - 12px); min-width: 150px; }
+        .ad-col-third   { flex: 1 1 calc(33.333% - 12px); min-width: 130px; }
+        .ad-col-quarter { flex: 1 1 calc(25% - 12px); min-width: 110px; }
 
-          .add-icon-circle {
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            min-height: 40px;
-            background-color: #e6f7ff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 10px;
-            border: 1px solid #00aaff;
-          }
+        /* ── Fields ── */
+        .ad-field    { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex: 1; }
+        .ad-label    { font-size: 11px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 3px; }
+        .ad-required { color: #e24b4a; font-size: 11px; }
+        .ad-error    { font-size: 11px; color: #e24b4a; }
 
-          .add-doctor-text {
-            color: #00aaff;
-          }
-            .badge {
-    background-color: #e2e3e5;
-    color: #000;
-  }
-    .centered-message {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 60vh; // Adjust based on your layout
-    text-align: center;
-    font-size: 1.2rem;
-    color:"blue"
-  }
-  .label-required::after {
-      content:"*";
-      color: red;
-    
-    }
+        /* ── Inputs ── */
+        .ad-input {
+          width: 100%; padding: 7px 10px; font-size: 12.5px; color: #374151;
+          background: #fff; border: 0.5px solid #d0dce9; border-radius: 7px;
+          outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+          appearance: none; -webkit-appearance: none;
+        }
+        .ad-input:focus { border-color: #185fa5; box-shadow: 0 0 0 2.5px rgba(24,95,165,0.12); }
+        .ad-input:disabled { background: #f0f5fb; color: #9ca3af; cursor: not-allowed; }
+        .ad-textarea { resize: vertical; min-height: 72px; }
 
-        `}</style>
+        /* ── Image preview ── */
+        .ad-img-preview { width: 80px; height: 60px; object-fit: contain; border-radius: 6px; border: 0.5px solid #d0dce9; margin-top: 8px; display: block; }
+
+        /* ── Chips ── */
+        .ad-chip {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #e6f1fb; color: #0c447c; border: 0.5px solid #b5d4f4;
+          border-radius: 20px; padding: 4px 10px; font-size: 12px; font-weight: 500;
+        }
+        .ad-chip-remove { background: none; border: none; color: #185fa5; cursor: pointer; display: flex; align-items: center; padding: 0; }
+        .ad-chip-remove:hover { color: #a32d2d; }
+        .ad-chip-add {
+          display: inline-flex; align-items: center; gap: 4px;
+          background: #185fa5; color: #fff; border: none; border-radius: 7px;
+          padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+          white-space: nowrap; transition: filter 0.15s;
+        }
+        .ad-chip-add:hover { filter: brightness(0.9); }
+
+        /* ── Footer buttons ── */
+        .ad-btn-cancel {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #fff; color: #374151; border: 0.5px solid #d0dce9;
+          border-radius: 8px; padding: 7px 16px; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: background 0.15s;
+        }
+        .ad-btn-cancel:hover { background: #f3f4f6; }
+        .ad-btn-save {
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #185fa5; color: #fff; border: none;
+          border-radius: 8px; padding: 7px 18px; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: filter 0.15s;
+        }
+        .ad-btn-save:hover { filter: brightness(0.9); }
+        .ad-btn-save:disabled { opacity: 0.65; cursor: not-allowed; }
+
+        @media (max-width: 600px) {
+          .ad-col-half, .ad-col-third, .ad-col-quarter { flex: 1 1 100%; }
+        }
+      `}</style>
     </div>
   )
 }

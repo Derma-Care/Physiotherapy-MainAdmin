@@ -1,49 +1,102 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import {
-  CRow,
-  CCol,
-  CFormSelect,
-  CFormInput,
-  CButton,
-  CModal,
-  CModalHeader,
-  CModalBody,
-  CModalFooter,
-  CModalTitle,
-  CTable,
-  CCard,
-  CTableHead,
-  CTableRow,
-  CTableHeaderCell,
-  CTableBody,
-  CTableDataCell,
-  CPagination,
-  CPaginationItem,
-  CForm,
-  CCardHeader,
-  CInputGroup,
-  CInputGroupText, CCardBody
+  CRow, CCol, CFormSelect, CFormInput, CButton,
+  CModal, CModalHeader, CModalBody, CModalFooter, CModalTitle,
+  CTable, CCard, CTableHead, CTableRow, CTableHeaderCell,
+  CTableBody, CTableDataCell, CForm, CCardHeader, CInputGroup,
+  CInputGroupText, CCardBody,
 } from '@coreui/react'
-import Select from 'react-select'
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { BASE_URL, subService_URL, updateSubservices, getService } from '../../baseUrl'
-import { postSubService, getAllSubServices, deleteSubServiceData, getSubServiceId } from './ProcedureAPI'
+import { BASE_URL, updateSubservices } from '../../baseUrl'
+import {
+  postSubService, getAllSubServices, deleteSubServiceData, getSubServiceId,
+} from './ProcedureAPI'
 import { getServiceByCategoryId } from '../servicesManagement/ServiceAPI'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
-import { Edit2, Eye, Trash2 } from 'lucide-react'
-import { COLORS } from '../../Constant/Themes'
+import { Edit2, Eye, Trash2, Search, Plus } from 'lucide-react'
 import LoadingIndicator from '../../Utils/loader'
+
+/* ─── Inline styles ──────────────────────────────────────────────────────── */
+const S = {
+  wrap: { background: '#f0f4f8', minHeight: '100vh', padding: '1.5rem', fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" },
+  card: { background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(27,79,138,0.10)', overflow: 'hidden' },
+
+  /* Header */
+  header: { background: '#1B4F8A', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' },
+  headerTitle: { color: '#fff', fontSize: '1.15rem', fontWeight: 600, margin: 0 },
+  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', marginTop: 2 },
+  headerRight: { display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' },
+
+  searchBox: { display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 7, padding: '0 0.6rem', height: 36 },
+  searchInput: { background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '0.82rem', width: 180 },
+
+  btnAdd: { background: '#fff', color: '#1B4F8A', border: 'none', borderRadius: 7, padding: '0 1rem', height: 36, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 },
+
+  /* Filter bar */
+  filterBar: { display: 'flex', gap: '0.5rem', padding: '0.85rem 1.5rem', borderBottom: '1px solid #e8eef5', background: '#f8fafd', alignItems: 'center', flexWrap: 'wrap' },
+  filterBtnBase: { border: '1px solid #d0daea', borderRadius: 20, padding: '0.3rem 0.9rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 500, transition: 'all 0.15s' },
+  filterBtnActive: { background: '#1B4F8A', color: '#fff', borderColor: '#1B4F8A' },
+  filterBtnInactive: { background: '#fff', color: '#1B4F8A' },
+  countBadge: { background: '#1B4F8A', color: '#fff', borderRadius: 20, padding: '0.28rem 0.7rem', fontSize: '0.75rem', fontWeight: 600 },
+
+  /* Table */
+  thead: { background: '#1B4F8A' },
+  th: { color: '#fff', fontSize: '0.8rem', fontWeight: 600, padding: '0.8rem 1rem', letterSpacing: '0.02em', whiteSpace: 'nowrap', borderBottom: 'none' },
+  td: { padding: '0.75rem 1rem', fontSize: '0.83rem', color: '#2d3748', verticalAlign: 'middle', borderBottom: '1px solid #eef2f7' },
+  sno: { color: '#6b7a8d', fontSize: '0.78rem', fontWeight: 500 },
+
+  /* Badges */
+  bookingId: { display: 'inline-block', background: '#e8f0fa', color: '#1B4F8A', border: '1px solid #b8d0ec', borderRadius: 20, padding: '0.18rem 0.7rem', fontSize: '0.76rem', fontWeight: 600, whiteSpace: 'nowrap' },
+  procedureName: { fontWeight: 600, color: '#1B4F8A' },
+
+  /* Action buttons */
+  actionCell: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 },
+  actionBtnBase: { width: 30, height: 30, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: '#fff', transition: 'all 0.15s' },
+  btnView: { border: '1.5px solid #3b82f6', color: '#3b82f6' },
+  btnEdit: { border: '1.5px solid #f59e0b', color: '#f59e0b' },
+  btnDelete: { border: '1.5px solid #ef4444', color: '#ef4444' },
+
+  /* Pagination bar */
+  paginationBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.5rem', background: '#f8fafd', borderTop: '1px solid #e8eef5', flexWrap: 'wrap', gap: '0.5rem' },
+  rowsLabel: { fontSize: '0.78rem', color: '#6b7a8d', display: 'flex', alignItems: 'center', gap: '0.5rem' },
+  rowsSelect: { border: '1px solid #d0daea', borderRadius: 6, padding: '0.25rem 0.5rem', fontSize: '0.78rem', color: '#2d3748', background: '#fff', outline: 'none', cursor: 'pointer' },
+  pageInfo: { fontSize: '0.78rem', color: '#6b7a8d' },
+  paginationWrap: { display: 'flex', alignItems: 'center', gap: 4 },
+  pgBtnBase: { minWidth: 30, height: 30, borderRadius: 6, border: '1px solid #d0daea', background: '#fff', color: '#1B4F8A', fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' },
+  pgBtnActive: { background: '#1B4F8A', color: '#fff', borderColor: '#1B4F8A' },
+  pgText: { fontSize: '0.78rem', color: '#6b7a8d', padding: '0 4px' },
+
+  /* Modal */
+  modalHead: { background: '#1B4F8A', color: '#fff' },
+  modalTitle: { color: '#fff', fontWeight: 600 },
+  formLabel: { fontSize: '0.78rem', fontWeight: 600, color: '#4a5568', marginBottom: '0.3rem', display: 'block' },
+  formControl: { width: '100%', border: '1px solid #d0daea', borderRadius: 7, padding: '0.5rem 0.75rem', fontSize: '0.82rem', color: '#2d3748', outline: 'none', background: '#fff' },
+  btnGreen: { background: '#16a34a', color: '#fff', border: 'none', borderRadius: 7, padding: '0 1rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', height: 36, whiteSpace: 'nowrap' },
+  btnCancel: { background: '#fff', border: '1px solid #d0daea', color: '#4a5568', borderRadius: 7, padding: '0 1.1rem', height: 36, fontSize: '0.82rem', cursor: 'pointer' },
+  btnSubmit: { background: '#1B4F8A', color: '#fff', border: 'none', borderRadius: 7, padding: '0 1.4rem', height: 36, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' },
+  pendingItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0f6ff', border: '1px solid #b8d0ec', borderRadius: 7, padding: '0.4rem 0.75rem', fontSize: '0.8rem', color: '#1B4F8A', marginTop: 6 },
+  btnRm: { background: 'none', border: '1px solid #ef4444', color: '#ef4444', borderRadius: 5, padding: '0.15rem 0.55rem', fontSize: '0.72rem', cursor: 'pointer' },
+
+  /* Empty */
+  emptyCell: { textAlign: 'center', color: '#9aa5b4', padding: '2.5rem', fontSize: '0.85rem' },
+
+  /* View modal card */
+  viewCard: { background: '#f9fafb', border: '1px solid #e8eef5', borderRadius: 8, padding: '1rem 1.25rem', marginBottom: '1rem' },
+  viewBadge: { background: '#e8f0fa', color: '#1B4F8A', border: '1px solid #b8d0ec', borderRadius: 6, padding: '0.18rem 0.7rem', fontSize: '0.75rem', fontWeight: 600 },
+}
+
+
 
 const ProcedureManagement = () => {
   const [category, setCategory] = useState([])
   const [serviceOptions, setServiceOptions] = useState([])
   const [selectedSubServices, setSelectedSubServices] = useState([])
-  const [selectSubService, setSelectSubService] = useState(false)
+  const [selectSubService, setSelectSubService] = useState(null)
   const [subServiceInput, setSubServiceInput] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [removeShowModal, setRemoveShowModal] = useState(false)
@@ -57,859 +110,446 @@ const ProcedureManagement = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [viewModalVisible, setViewModalVisible] = useState(false)
-
-  const [errors, setErrors] = useState({
-    category: '',
-    service: '',
-    subService: '',
-  })
-
-  // Pagination state
+  const [activeFilter, setActiveFilter] = useState('All')
+  const [subServices, setSubServices] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [errors, setErrors] = useState({ category: '', service: '', subService: '' })
+  const [newService, setNewService] = useState({ categoryName: '', categoryId: '', serviceName: '', serviceId: '' })
 
-  const [newService, setNewService] = useState({
-    categoryName: '',
-    categoryId: '',
-    serviceName: '',
-    serviceId: '',
-  })
-  const [subServices, setSubServices] = useState([])
+  useEffect(() => { fetchSubServices(); fetchCategories() }, [])
 
+  /* ── Derived ── */
+  const afterFilter = activeFilter === 'All'
+    ? filteredSubServices
+    : filteredSubServices.filter(r => r.category === activeFilter)
+
+  const totalPages = Math.ceil(afterFilter.length / itemsPerPage)
+  const indexOfFirst = (currentPage - 1) * itemsPerPage
+  const indexOfLast = indexOfFirst + itemsPerPage
+  const currentItems = afterFilter.slice(indexOfFirst, indexOfLast)
+
+  /* ── Enter key ── */
   useEffect(() => {
-    fetchSubServices()
-    fetchCategories()
-  }, [])
-
-  // Calculate pagination values
-  const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = filteredSubServices.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(filteredSubServices.length / itemsPerPage)
-
-  // Handle Enter key submission
-  useEffect(() => {
-    const handleEnterKey = (e) => {
-      if (e.key === 'Enter' && showModal) {
-        e.preventDefault()
-        handleSubmit()
-      }
-    }
-
-    window.addEventListener('keydown', handleEnterKey)
-
-    return () => {
-      window.removeEventListener('keydown', handleEnterKey)
-    }
+    const handler = e => { if (e.key === 'Enter' && showModal) { e.preventDefault(); handleSubmit() } }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [showModal, newService, selectedSubServices, editMode])
 
+  /* ── Search filter ── */
+  useEffect(() => {
+    if (!searchQuery.trim()) { setFilteredSubServices(subServices); return }
+    const q = searchQuery.toLowerCase()
+    setFilteredSubServices(subServices.filter(r =>
+      r.category?.toLowerCase().includes(q) ||
+      r.service?.toLowerCase().includes(q) ||
+      r.name?.toLowerCase().includes(q)
+    ))
+    const newTotal = Math.ceil(filteredSubServices.length / itemsPerPage)
+    if (currentPage > newTotal) setCurrentPage(newTotal || 1)
+  }, [searchQuery, subServices])
+
+  /* ── When filter changes, reset page ── */
+  useEffect(() => { setCurrentPage(1) }, [activeFilter])
+
+  /* ─── API calls ─────────────────────────────────────────────────────────── */
   const fetchSubServices = async () => {
     try {
       const result = await getAllSubServices()
-
-      // result should be an array of category objects
-      const formattedSubServices = result.flatMap((category) =>
-        Array.isArray(category.subServices)
-          ? category.subServices.map((sub) => ({
+      const formatted = result.flatMap(cat =>
+        Array.isArray(cat.subServices)
+          ? cat.subServices.map(sub => ({
             id: sub.subServiceId,
             name: sub.subServiceName,
-            category: category.categoryName,  // ✅ from top level
-            service: sub.serviceName,         // ✅ directly from subService
+            category: cat.categoryName,
+            service: sub.serviceName,
             serviceId: sub.serviceId,
           }))
           : []
       )
-
-      setSubServices(formattedSubServices)
-      setFilteredSubServices(formattedSubServices)
-    } catch (err) {
-      console.error("❌ Failed to fetch subservices:", err)
-      setSubServices([])
-      setFilteredSubServices([])
-    }
-  }
-
-  const validateFields = () => {
-    const newErrors = {}
-    if (!newService.categoryId) newErrors.category = 'Please select a category'
-    if (!newService.serviceId) newErrors.service = 'Please select a service'
-    if (!editMode && selectedSubServices.length === 0) newErrors.subService = 'Please add at least one Procedure'
-    if (editMode && selectedSubServices[0]?.subServiceName?.trim() === '') newErrors.subService = 'Procedure name cannot be empty'
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-  const handleViewService = async (subServiceId) => {
-    console.log("👀 handleViewService called with:", subServiceId)
-    try {
-      const res = await getSubServiceId(subServiceId)
-      console.log("🔎 Full API Response:", res)
-
-      // ✅ set the actual data object
-
-      setSelectSubService(res.data)
-      setViewModalVisible(true)
-    } catch (error) {
-      console.error("❌ Failed to fetch SubService details:", error)
-      toast.error("Failed to fetch SubService details")
-    }
-  }
-
-  const handleRemoveClick = (sub) => {
-    setSelectedSub(sub)
-    setRemoveShowModal(true)
-  }
-
-  const handleConfirmRemove = () => {
-    setSelectedSubServices((prev) => prev.filter((item) => item !== selectedSub))
-    setRemoveShowModal(false)
-  }
-
-  const confirmDelete = (serviceId) => {
-    setDeleteServiceId(serviceId)
-    setShowDeleteModal(true)
-  }
-
-  const handleConfirmDelete = async () => {
-    if (!deleteServiceId) return
-
-    try {
-      const res = await deleteSubServiceData(deleteServiceId)
-      if (res?.success) {
-        toast.success(res.message || 'Subservice deleted successfully!', { position: 'top-right' })
-        await fetchSubServices()
-      } else {
-        toast.error('Failed to delete subservice.', { position: 'top-right' })
-      }
-    } catch (error) {
-      console.error('❌ Delete error:', error)
-      toast.error('Failed to delete subservice.', { position: 'top-right' })
-    }
-
-    setShowDeleteModal(false)
-    setDeleteServiceId(null)
-  }
-
-  const handleCloseForm = () => {
-    setNewService({
-      categoryId: '',
-      serviceId: '',
-    })
-    setSelectedSubServices([])   // clear procedures
-    setErrors({})                // clear validation errors
-    setEditMode(false)           // reset mode
-    setShowModal(false)          // ✅ correct hook for closing modal
-  }
-
-  const handleCategoryEdit = async (row) => {
-    setEditMode(true)
-    setEditSubServiceId(row.id)
-    setShowModal(true)
-
-    const selectedCategory = category.find((c) => c.categoryName === row.category)
-    const selectedCategoryId = selectedCategory?.categoryId || ''
-
-    try {
-      const res = await getServiceByCategoryId(selectedCategoryId)
-      setServiceOptions(res)
-
-      const selectedService = res.find((s) => s.serviceName === row.service)
-
-      setNewService({
-        categoryName: row.category,
-        categoryId: selectedCategoryId,
-        serviceName: row.service,
-        serviceId: selectedService?.serviceId || '',
-      })
-    } catch (err) {
-      console.error('❌ Failed to load services for edit:', err)
-      setServiceOptions([])
-    }
-
-    setSelectedSubServices([
-      {
-        subServiceName: row.name,
-        serviceName: row.service,
-        serviceId: row.serviceId,
-      },
-    ])
+      setSubServices(formatted)
+      setFilteredSubServices(formatted)
+    } catch { setSubServices([]); setFilteredSubServices([]) }
   }
 
   const fetchCategories = async () => {
     try {
       const res = await CategoryData()
-      if (res?.data) {
-        setCategory(res.data || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch categories:', err)
-      setCategory([])
+      if (res?.data) setCategory(res.data || [])
+    } catch { setCategory([]) }
+  }
+
+  /* ─── Helpers ────────────────────────────────────────────────────────────── */
+  const normalize = val => (val ? val.toString().trim().toLowerCase() : '')
+
+  const validateFields = () => {
+    const e = {}
+    if (!newService.categoryId) e.category = 'Please select a category'
+    if (!newService.serviceId) e.service = 'Please select a service'
+    if (!editMode && selectedSubServices.length === 0) e.subService = 'Please add at least one Procedure'
+    if (editMode && selectedSubServices[0]?.subServiceName?.trim() === '') e.subService = 'Procedure name cannot be empty'
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  /* ─── Handlers ───────────────────────────────────────────────────────────── */
+  const handleChanges = async e => {
+    const { name, value } = e.target
+    setErrors(prev => ({ ...prev, [name === 'categoryName' ? 'category' : 'service']: '' }))
+    if (name === 'categoryName') {
+      const sel = category.find(c => c.categoryId === value)
+      setNewService(prev => ({ ...prev, categoryName: sel?.categoryName || '', categoryId: value, serviceName: '', serviceId: '' }))
+      try { setServiceOptions(await getServiceByCategoryId(value)) } catch { setServiceOptions([]) }
+    } else {
+      const sel = serviceOptions.find(s => s.serviceId === value)
+      setNewService(prev => ({ ...prev, serviceName: sel?.serviceName || '', serviceId: value }))
     }
   }
 
-  const handleChanges = async (e) => {
-    const { name, value } = e.target
-    setErrors((prev) => ({ ...prev, [name === 'categoryName' ? 'category' : 'service']: '' }))
+  const handleViewService = async id => {
+    try {
+      const res = await getSubServiceId(id)
+      if (!res?.data) { toast.error('SubService not found'); return }
+      setSelectSubService({ ...res.data, subServices: (res.data.subServices || []).filter(s => s.subServiceId === id) })
+      setViewModalVisible(true)
+    } catch { toast.error('Failed to fetch SubService details') }
+  }
 
-    if (name === 'categoryName') {
-      const selectedCategory = category.find((cat) => cat.categoryId === value)
-      setNewService((prev) => ({
-        ...prev,
-        categoryName: selectedCategory?.categoryName || '',
-        categoryId: value,
-        serviceName: '',
-        serviceId: '',
-      }))
+  const handleCategoryEdit = async row => {
+    setEditMode(true); setEditSubServiceId(row.id); setShowModal(true)
+    const sel = category.find(c => c.categoryName === row.category)
+    const catId = sel?.categoryId || ''
+    try {
+      const res = await getServiceByCategoryId(catId)
+      setServiceOptions(res)
+      const svc = res.find(s => s.serviceName === row.service)
+      setNewService({ categoryName: row.category, categoryId: catId, serviceName: row.service, serviceId: svc?.serviceId || '' })
+    } catch { setServiceOptions([]) }
+    setSelectedSubServices([{ subServiceName: row.name, serviceName: row.service, serviceId: row.serviceId }])
+  }
 
-      try {
-        const res = await getServiceByCategoryId(value)
-        setServiceOptions(res)
-      } catch (err) {
-        console.error('❌ Failed to fetch services:', err)
-        setServiceOptions([])
-      }
-    } else if (name === 'serviceName') {
-      const selectedService = serviceOptions.find((s) => s.serviceId === value)
-      setNewService((prev) => ({
-        ...prev,
-        serviceName: selectedService?.serviceName || '',
-        serviceId: value,
-      }))
-    }
+  const handleCloseForm = () => {
+    setNewService({ categoryId: '', categoryName: '', serviceName: '', serviceId: '' })
+    setSelectedSubServices([]); setErrors({}); setEditMode(false); setShowModal(false)
+  }
+
+  const handleRemoveClick = sub => { setSelectedSub(sub); setRemoveShowModal(true) }
+  const handleConfirmRemove = () => { setSelectedSubServices(prev => prev.filter(i => i !== selectedSub)); setRemoveShowModal(false) }
+
+  const confirmDelete = id => { setDeleteServiceId(id); setShowDeleteModal(true) }
+  const handleConfirmDelete = async () => {
+    if (!deleteServiceId) return
+    try {
+      const res = await deleteSubServiceData(deleteServiceId)
+      if (res?.success) { toast.success(res.message || 'Deleted successfully!'); await fetchSubServices() }
+      else toast.error('Failed to delete.')
+    } catch { toast.error('Failed to delete.') }
+    setShowDeleteModal(false); setDeleteServiceId(null)
   }
 
   const handleSubmit = async () => {
-    if (!validateFields()) return;
-
+    if (!validateFields()) return
     try {
       if (editMode && editSubServiceId) {
-        const normalize = (val) => (val ? val.toString().trim().toLowerCase() : "");
-        const existingSubNames = Array.isArray(subServices)
-          ? subServices
-            .filter((s) => s.id !== editSubServiceId)
-            .map((s) => normalize(s.name))
-          : [];
-
         for (const sub of selectedSubServices) {
-          const normalized = normalize(sub.subServiceName);
-          if (existingSubNames.includes(normalized)) {
-            setErrors((prev) => ({
-              ...prev,
-              subService: `Procedure "${sub.subServiceName}" already exists.`,
-            }));
-            return;
-          }
+          const isDup = Array.isArray(subServices) && subServices.some(s =>
+            s.id !== editSubServiceId && s.serviceId === sub.serviceId && normalize(s.name) === normalize(sub.subServiceName)
+          )
+          if (isDup) { setErrors(p => ({ ...p, subService: `"${sub.subServiceName}" already exists under this service.` })); return }
         }
-
-        const payload = {
-          subServices: selectedSubServices.map((subService) => ({
-            serviceId: subService.serviceId,
-            serviceName: subService.serviceName,
-            subServiceName: subService.subServiceName,
-          })),
-        };
-
+        const payload = { subServices: selectedSubServices.map(s => ({ serviceId: s.serviceId, serviceName: s.serviceName, subServiceName: s.subServiceName })) }
         try {
-          const res = await axios.put(
-            `${BASE_URL}/${updateSubservices}/${editSubServiceId}`,
-            payload
-          );
-
-          if (res?.data?.success) {
-            fetchSubServices();
-            toast.success("Procedure updated successfully!");
-          } else {
-            toast.error(res?.data?.message || "Failed to update Procedure.");
-          }
-        } catch (err) {
-          console.error("❌ Update error:", err);
-          toast.error(err.response?.data?.message || "Error updating Procedure");
-        }
+          const res = await axios.put(`${BASE_URL}/${updateSubservices}/${editSubServiceId}`, payload)
+          if (res?.data?.success) { await fetchSubServices(); toast.success('Procedure updated successfully!') }
+          else toast.error(res?.data?.message || 'Failed to update.')
+        } catch (err) { toast.error(err.response?.data?.message || 'Error updating Procedure') }
       } else {
-        // 🟣 ADD MODE
-        const normalize = (val) => (val ? val.toString().trim().toLowerCase() : "");
-        const existingSubNames = Array.isArray(subServices)
-          ? subServices.map((s) => normalize(s.name))
-          : [];
-
         for (const sub of selectedSubServices) {
-          const normalized = normalize(sub.subServiceName);
-          if (existingSubNames.includes(normalized)) {
-            setErrors((prev) => ({
-              ...prev,
-              subService: `Procedure "${sub.subServiceName}" already exists.`,
-            }));
-            return;
-          }
+          const isDup = Array.isArray(subServices) && subServices.some(s =>
+            s.serviceId === sub.serviceId && normalize(s.name) === normalize(sub.subServiceName)
+          )
+          if (isDup) { setErrors(p => ({ ...p, subService: `"${sub.subServiceName}" already exists under this service.` })); return }
         }
-
-        // 💥 FIXED: DO NOT SEARCH AGAIN. USE STORED VALUES.
-        const formattedSubServices = selectedSubServices.map((sub) => ({
-          serviceId: sub.serviceId,              // ⭐ ALWAYS CORRECT NOW
-          serviceName: sub.serviceName,
-          subServiceName: sub.subServiceName,
-        }));
-
-        const payload = {
-          categoryId: newService.categoryId,
-          subServices: formattedSubServices,
-        };
-
+        const payload = { categoryId: newService.categoryId, subServices: selectedSubServices.map(s => ({ serviceId: s.serviceId, serviceName: s.serviceName, subServiceName: s.subServiceName })) }
         try {
-          const res = await postSubService(payload);
-          if (res?.data?.success) {
-            toast.success("Procedure added successfully");
-          } else {
-            toast.error(res?.data?.message || "Submission failed");
-          }
-        } catch (err) {
-          console.error("Error submitting Procedures:", err);
-          toast.error(err.response?.data?.message || "Error submitting Procedures");
-        }
+          const res = await postSubService(payload)
+          if (res?.data?.success) toast.success('Procedure added successfully')
+          else toast.error(res?.data?.message || 'Submission failed')
+        } catch (err) { toast.error(err.response?.data?.message || 'Error submitting Procedures') }
       }
+      await fetchSubServices()
+      setSelectedSubServices([]); setSubServiceInput('')
+      setNewService({ categoryName: '', categoryId: '', serviceName: '', serviceId: '' })
+      setEditMode(false); setEditSubServiceId(null); setShowModal(false)
+    } catch { toast.error('Error submitting subservices') }
+  }
 
-      await fetchSubServices();
-      setSelectedSubServices([]);
-      setSubServiceInput("");
-      setNewService({
-        categoryName: "",
-        categoryId: "",
-        serviceName: "",
-        serviceId: "",
-      });
-      setEditMode(false);
-      setEditSubServiceId(null);
-      setShowModal(false);
-    } catch (err) {
-      console.error("Submission Error:", err);
-      toast.error("Error submitting subservices");
-    }
-  };
-
-
-  useEffect(() => {
-    let filtered = [];
-
-    if (!searchQuery.trim()) {
-      filtered = subServices;
-    } else {
-      const lowerSearch = searchQuery.toLowerCase();
-      filtered = subServices.filter(
-        (item) =>
-          item.category?.toLowerCase()?.includes(lowerSearch) ||
-          item.service?.toLowerCase()?.includes(lowerSearch) ||
-          item.name?.toLowerCase()?.includes(lowerSearch)
-      );
-    }
-
-    setFilteredSubServices(filtered);
-
-    // 👉 Keep user on current page, but adjust if not valid
-    const newTotalPages = Math.ceil(filtered.length / itemsPerPage);
-    if (currentPage > newTotalPages) {
-      setCurrentPage(newTotalPages || 1);
-    }
-  }, [searchQuery, subServices, currentPage, itemsPerPage]);
-
-
+  /* ─── Render ─────────────────────────────────────────────────────────────── */
   return (
-    <div className="container-fluid p-4">
+    <div style={S.wrap}>
       <ToastContainer />
-      <CCard>
+      <div style={S.card}>
 
-        <CCardHeader className="d-flex justify-content-between align-items-center">
-          <h4 className="mb-0">Procedure Management</h4>
-          <div className="d-flex" style={{ gap: '1rem' }}>
-            <CInputGroup style={{ width: '300px' }}>
-              <CFormInput
-                style={{ border: "1px solid #7e3a93" }}
-                placeholder="Search Service..."
+        {/* ── Header ── */}
+        <div style={S.header}>
+          <div>
+            <h4 style={S.headerTitle}>Procedure Management</h4>
+            <p style={S.headerSub}>Manage all categories, services &amp; procedures</p>
+          </div>
+          <div style={S.headerRight}>
+            <div style={S.searchBox}>
+              <Search size={15} color="rgba(255,255,255,0.7)" />
+              <input
+                className="search-input"
+                style={{ ...S.searchInput, marginLeft: 6 }}
+                placeholder="Search procedures..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
               />
-              <CInputGroupText style={{ border: "1px solid #7e3a93" }}>
-                <CIcon icon={cilSearch} />
-              </CInputGroupText>
-            </CInputGroup>
-            <CButton
-              color="secondary"
-              style={{ backgroundColor: 'var(--color-black)', color: COLORS.white }}
+            </div>
+            <button
+              style={S.btnAdd}
               onClick={() => {
-                setEditMode(false)
-                setEditSubServiceId(null)
-                setNewService({
-                  categoryName: '',
-                  categoryId: '',
-                  serviceName: '',
-                  serviceId: '',
-                })
-                setSelectedSubServices([])
-                setSubServiceInput('')
-                setShowModal(true)
+                setEditMode(false); setEditSubServiceId(null)
+                setNewService({ categoryName: '', categoryId: '', serviceName: '', serviceId: '' })
+                setSelectedSubServices([]); setSubServiceInput(''); setErrors({}); setShowModal(true)
               }}
             >
-              + Add New Procedure
-            </CButton>
+              <Plus size={14} color="#1B4F8A" />
+              Add New Procedure
+            </button>
           </div>
-        </CCardHeader>
+        </div>
 
+        {/* ── Filter bar ── */}
+        <div style={S.filterBar}>
+
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: '#6b7a8d' }}>
+            Total: <span style={S.countBadge}>{afterFilter.length}</span>
+          </span>
+        </div>
+
+        {/* ── Table ── */}
         {loading ? (
           <LoadingIndicator message="Fetching Procedure Details, Please wait..." />
         ) : error ? (
-          <div>{error}</div>
+          <div style={{ padding: '1.5rem', color: '#ef4444' }}>{error}</div>
         ) : (
-          <>
-            <CTable striped hover responsive>
-              <CTableHead className="pink-table">
-                <CTableRow>
-                  <CTableHeaderCell >S.No</CTableHeaderCell>
-
-                  <CTableHeaderCell>Category</CTableHeaderCell>
-                  <CTableHeaderCell>Service</CTableHeaderCell>
-                  <CTableHeaderCell>Procedure</CTableHeaderCell>
-                  <CTableHeaderCell className="text-center">Actions</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
-              <CTableBody className="pink-table">
-                {currentItems && currentItems.length > 0 ? (
-                  currentItems.map((row, index) => (
-                    <CTableRow key={row.id}>
-                      <CTableDataCell>{(currentPage - 1) * itemsPerPage + index + 1}</CTableDataCell>
-
-                      <CTableDataCell>{row.category}</CTableDataCell>
-                      <CTableDataCell>{row.service}</CTableDataCell>
-                      <CTableDataCell>{row.name}</CTableDataCell>
-                      <CTableDataCell className="text-center">
-                        <div className="d-flex justify-content-center align-items-center gap-2">
-                          <button
-                            className="actionBtn"
-                            onClick={() => handleViewService(row.id)} // ✅ pass row.id directly
-                            title="View">
-                            <Eye size={18} />
-                          </button>
-                          <button
-                            className="actionBtn"
-                            onClick={() => handleCategoryEdit(row)}
-                            title="Edit"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            className="actionBtn"
-                            onClick={() => confirmDelete(row.id)}
-                            title="Delete"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </CTableDataCell>
-                    </CTableRow>
-                  ))
-                ) : (
-                  <CTableRow>
-                    <CTableDataCell colSpan={5} className="text-center">
-                      No records found
-                    </CTableDataCell>
-                  </CTableRow>
-                )}
-              </CTableBody>
-            </CTable>
-
-            {/* Pagination Controls */}
-            {filteredSubServices.length > 0 && (
-              <div className="d-flex justify-content-between align-items-center mt-3">
-                <div>
-                  <span className="me-2 ms-2">Rows per page:</span>
-                  <CFormSelect
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value))
-                      setCurrentPage(1)
-                    }}
-                    style={{ width: '80px', display: 'inline-block' }}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={S.thead}>
+                  {['S.No', 'Category', 'Service', 'Procedure', 'Actions'].map((h, i) => (
+                    <th key={h} style={{ ...S.th, ...(h === 'Actions' ? { textAlign: 'center', width: 130 } : {}), ...(h === 'S.No' ? { width: 56 } : {}) }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {currentItems.length > 0 ? currentItems.map((row, idx) => (
+                  <tr key={row.id} style={{ borderBottom: '1px solid #eef2f7' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f0f6ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = ''}
                   >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </CFormSelect>
-                </div>
-                <div>
-                  <span className="me-3">
-                    Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredSubServices.length)} of {filteredSubServices.length} entries
-                  </span>
-                  <CPagination>
-                    <CPaginationItem
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </CPaginationItem>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <CPaginationItem
-                        key={i + 1}
-                        active={i + 1 === currentPage}
-                        onClick={() => setCurrentPage(i + 1)}
-                      >
-                        {i + 1}
-                      </CPaginationItem>
-                    ))}
-                    <CPaginationItem
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </CPaginationItem>
-                  </CPagination>
-                </div>
-              </div>
-            )}
-          </>
+                    <td style={{ ...S.td, ...S.sno }}>{indexOfFirst + idx + 1}</td>
+                    <td style={S.td}>{row.category}</td>
+                    <td style={S.td}>{row.service}</td>
+                    <td style={S.td}><span style={S.procedureName}>{row.name}</span></td>
+                    <td style={S.td}>
+                      <div style={S.actionCell}>
+                        <button style={{ ...S.actionBtnBase, ...S.btnView }} title="View" onClick={() => handleViewService(row.id)}>
+                          <Eye size={14} />
+                        </button>
+                        <button style={{ ...S.actionBtnBase, ...S.btnEdit }} title="Edit" onClick={() => handleCategoryEdit(row)}>
+                          <Edit2 size={14} />
+                        </button>
+                        <button style={{ ...S.actionBtnBase, ...S.btnDelete }} title="Delete" onClick={() => confirmDelete(row.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={5} style={S.emptyCell}>No records found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
-        <CModal visible={showModal} onClose={handleCloseForm} size="lg" backdrop="static" className='custom-modal'>
-          <CForm
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSubmit()
-            }}
-            id="procedureForm"
-          >
-            <CModalHeader closeButton>
-              <CModalTitle>{editMode ? 'Edit Procedure' : '➕ Add New Procedure'}</CModalTitle>
+
+        {/* ── Pagination ── */}
+        {afterFilter.length > 0 && (
+          <div style={S.paginationBar}>
+            <div style={S.rowsLabel}>
+              Rows per page:
+              <select style={S.rowsSelect} value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}>
+                {[5, 10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <span style={S.pageInfo}>
+              Showing {afterFilter.length === 0 ? 0 : indexOfFirst + 1} to {Math.min(indexOfLast, afterFilter.length)} of {afterFilter.length} entries
+            </span>
+            <div style={S.paginationWrap}>
+              <button style={S.pgBtnBase} disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}>‹ Prev</button>
+              {[...Array(totalPages)].map((_, i) => (
+                <button key={i + 1} style={{ ...S.pgBtnBase, ...(currentPage === i + 1 ? S.pgBtnActive : {}) }} onClick={() => setCurrentPage(i + 1)}>
+                  {i + 1}
+                </button>
+              ))}
+              <button style={S.pgBtnBase} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}>Next ›</button>
+              <span style={S.pgText}>Page {currentPage} of {totalPages}</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── Add / Edit Modal ── */}
+        <CModal visible={showModal} onClose={handleCloseForm} size="lg" backdrop="static">
+          <CForm onSubmit={e => { e.preventDefault(); handleSubmit() }} id="procedureForm">
+            <CModalHeader style={S.modalHead} closeButton>
+              <CModalTitle style={S.modalTitle}>{editMode ? 'Edit Procedure' : '➕ Add New Procedure'}</CModalTitle>
             </CModalHeader>
             <CModalBody>
               <CRow className="g-4">
                 <CCol md={6}>
-                  <h6>
-                    Category <span className="text-danger">*</span>
-                  </h6>
-                  <CFormSelect
-                    name="categoryName"
-                    value={newService.categoryId || ''}
-                    onChange={handleChanges}
-                    // disabled={editMode}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        document.querySelector('select[name="serviceName"]').focus()
-                      }
-                    }}
-                  >
+                  <label style={S.formLabel}>Category <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select name="categoryName" style={S.formControl} value={newService.categoryId || ''} onChange={handleChanges}>
                     <option value="">Select Category</option>
-                    {category.map((cat) => (
-                      <option key={cat.categoryId} value={cat.categoryId}>
-                        {cat.categoryName}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                  {errors.category && <div className="text-danger mt-1">{errors.category}</div>}
+                    {category.map(c => <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>)}
+                  </select>
+                  {errors.category && <div style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: 4 }}>{errors.category}</div>}
                 </CCol>
-
                 <CCol md={6}>
-                  <h6>
-                    Service <span className="text-danger">*</span>
-                  </h6>
-                  <CFormSelect
-                    name="serviceName"
-                    value={newService.serviceId || ''}
-                    onChange={handleChanges}
-                    // disabled={editMode}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        if (editMode) {
-                          document.querySelector('input[placeholder="Edit Procedure"]').focus()
-                        } else {
-                          document.querySelector('input[placeholder="Enter Procedure"]').focus()
-                        }
-                      }
-                    }}
-                  >
+                  <label style={S.formLabel}>Service <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select name="serviceName" style={S.formControl} value={newService.serviceId || ''} onChange={handleChanges}>
                     <option value="">Select Service</option>
-                    {serviceOptions.map((s) => (
-                      <option key={s.serviceId} value={s.serviceId}>
-                        {s.serviceName}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                  {errors.service && <div className="text-danger mt-1">{errors.service}</div>}
+                    {serviceOptions.map(s => <option key={s.serviceId} value={s.serviceId}>{s.serviceName}</option>)}
+                  </select>
+                  {errors.service && <div style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: 4 }}>{errors.service}</div>}
                 </CCol>
                 <CCol md={12}>
-                  <h6>
-                    {editMode ? 'Edit Procedure' : 'Add Procedure'} <span className="text-danger">*</span>
-                  </h6>
+                  <label style={S.formLabel}>{editMode ? 'Edit Procedure' : 'Add Procedure'} <span style={{ color: '#ef4444' }}>*</span></label>
 
-                  {/* ---------------- ADD MODE ---------------- */}
                   {!editMode && (
-                    <div className="d-flex flex-wrap gap-2 mb-3" style={{ width: "100%" }}>
-                      <CFormInput
-                        placeholder="Enter Procedure"
-                        value={subServiceInput}
-                        onChange={(e) => {
-                          const value = e.target.value;
-
-                          // ❌ BLOCK NUMBERS WHILE TYPING
-                          if (/\d/.test(value)) return;
-
-                          // ❌ BLOCK invalid symbols
-                          if (!/^[A-Za-z\s@&\-.()]*$/.test(value)) return;
-
-                          setSubServiceInput(value);
-
-                          if (value.trim() !== '') {
-                            setErrors((prev) => ({ ...prev, subService: '' }));
-                          }
-                        }}
-
-                        // ❌ BLOCK PASTING NUMBERS OR INVALID CHARACTERS
-                        onPaste={(e) => {
-                          const pasted = e.clipboardData.getData('text');
-                          if (/\d/.test(pasted) || !/^[A-Za-z\s@&\-.()]+$/.test(pasted)) {
-                            e.preventDefault();
-                            toast.error("❌ Numbers and invalid symbols are not allowed!", { autoClose: 2000 });
-                          }
-                        }}
-                        style={{ flexGrow: 1 }}
-                      />
-
-                      {errors.subService && (
-                        <div className="text-danger mt-1">{errors.subService}</div>
-                      )}
-
-                      <CButton
-                        color="success"
-                        className="text-white"
-                        onClick={() => {
-                          const trimmedInput = subServiceInput.trim();
-                          let errorMsg = "";
-
-                          if (!trimmedInput) errorMsg = "Procedure name is required.";
-                          else if (/\d/.test(trimmedInput)) errorMsg = "Numbers are not allowed.";
-                          else if (!/^[A-Za-z\s@&\-.()]+$/.test(trimmedInput))
-                            errorMsg = "Only letters, spaces & @, &, -, ., (, ) allowed.";
-                          else if (trimmedInput.length < 3)
-                            errorMsg = "Minimum 3 characters required.";
-
-                          if (errorMsg) {
-                            setErrors((prev) => ({ ...prev, subService: errorMsg }));
-                            return;
-                          }
-
-                          // 🎯 ALWAYS FETCH SERVICE SELECTED IN DROPDOWN
-                          const selectedService = serviceOptions.find(
-                            (s) => s.serviceId === newService.serviceId
-                          );
-
-                          if (!selectedService) {
-                            toast.warn("⚠️ Please select a service first!");
-                            return;
-                          }
-
-                          // 🎯 FINAL DATA FOR ONE ENTRY
-                          const newEntry = {
-                            serviceId: selectedService.serviceId,
-                            serviceName: selectedService.serviceName,
-                            subServiceName: trimmedInput,
-                          };
-
-                          // 🚫 Duplicate inside list
-                          const exists = selectedSubServices.some(
-                            (sub) =>
-                              sub.serviceId === newEntry.serviceId &&
-                              sub.subServiceName.toLowerCase() === newEntry.subServiceName.toLowerCase()
-                          );
-
-                          if (exists) {
-                            toast.warn("⚠️ Procedure already added!");
-                            return;
-                          }
-
-                          // 🎯 PUSH ENTRY
-                          setSelectedSubServices((prev) => [...prev, newEntry]);
-                          setSubServiceInput("");
-
-                          console.log("✔ NEW ENTRY ADDED:", newEntry);
-                        }}
-                      >
-                        Add
-                      </CButton>
-
-
-                    </div>
-                  )}
-
-                  {/* ---------------- EDIT MODE ---------------- */}
-                  {editMode && (
                     <>
-                      <CFormInput
-                        placeholder="Edit Procedure"
-                        value={selectedSubServices[0]?.subServiceName || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const trimmedValue = value.trim();
-                          let errorMsg = "";
-
-                          // ✋ BLOCK NUMBERS instantly
-                          if (/\d/.test(value)) return;
-
-                          // ✋ BLOCK invalid symbols
-                          if (!/^[A-Za-z\s@&\-.()]*$/.test(value)) return;
-
-                          if (!trimmedValue) errorMsg = "Procedure name is required.";
-                          else if (trimmedValue.length < 3)
-                            errorMsg = "Minimum 3 characters required.";
-
-                          setErrors((prev) => ({ ...prev, subService: errorMsg }));
-                          setSelectedSubServices([{ ...selectedSubServices[0], subServiceName: value }]);
-                        }}
-
-                        onPaste={(e) => {
-                          const pasted = e.clipboardData.getData('text');
-                          if (/\d/.test(pasted) || !/^[A-Za-z\s@&\-.()]+$/.test(pasted)) {
-                            e.preventDefault();
-                            toast.error("❌ Numbers and invalid symbols are not allowed!");
-                          }
-                        }}
-
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleSubmit();
-                          }
-                        }}
-                        invalid={!!errors.subService}
-                      />
-
-                      {errors.subService && (
-                        <div className="text-danger mt-1">{errors.subService}</div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          style={{ ...S.formControl, flex: 1 }}
+                          placeholder="Enter procedure name"
+                          value={subServiceInput}
+                          onChange={e => {
+                            const v = e.target.value
+                            if (/\d/.test(v) || !/^[A-Za-z\s@&\-.()]*$/.test(v)) return
+                            setSubServiceInput(v)
+                            if (v.trim()) setErrors(p => ({ ...p, subService: '' }))
+                          }}
+                          onPaste={e => {
+                            const t = e.clipboardData.getData('text')
+                            if (/\d/.test(t) || !/^[A-Za-z\s@&\-.()]+$/.test(t)) { e.preventDefault(); toast.error('Numbers & invalid symbols not allowed!') }
+                          }}
+                        />
+                        <button style={S.btnGreen} type="button" onClick={() => {
+                          const v = subServiceInput.trim()
+                          if (!v) { setErrors(p => ({ ...p, subService: 'Procedure name is required.' })); return }
+                          if (v.length < 3) { setErrors(p => ({ ...p, subService: 'Min 3 characters required.' })); return }
+                          const svc = serviceOptions.find(s => s.serviceId === newService.serviceId)
+                          if (!svc) { toast.warn('Please select a service first!'); return }
+                          const entry = { serviceId: svc.serviceId, serviceName: svc.serviceName, subServiceName: v }
+                          if (selectedSubServices.some(s => s.serviceId === entry.serviceId && s.subServiceName.toLowerCase() === v.toLowerCase())) { toast.warn('Already added!'); return }
+                          setSelectedSubServices(p => [...p, entry]); setSubServiceInput('')
+                        }}>Add</button>
+                      </div>
+                      {errors.subService && <div style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: 4 }}>{errors.subService}</div>}
+                      {selectedSubServices.length > 0 && (
+                        <div style={{ marginTop: '0.75rem' }}>
+                          {selectedSubServices.map((sub, i) => (
+                            <div key={i} style={S.pendingItem}>
+                              <span><strong>{sub.serviceName}:</strong> {sub.subServiceName}</span>
+                              <button style={S.btnRm} type="button" onClick={() => handleRemoveClick(sub)}>Remove</button>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </>
                   )}
 
-                  {/* ---------------- SHOW ADDED LIST ---------------- */}
-                  {!editMode && selectedSubServices.length > 0 && (
-                    <ul className="list-group mt-3">
-                      {selectedSubServices.map((sub, index) => (
-                        <li
-                          key={index}
-                          className="list-group-item d-flex justify-content-between align-items-center"
-                        >
-                          <span>
-                            <strong>{sub.serviceName}:</strong> {sub.subServiceName}
-                          </span>
-                          <CButton
-                            size="sm"
-                            color="danger"
-                            variant="outline"
-                            onClick={() => handleRemoveClick(sub)}
-                          >
-                            Remove
-                          </CButton>
-                        </li>
-                      ))}
-                    </ul>
+                  {editMode && (
+                    <>
+                      <input
+                        style={S.formControl}
+                        placeholder="Edit Procedure"
+                        value={selectedSubServices[0]?.subServiceName || ''}
+                        onChange={e => {
+                          const v = e.target.value
+                          if (/\d/.test(v) || !/^[A-Za-z\s@&\-.()]*$/.test(v)) return
+                          let msg = ''
+                          if (!v.trim()) msg = 'Procedure name is required.'
+                          else if (v.trim().length < 3) msg = 'Min 3 characters required.'
+                          setErrors(p => ({ ...p, subService: msg }))
+                          setSelectedSubServices([{ ...selectedSubServices[0], subServiceName: v }])
+                        }}
+                        onPaste={e => {
+                          const t = e.clipboardData.getData('text')
+                          if (/\d/.test(t) || !/^[A-Za-z\s@&\-.()]+$/.test(t)) { e.preventDefault(); toast.error('Numbers & invalid symbols not allowed!') }
+                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit() } }}
+                      />
+                      {errors.subService && <div style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: 4 }}>{errors.subService}</div>}
+                    </>
                   )}
                 </CCol>
-
               </CRow>
 
               {removeShowModal && (
                 <ConfirmationModal
                   isVisible={removeShowModal}
-                  message="Are you sure you want to delete this item?"
+                  message="Are you sure you want to remove this item?"
                   onConfirm={handleConfirmRemove}
                   onCancel={() => setRemoveShowModal(false)}
                 />
               )}
-
             </CModalBody>
             <CModalFooter>
-              <CButton color="secondary" variant="outline" onClick={handleCloseForm}>
-                Cancel
-              </CButton>
-              <CButton
-                type="submit"
-                color="primary"
-                className="text-white"
-                form="procedureForm"
-              >
-                <h6 className="text-white">{editMode ? 'Update Procedure' : 'Add Procedure'}</h6>
-              </CButton>
+              <button style={S.btnCancel} type="button" onClick={handleCloseForm}>Cancel</button>
+              <button style={S.btnSubmit} type="submit" form="procedureForm">
+                {editMode ? 'Update Procedure' : 'Add Procedure'}
+              </button>
             </CModalFooter>
           </CForm>
         </CModal>
-        {/* View Sub Service Modal */}
-        <CModal
-          visible={viewModalVisible}
-          onClose={() => setViewModalVisible(false)}
-          size="lg"
-          backdrop="static"
-          className="custom-modal"
-        >
-          <CModalHeader className="bg-info text-white justify-content-center">
-            <CModalTitle className="fs-4 fw-bold text-center" style={{ color: "white" }}>
-              Sub Service Details
-            </CModalTitle>
+
+        {/* ── View Modal ── */}
+        <CModal visible={viewModalVisible} onClose={() => setViewModalVisible(false)} size="lg" backdrop="static">
+          <CModalHeader style={S.modalHead} closeButton>
+            <CModalTitle style={{ ...S.modalTitle, textAlign: 'center', width: '100%' }}>Sub Service Details</CModalTitle>
           </CModalHeader>
-
-          <CModalBody className="p-4">
-            {selectSubService?.subServices?.length > 0 ? (
-              selectSubService.subServices.map((item, index) => (
-                <CCard
-                  key={item.subServiceId}
-                  className="mb-4 border-0 shadow-sm rounded-3"
-                  style={{ backgroundColor: '#f9fafb' }}
-                >
-                  <CCardBody>
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6
-                        className="fw-semibold mb-0"
-                        style={{ color: '#7e3a93' }}
-                      >
-                        {index + 1}. {item.subServiceName || 'Unnamed Sub Service'}
-                      </h6>
-                      <span className="badge bg-light text-dark border">
-                        ID: {item.subServiceId}
-                      </span>
-                    </div>
-
-                    <hr />
-
-                    <CRow>
-                      <CCol sm={6} className="mb-3">
-                        <strong className="text-secondary">Category Name:</strong>
-                        <div className="mt-1 text-dark">
-                          {selectSubService.categoryName || '-'}
-                        </div>
-                      </CCol>
-                      <CCol sm={6} className="mb-3">
-                        <strong className="text-secondary">Service Name:</strong>
-                        <div className="mt-1 text-dark">{item.serviceName || '-'}</div>
-                      </CCol>
-                    </CRow>
-                  </CCardBody>
-                </CCard>
-              ))
-            ) : (
-              <div className="text-center text-muted py-4">
-                <i className="bi bi-info-circle me-2"></i>
-                No sub-services found.
+          <CModalBody style={{ padding: '1.25rem' }}>
+            {selectSubService?.subServices?.length > 0 ? selectSubService.subServices.map((item, i) => (
+              <div key={item.subServiceId} style={S.viewCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 600, color: '#1B4F8A' }}>{i + 1}. {item.subServiceName || 'Unnamed'}</span>
+                  <span style={S.viewBadge}>ID: {item.subServiceId}</span>
+                </div>
+                <hr style={{ borderColor: '#e8eef5', margin: '0.5rem 0' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: 8 }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7a8d', fontWeight: 600 }}>Category Name</div>
+                    <div style={{ fontSize: '0.85rem', color: '#2d3748', marginTop: 2 }}>{selectSubService.categoryName || '-'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7a8d', fontWeight: 600 }}>Service Name</div>
+                    <div style={{ fontSize: '0.85rem', color: '#2d3748', marginTop: 2 }}>{item.serviceName || '-'}</div>
+                  </div>
+                </div>
               </div>
+            )) : (
+              <div style={{ textAlign: 'center', color: '#9aa5b4', padding: '2rem' }}>No sub-services found.</div>
             )}
           </CModalBody>
-
-          <CModalFooter className="justify-content-center">
-            <CButton
-              color="light"
-              className="px-4 py-2 border-0 shadow-sm"
-              onClick={() => setViewModalVisible(false)}
-              style={{ backgroundColor: '#6c757d', color: 'white', borderRadius: '8px' }}
-            >
-              Close
-            </CButton>
+          <CModalFooter style={{ justifyContent: 'center' }}>
+            <button style={{ ...S.btnCancel, background: '#6c757d', color: '#fff', border: 'none', borderRadius: 8, padding: '0.5rem 1.5rem' }} onClick={() => setViewModalVisible(false)}>Close</button>
           </CModalFooter>
         </CModal>
 
+        {/* ── Delete Confirm ── */}
         {showDeleteModal && (
           <ConfirmationModal
             isVisible={showDeleteModal}
@@ -918,7 +558,7 @@ const ProcedureManagement = () => {
             onCancel={() => setShowDeleteModal(false)}
           />
         )}
-      </CCard>
+      </div>
     </div>
   )
 }
