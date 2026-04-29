@@ -92,8 +92,8 @@ const CustomerViewDetails = () => {
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '7px 16px', borderRadius: '10px',
-              background: '#fff', color: '#1B4F8A',
-              border: '1.5px solid #1B4F8A',
+              background: '#fff', color: '#1a3a6b',
+              border: '1.5px solid #1a3a6b',
               fontWeight: '600', fontSize: '13px', cursor: 'pointer',
             }}
           >

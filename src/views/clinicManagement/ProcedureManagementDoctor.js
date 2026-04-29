@@ -39,7 +39,7 @@ import { Edit2, Eye, Trash2, Plus, Search } from 'lucide-react'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 /* ─── Design tokens (hard-coded — no CSS vars for content text) ─── */
-const PRIMARY   = '#1B4F8A'
+const PRIMARY   = '#1a3a6b'
 const t = {
   primary:    PRIMARY,
   text:       '#1e293b',

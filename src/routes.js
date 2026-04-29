@@ -55,7 +55,7 @@ const OtherStaffManagement = React.lazy(
   () => import('./views/EmployeeManagement/OtherStaff/OtherStaffManagement'),
 )
 const AdminManagement = React.lazy(() => import('./views/EmployeeManagement/Administrator/AdminManagement'))
-
+const PushNotifications = React.lazy(() => import('./views/PushNotifications/PushNotifications'))
 const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/login', name: 'Login', element: Login },
@@ -63,11 +63,11 @@ const routes = [
   { path: '/category-management', name: 'Category Management', element: categoryManagement },
   { path: '/service-management', name: 'Service Management', element: serviceManagement },
   {
-    path: '/customer-management/:mobileNumber',
-    name: 'Customer View Details',
+    path: '/patient-management/:mobileNumber',
+    name: 'Patient View Details',
     element: CustomerViewDetails,
   },
-  { path: '/customer-management', name: 'Customer Management', element: customerManagement },
+  { path: '/patient-management', name: 'Patient Management', element: customerManagement },
   { path: '/procedure-management', name: 'Procedure Management', element: procedureManagement },
   { path: '/clinic-Management', name: 'Clinic Management', element: ClinicManagement },
   { path: '/add-clinic', name: 'Add Clinic', element: AddClinic },
@@ -116,6 +116,7 @@ const routes = [
     element: OtherStaffManagement,
   },
   { path: '/employee-management/admin', name: 'Administrator Management', element: AdminManagement },
+  { path: '/push-notifications', name: 'Push Notifications', element: PushNotifications },
 ]
 
 export default routes

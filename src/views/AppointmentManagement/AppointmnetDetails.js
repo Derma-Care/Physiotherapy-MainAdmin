@@ -46,9 +46,9 @@ const SectionHeader = ({ icon: Icon, title }) => (
       background: '#eef4fb',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <Icon size={16} color="#1B4F8A" />
+      <Icon size={16} color="#1a3a6b" />
     </div>
-    <h6 style={{ margin: 0, color: '#1B4F8A', fontWeight: '700', fontSize: '14px' }}>
+    <h6 style={{ margin: 0, color: '#1a3a6b', fontWeight: '700', fontSize: '14px' }}>
       {title}
     </h6>
   </div>
@@ -89,7 +89,7 @@ const AppointmentDetails = () => {
         justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-        <h5 style={{ color: '#1B4F8A', marginBottom: '8px' }}>No Appointment Found</h5>
+        <h5 style={{ color: '#1a3a6b', marginBottom: '8px' }}>No Appointment Found</h5>
         <p style={{ color: '#9ca3af', marginBottom: '20px', fontSize: '13px' }}>
           No data found for booking ID: {id}
         </p>
@@ -97,7 +97,7 @@ const AppointmentDetails = () => {
           onClick={() => navigate(-1)}
           style={{
             padding: '8px 20px', borderRadius: '10px',
-            background: '#1B4F8A', color: '#fff',
+            background: '#1a3a6b', color: '#fff',
             border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px',
           }}
         >
@@ -130,7 +130,7 @@ const AppointmentDetails = () => {
   const statusCfg = STATUS_CONFIG[statusKey] || { bg: '#f3f4f6', color: '#374151', dot: '#9ca3af', label: appointment.status }
 
   return (
-    <div style={{ padding: '4px 0', maxWidth: '960px' }}>
+    <div style={{  padding: '4px 0', maxWidth: '960px', margin: '0 auto', width: '100%' }}>
       <style>{`
         .detail-card {
           background: #fff;
@@ -142,7 +142,7 @@ const AppointmentDetails = () => {
         }
         .detail-card-header {
           padding: 16px 22px;
-          background: linear-gradient(135deg, #1B4F8A 0%, #1a6bbf 100%);
+          background: linear-gradient(135deg, #1a3a6b 0%, #1a6bbf 100%);
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -167,7 +167,7 @@ const AppointmentDetails = () => {
         gap: '10px',
       }}>
         <div>
-          <h5 style={{ color: '#1B4F8A', fontWeight: '700', margin: 0, fontSize: '18px' }}>
+          <h5 style={{ color: '#1a3a6b', fontWeight: '700', margin: 0, fontSize: '18px' }}>
             Appointment Details
           </h5>
           <p style={{ color: '#9ca3af', fontSize: '12px', margin: '2px 0 0' }}>
@@ -192,8 +192,8 @@ const AppointmentDetails = () => {
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '7px 16px', borderRadius: '10px',
-              background: '#fff', color: '#1B4F8A',
-              border: '1.5px solid #1B4F8A',
+              background: '#fff', color: '#1a3a6b',
+              border: '1.5px solid #1a3a6b',
               fontWeight: '600', fontSize: '13px', cursor: 'pointer',
             }}
           >
@@ -328,12 +328,12 @@ const AppointmentDetails = () => {
 
               {/* Doctor info */}
               <div style={{ flex: 1, minWidth: '200px' }}>
-                <h6 style={{ color: '#1B4F8A', fontWeight: '700', fontSize: '15px', margin: '0 0 4px' }}>
+                <h6 style={{ color: '#1a3a6b', fontWeight: '700', fontSize: '15px', margin: '0 0 4px' }}>
                   {doctor.doctorName}
                 </h6>
                 <span style={{
                   display: 'inline-block',
-                  background: '#eef4fb', color: '#1B4F8A',
+                  background: '#eef4fb', color: '#1a3a6b',
                   padding: '2px 10px', borderRadius: '20px',
                   fontSize: '11px', fontWeight: '600', marginBottom: '12px',
                 }}>

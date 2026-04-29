@@ -41,7 +41,7 @@ const Field = ({ label, required, error, children }) => (
 
 const SectionBar = ({ text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-    <span style={{ width: '3px', height: '18px', background: '#185fa5', borderRadius: '2px', flexShrink: 0 }} />
+    <span style={{ width: '3px', height: '18px', background: '#1a3a6b', borderRadius: '2px', flexShrink: 0 }} />
     <span style={{ fontSize: '13px', fontWeight: '700', color: '#0c447c' }}>{text}</span>
   </div>
 )
@@ -221,7 +221,7 @@ const AddBranchForm = ({ clinicId }) => {
     <div>
       <style>{`
         .abf-table thead th {
-          background: #185fa5 !important; color: #fff !important;
+          background: #1a3a6b !important; color: #fff !important;
           font-size: 12px; font-weight: 600; padding: 12px 14px;
           border: none; letter-spacing: 0.3px;
         }
@@ -234,8 +234,8 @@ const AddBranchForm = ({ clinicId }) => {
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; transition: all 0.2s;
         }
-        .abf-action-btn.view   { border-color: #185fa5; color: #185fa5; }
-        .abf-action-btn.view:hover   { background: #185fa5; color: #fff; }
+        .abf-action-btn.view   { border-color: #1a3a6b; color: #1a3a6b; }
+        .abf-action-btn.view:hover   { background: #1a3a6b; color: #fff; }
         .abf-action-btn.edit   { border-color: #f9a825; color: #f9a825; }
         .abf-action-btn.edit:hover   { background: #f9a825; color: #fff; }
         .abf-action-btn.delete { border-color: #ef4444; color: #ef4444; }
@@ -248,10 +248,10 @@ const AddBranchForm = ({ clinicId }) => {
           display: inline-flex; align-items: center; justify-content: center;
           gap: 4px; white-space: nowrap;
         }
-        .abf-page-btn:hover:not(:disabled):not(.active) { border-color: #185fa5; color: #185fa5; background: #eef4fb; }
-        .abf-page-btn.active { background: #185fa5; color: #fff; border-color: #185fa5; }
+        .abf-page-btn:hover:not(:disabled):not(.active) { border-color: #1a3a6b; color: #1a3a6b; background: #eef4fb; }
+        .abf-page-btn.active { background: #1a3a6b; color: #fff; border-color: #1a3a6b; }
         .abf-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .abf-input:focus { border-color: #185fa5 !important; box-shadow: 0 0 0 3px rgba(24,95,165,0.10); }
+        .abf-input:focus { border-color: #1a3a6b !important; box-shadow: 0 0 0 3px rgba(24,95,165,0.10); }
       `}</style>
 
       {/* ── toast alerts ── */}
@@ -284,7 +284,7 @@ const AddBranchForm = ({ clinicId }) => {
         alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px',
       }}>
         <div>
-          <h6 style={{ margin: 0, color: '#185fa5', fontWeight: '700', fontSize: '15px' }}>Branch Management</h6>
+          <h6 style={{ margin: 0, color: '#1a3a6b', fontWeight: '700', fontSize: '15px' }}>Branch Management</h6>
           <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>
             {filteredBranches.length} branch{filteredBranches.length !== 1 ? 'es' : ''} found
           </p>
@@ -294,12 +294,12 @@ const AddBranchForm = ({ clinicId }) => {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '7px',
             padding: '8px 18px', borderRadius: '10px',
-            background: '#185fa5', color: '#fff', border: 'none',
+            background: '#1a3a6b', color: '#fff', border: 'none',
             fontWeight: '600', fontSize: '13px', cursor: 'pointer',
             boxShadow: '0 4px 12px rgba(24,95,165,0.28)', transition: 'background 0.15s',
           }}
           onMouseOver={(e) => (e.currentTarget.style.background = '#0c447c')}
-          onMouseOut={(e) => (e.currentTarget.style.background = '#185fa5')}
+          onMouseOut={(e) => (e.currentTarget.style.background = '#1a3a6b')}
         >
           <Plus size={15} /> Add New Branch
         </button>
@@ -439,8 +439,8 @@ const AddBranchForm = ({ clinicId }) => {
                     Next <ChevronRight size={13} />
                   </button>
                   <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>
-                    Page <strong style={{ color: '#185fa5' }}>{currentPage}</strong> of{' '}
-                    <strong style={{ color: '#185fa5' }}>{totalPages}</strong>
+                    Page <strong style={{ color: '#1a3a6b' }}>{currentPage}</strong> of{' '}
+                    <strong style={{ color: '#1a3a6b' }}>{totalPages}</strong>
                   </span>
                 </div>
               </div>
@@ -451,7 +451,7 @@ const AddBranchForm = ({ clinicId }) => {
 
       {/* ══ Add / Edit Modal ══ */}
       <CModal visible={modalVisible} onClose={handleCloseModal} size="lg" backdrop="static">
-        <CModalHeader style={{ background: '#185fa5', borderBottom: 'none', padding: '14px 20px' }}>
+        <CModalHeader style={{ background: '#1a3a6b', borderBottom: 'none', padding: '14px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <GitBranch size={16} color="#fff" />
@@ -557,7 +557,7 @@ const AddBranchForm = ({ clinicId }) => {
             disabled={submitLoading}
             style={{
               padding: '8px 20px', borderRadius: '8px', border: 'none',
-              background: '#185fa5', color: '#fff', fontWeight: '600', fontSize: '13px',
+              background: '#1a3a6b', color: '#fff', fontWeight: '600', fontSize: '13px',
               cursor: submitLoading ? 'not-allowed' : 'pointer', opacity: submitLoading ? 0.65 : 1,
               display: 'inline-flex', alignItems: 'center', gap: '6px',
             }}

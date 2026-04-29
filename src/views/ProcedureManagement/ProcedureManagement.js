@@ -27,7 +27,7 @@ const S = {
   card: { background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(27,79,138,0.10)', overflow: 'hidden' },
 
   /* Header */
-  header: { background: '#1B4F8A', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' },
+  header: { background: '#1a3a6b', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' },
   headerTitle: { color: '#fff', fontSize: '1.15rem', fontWeight: 600, margin: 0 },
   headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', marginTop: 2 },
   headerRight: { display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' },
@@ -35,24 +35,24 @@ const S = {
   searchBox: { display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 7, padding: '0 0.6rem', height: 36 },
   searchInput: { background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: '0.82rem', width: 180 },
 
-  btnAdd: { background: '#fff', color: '#1B4F8A', border: 'none', borderRadius: 7, padding: '0 1rem', height: 36, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 },
+  btnAdd: { background: '#fff', color: '#1a3a6b', border: 'none', borderRadius: 7, padding: '0 1rem', height: 36, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 },
 
   /* Filter bar */
   filterBar: { display: 'flex', gap: '0.5rem', padding: '0.85rem 1.5rem', borderBottom: '1px solid #e8eef5', background: '#f8fafd', alignItems: 'center', flexWrap: 'wrap' },
   filterBtnBase: { border: '1px solid #d0daea', borderRadius: 20, padding: '0.3rem 0.9rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 500, transition: 'all 0.15s' },
-  filterBtnActive: { background: '#1B4F8A', color: '#fff', borderColor: '#1B4F8A' },
-  filterBtnInactive: { background: '#fff', color: '#1B4F8A' },
-  countBadge: { background: '#1B4F8A', color: '#fff', borderRadius: 20, padding: '0.28rem 0.7rem', fontSize: '0.75rem', fontWeight: 600 },
+  filterBtnActive: { background: '#1a3a6b', color: '#fff', borderColor: '#1a3a6b' },
+  filterBtnInactive: { background: '#fff', color: '#1a3a6b' },
+  countBadge: { background: '#1a3a6b', color: '#fff', borderRadius: 20, padding: '0.28rem 0.7rem', fontSize: '0.75rem', fontWeight: 600 },
 
   /* Table */
-  thead: { background: '#1B4F8A' },
+  thead: { background: '#1a3a6b' },
   th: { color: '#fff', fontSize: '0.8rem', fontWeight: 600, padding: '0.8rem 1rem', letterSpacing: '0.02em', whiteSpace: 'nowrap', borderBottom: 'none' },
   td: { padding: '0.75rem 1rem', fontSize: '0.83rem', color: '#2d3748', verticalAlign: 'middle', borderBottom: '1px solid #eef2f7' },
   sno: { color: '#6b7a8d', fontSize: '0.78rem', fontWeight: 500 },
 
   /* Badges */
-  bookingId: { display: 'inline-block', background: '#e8f0fa', color: '#1B4F8A', border: '1px solid #b8d0ec', borderRadius: 20, padding: '0.18rem 0.7rem', fontSize: '0.76rem', fontWeight: 600, whiteSpace: 'nowrap' },
-  procedureName: { fontWeight: 600, color: '#1B4F8A' },
+  bookingId: { display: 'inline-block', background: '#e8f0fa', color: '#1a3a6b', border: '1px solid #b8d0ec', borderRadius: 20, padding: '0.18rem 0.7rem', fontSize: '0.76rem', fontWeight: 600, whiteSpace: 'nowrap' },
+  procedureName: { fontWeight: 600, color: '#1a3a6b' },
 
   /* Action buttons */
   actionCell: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 },
@@ -67,19 +67,19 @@ const S = {
   rowsSelect: { border: '1px solid #d0daea', borderRadius: 6, padding: '0.25rem 0.5rem', fontSize: '0.78rem', color: '#2d3748', background: '#fff', outline: 'none', cursor: 'pointer' },
   pageInfo: { fontSize: '0.78rem', color: '#6b7a8d' },
   paginationWrap: { display: 'flex', alignItems: 'center', gap: 4 },
-  pgBtnBase: { minWidth: 30, height: 30, borderRadius: 6, border: '1px solid #d0daea', background: '#fff', color: '#1B4F8A', fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' },
-  pgBtnActive: { background: '#1B4F8A', color: '#fff', borderColor: '#1B4F8A' },
+  pgBtnBase: { minWidth: 30, height: 30, borderRadius: 6, border: '1px solid #d0daea', background: '#fff', color: '#1a3a6b', fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' },
+  pgBtnActive: { background: '#1a3a6b', color: '#fff', borderColor: '#1a3a6b' },
   pgText: { fontSize: '0.78rem', color: '#6b7a8d', padding: '0 4px' },
 
   /* Modal */
-  modalHead: { background: '#1B4F8A', color: '#fff' },
+  modalHead: { background: '#1a3a6b', color: '#fff' },
   modalTitle: { color: '#fff', fontWeight: 600 },
   formLabel: { fontSize: '0.78rem', fontWeight: 600, color: '#4a5568', marginBottom: '0.3rem', display: 'block' },
   formControl: { width: '100%', border: '1px solid #d0daea', borderRadius: 7, padding: '0.5rem 0.75rem', fontSize: '0.82rem', color: '#2d3748', outline: 'none', background: '#fff' },
   btnGreen: { background: '#16a34a', color: '#fff', border: 'none', borderRadius: 7, padding: '0 1rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', height: 36, whiteSpace: 'nowrap' },
   btnCancel: { background: '#fff', border: '1px solid #d0daea', color: '#4a5568', borderRadius: 7, padding: '0 1.1rem', height: 36, fontSize: '0.82rem', cursor: 'pointer' },
-  btnSubmit: { background: '#1B4F8A', color: '#fff', border: 'none', borderRadius: 7, padding: '0 1.4rem', height: 36, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' },
-  pendingItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0f6ff', border: '1px solid #b8d0ec', borderRadius: 7, padding: '0.4rem 0.75rem', fontSize: '0.8rem', color: '#1B4F8A', marginTop: 6 },
+  btnSubmit: { background: '#1a3a6b', color: '#fff', border: 'none', borderRadius: 7, padding: '0 1.4rem', height: 36, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' },
+  pendingItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0f6ff', border: '1px solid #b8d0ec', borderRadius: 7, padding: '0.4rem 0.75rem', fontSize: '0.8rem', color: '#1a3a6b', marginTop: 6 },
   btnRm: { background: 'none', border: '1px solid #ef4444', color: '#ef4444', borderRadius: 5, padding: '0.15rem 0.55rem', fontSize: '0.72rem', cursor: 'pointer' },
 
   /* Empty */
@@ -87,7 +87,7 @@ const S = {
 
   /* View modal card */
   viewCard: { background: '#f9fafb', border: '1px solid #e8eef5', borderRadius: 8, padding: '1rem 1.25rem', marginBottom: '1rem' },
-  viewBadge: { background: '#e8f0fa', color: '#1B4F8A', border: '1px solid #b8d0ec', borderRadius: 6, padding: '0.18rem 0.7rem', fontSize: '0.75rem', fontWeight: 600 },
+  viewBadge: { background: '#e8f0fa', color: '#1a3a6b', border: '1px solid #b8d0ec', borderRadius: 6, padding: '0.18rem 0.7rem', fontSize: '0.75rem', fontWeight: 600 },
 }
 
 
@@ -315,7 +315,7 @@ const ProcedureManagement = () => {
                 setSelectedSubServices([]); setSubServiceInput(''); setErrors({}); setShowModal(true)
               }}
             >
-              <Plus size={14} color="#1B4F8A" />
+              <Plus size={14} color="#1a3a6b" />
               Add New Procedure
             </button>
           </div>
@@ -525,7 +525,7 @@ const ProcedureManagement = () => {
             {selectSubService?.subServices?.length > 0 ? selectSubService.subServices.map((item, i) => (
               <div key={item.subServiceId} style={S.viewCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontWeight: 600, color: '#1B4F8A' }}>{i + 1}. {item.subServiceName || 'Unnamed'}</span>
+                  <span style={{ fontWeight: 600, color: '#1a3a6b' }}>{i + 1}. {item.subServiceName || 'Unnamed'}</span>
                   <span style={S.viewBadge}>ID: {item.subServiceId}</span>
                 </div>
                 <hr style={{ borderColor: '#e8eef5', margin: '0.5rem 0' }} />

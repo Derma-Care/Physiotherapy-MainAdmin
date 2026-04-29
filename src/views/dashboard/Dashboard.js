@@ -8,7 +8,7 @@ const Dashboard = () => {
     <div style={{ padding: '8px 4px' }}>
       <div style={{ marginBottom: '8px' }}>
         <h4 style={{
-          color: '#1B4F8A',
+          color: '#1a3a6b',
           fontWeight: '700',
           fontSize: '20px',
           margin: '0 0 2px 0',

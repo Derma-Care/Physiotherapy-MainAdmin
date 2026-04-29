@@ -51,12 +51,12 @@ const _nav = [
     to: '/appointment-management',
     icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Customer Management',
-    to: '/customer-management',
-    icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Patient Management',
+  //   to: '/patient-management',
+  //   icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
+  // },
 
   {
     component: CNavItem,
@@ -64,25 +64,25 @@ const _nav = [
     to: '/clinic-Management',
     icon: <CIcon icon={cilHospital} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Category Management',
-    to: '/category-management',
+  // {
+  //   component: CNavItem,
+  //   name: 'Category Management',
+  //   to: '/category-management',
 
-    icon: <CIcon icon={cilApps} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Service Management',
-    to: '/service-management',
-    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Procedure Management',
-    to: '/procedure-management',
-    icon: <CIcon icon={cilList} customClassName="nav-icon" />,
-  },
+  //   icon: <CIcon icon={cilApps} customClassName="nav-icon" />,
+  // },
+  // {
+  //   component: CNavItem,
+  //   name: 'Service Management',
+  //   to: '/service-management',
+  //   icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
+  // },
+  // {
+  //   component: CNavItem,
+  //   name: 'Procedure Management',
+  //   to: '/procedure-management',
+  //   icon: <CIcon icon={cilList} customClassName="nav-icon" />,
+  // },
     {
     component:CNavItem,
     name:'Ads Management',
@@ -107,6 +107,7 @@ const _nav = [
     name: 'Push Notifications',
     icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
   },
+
   {
     component: CNavItem,
     to: '/payouts',

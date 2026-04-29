@@ -28,7 +28,7 @@ const AppHeader = () => {
       position="sticky"
       className="mb-4 p-0"
       ref={headerRef}
-      style={{ backgroundColor: '#1B4F8A' }}
+      style={{ backgroundColor: '#1a3a6b' }}
     >
       <CContainer className="border-bottom px-4" fluid>
         <CHeaderToggler

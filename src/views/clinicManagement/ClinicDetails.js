@@ -45,7 +45,7 @@ const errTxt = { color: '#ef4444', fontSize: '11px', marginTop: '4px' }
 
 const SectionBar = ({ text }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', marginTop: '6px' }}>
-    <span style={{ width: '3px', height: '18px', background: '#185fa5', borderRadius: '2px', flexShrink: 0 }} />
+    <span style={{ width: '3px', height: '18px', background: '#1a3a6b', borderRadius: '2px', flexShrink: 0 }} />
     <span style={{ fontSize: '13px', fontWeight: '700', color: '#0c447c' }}>{text}</span>
   </div>
 )
@@ -59,19 +59,19 @@ const ClinicDetails = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [formErrors, setFormErrors]           = useState({})
-  const [clinicData, setClinicData]           = useState(null)
+  const [formErrors, setFormErrors] = useState({})
+  const [clinicData, setClinicData] = useState(null)
   const [editableClinicData, setEditableClinicData] = useState({ consultationExpiration: '' })
-  const [timings, setTimings]                 = useState([])
-  const [isEditing, setIsEditing]             = useState(false)
+  const [timings, setTimings] = useState([])
+  const [isEditing, setIsEditing] = useState(false)
   const [isEditingAdditional, setIsEditingAdditional] = useState(false)
-  const [activeTab, setActiveTab]             = useState(0)
-  const [loading, setLoading]                 = useState(true)
+  const [activeTab, setActiveTab] = useState(0)
+  const [loading, setLoading] = useState(true)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [selectedDoctor, setSelectedDoctor]   = useState(null)
+  const [selectedDoctor, setSelectedDoctor] = useState(null)
   const [showDoctorModal, setShowDoctorModal] = useState(false)
-  const [allDoctors, setAllDoctors]           = useState([])
-  const [modalVisible, setModalVisible]       = useState(false)
+  const [allDoctors, setAllDoctors] = useState([])
+  const [modalVisible, setModalVisible] = useState(false)
 
   /* ── sync tab from URL ── */
   useEffect(() => {
@@ -218,13 +218,13 @@ const ClinicDetails = () => {
           cursor: pointer; border-bottom: 2px solid transparent;
           transition: all 0.18s; white-space: nowrap;
         }
-        .cd-tab:hover { color: #185fa5; }
-        .cd-tab.active { color: #185fa5; font-weight: 700; border-bottom: 2px solid #185fa5; }
-        .cd-input:focus { border-color: #185fa5 !important; box-shadow: 0 0 0 3px rgba(24,95,165,0.10); }
+        .cd-tab:hover { color: #1a3a6b; }
+        .cd-tab.active { color: #1a3a6b; font-weight: 700; border-bottom: 2px solid #1a3a6b; }
+        .cd-input:focus { border-color: #1a3a6b !important; box-shadow: 0 0 0 3px rgba(24,95,165,0.10); }
         .cd-btn-primary {
           display: inline-flex; align-items: center; gap: 6px;
           padding: 8px 18px; border-radius: 8px;
-          background: #185fa5; color: #fff; border: none;
+          background: #1a3a6b; color: #fff; border: none;
           font-weight: 600; font-size: 13px; cursor: pointer;
           transition: background 0.15s;
         }
@@ -251,7 +251,7 @@ const ClinicDetails = () => {
 
       {/* ── Header ── */}
       <div style={{
-        background: '#185fa5', borderRadius: '10px 10px 0 0',
+        background: '#1a3a6b', borderRadius: '10px 10px 0 0',
         padding: '16px 20px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
@@ -271,14 +271,14 @@ const ClinicDetails = () => {
           </div>
         </div>
         <button
-         onClick={() => navigate(-1)}
-           style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '7px 16px', borderRadius: '10px',
-              background: '#fff', color: '#1B4F8A',
-              border: '1.5px solid #1B4F8A',
-              fontWeight: '600', fontSize: '13px', cursor: 'pointer',
-            }}
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '7px 16px', borderRadius: '10px',
+            background: '#fff', color: '#1a3a6b',
+            border: '1.5px solid #1a3a6b',
+            fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+          }}
         >
           <ArrowLeft size={14} /> Back
         </button>
@@ -631,7 +631,7 @@ const ClinicDetails = () => {
                       />
                       {!isEditingAdditional && editableClinicData.walkthrough && !formErrors.walkthrough && (
                         <a href={editableClinicData.walkthrough} target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: '12px', color: '#185fa5', marginTop: '4px', display: 'block' }}>
+                          style={{ fontSize: '12px', color: '#1a3a6b', marginTop: '4px', display: 'block' }}>
                           Open Walkthrough ↗
                         </a>
                       )}
@@ -753,7 +753,7 @@ const ClinicDetails = () => {
 
       {/* ══ Delete Clinic Modal ══ */}
       <CModal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} backdrop="static">
-        <CModalHeader style={{ background: '#185fa5', borderBottom: 'none', padding: '14px 20px' }}>
+        <CModalHeader style={{ background: '#1a3a6b', borderBottom: 'none', padding: '14px 20px' }}>
           <strong style={{ color: '#fff', fontSize: '15px' }}>Delete Clinic</strong>
         </CModalHeader>
         <CModalBody style={{ padding: '20px 24px', fontSize: '14px', color: '#374151' }}>
@@ -773,7 +773,7 @@ const ClinicDetails = () => {
 
       {/* ══ Doctor Profile Modal ══ */}
       <CModal visible={showDoctorModal} onClose={() => setShowDoctorModal(false)} size="lg" backdrop="static">
-        <CModalHeader style={{ background: '#185fa5', borderBottom: 'none', padding: '14px 20px' }}>
+        <CModalHeader style={{ background: '#1a3a6b', borderBottom: 'none', padding: '14px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Stethoscope size={16} color="#fff" />
@@ -797,27 +797,35 @@ const ClinicDetails = () => {
               </div>
 
               {[
-                { title: 'Personal Information', fields: [
-                  { label: 'Contact', value: selectedDoctor.doctorMobileNumber },
-                  { label: 'Qualification', value: selectedDoctor.qualification },
-                ]},
-                { title: 'Availability', fields: [
-                  { label: 'Available Days', value: selectedDoctor.availableDays },
-                  { label: 'Available Times', value: selectedDoctor.availableTimes },
-                ]},
-                { title: 'Expertise', fields: [
-                  { label: 'Languages', value: selectedDoctor.languages?.join(', ') || '—' },
-                  { label: 'Focus Areas', value: selectedDoctor.focusAreas?.join(', ') || '—' },
-                  { label: 'Highlights', value: selectedDoctor.highlights?.join(', ') || '—' },
-                ]},
-                { title: 'Consultation Fees', fields: [
-                  { label: 'In-Clinic Fee', value: `₹${selectedDoctor.doctorFees?.inClinicFee || 0}` },
-                  { label: 'Video Fee', value: `₹${selectedDoctor.doctorFees?.vedioConsultationFee || 0}` },
-                ]},
+                {
+                  title: 'Personal Information', fields: [
+                    { label: 'Contact', value: selectedDoctor.doctorMobileNumber },
+                    { label: 'Qualification', value: selectedDoctor.qualification },
+                  ]
+                },
+                {
+                  title: 'Availability', fields: [
+                    { label: 'Available Days', value: selectedDoctor.availableDays },
+                    { label: 'Available Times', value: selectedDoctor.availableTimes },
+                  ]
+                },
+                {
+                  title: 'Expertise', fields: [
+                    { label: 'Languages', value: selectedDoctor.languages?.join(', ') || '—' },
+                    { label: 'Focus Areas', value: selectedDoctor.focusAreas?.join(', ') || '—' },
+                    { label: 'Highlights', value: selectedDoctor.highlights?.join(', ') || '—' },
+                  ]
+                },
+                {
+                  title: 'Consultation Fees', fields: [
+                    { label: 'In-Clinic Fee', value: `₹${selectedDoctor.doctorFees?.inClinicFee || 0}` },
+                    { label: 'Video Fee', value: `₹${selectedDoctor.doctorFees?.vedioConsultationFee || 0}` },
+                  ]
+                },
               ].map(({ title, fields }) => (
                 <div key={title} style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                    <span style={{ width: '3px', height: '16px', background: '#185fa5', borderRadius: '2px' }} />
+                    <span style={{ width: '3px', height: '16px', background: '#1a3a6b', borderRadius: '2px' }} />
                     <span style={{ fontSize: '13px', fontWeight: '700', color: '#0c447c' }}>{title}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
@@ -834,16 +842,16 @@ const ClinicDetails = () => {
               {/* Services */}
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <span style={{ width: '3px', height: '16px', background: '#185fa5', borderRadius: '2px' }} />
+                  <span style={{ width: '3px', height: '16px', background: '#1a3a6b', borderRadius: '2px' }} />
                   <span style={{ fontSize: '13px', fontWeight: '700', color: '#0c447c' }}>Services Offered</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {selectedDoctor.service?.length > 0
                     ? selectedDoctor.service.map((s) => (
-                        <span key={s.serviceId} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500', background: '#e6f1fb', color: '#0c447c', border: '0.5px solid #b5d4f4' }}>
-                          {s.serviceName}
-                        </span>
-                      ))
+                      <span key={s.serviceId} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500', background: '#e6f1fb', color: '#0c447c', border: '0.5px solid #b5d4f4' }}>
+                        {s.serviceName}
+                      </span>
+                    ))
                     : <span style={{ color: '#9ca3af', fontSize: '13px' }}>No services listed</span>
                   }
                 </div>
@@ -851,7 +859,7 @@ const ClinicDetails = () => {
 
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <span style={{ width: '3px', height: '16px', background: '#185fa5', borderRadius: '2px' }} />
+                  <span style={{ width: '3px', height: '16px', background: '#1a3a6b', borderRadius: '2px' }} />
                   <span style={{ fontSize: '13px', fontWeight: '700', color: '#0c447c' }}>Profile Summary</span>
                 </div>
                 <div style={{ background: '#fff', border: '0.5px solid #e2ecf7', borderRadius: '8px', padding: '12px 14px', fontSize: '13px', color: '#374151', lineHeight: '1.6' }}>

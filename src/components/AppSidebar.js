@@ -21,7 +21,7 @@ const AppSidebar = () => {
   return (
     <CSidebar
       className="border-end"
-      style={{ backgroundColor: '#1B4F8A' }}
+      style={{ backgroundColor: '#1a3a6b' }}
       position="fixed"
       unfoldable={unfoldable}
       visible={sidebarShow}
@@ -31,7 +31,7 @@ const AppSidebar = () => {
     >
       <CSidebarHeader
         style={{
-          backgroundColor: '#1B4F8A',
+          backgroundColor: '#1a3a6b',
           borderBottom: '1px solid rgba(255,255,255,0.15)',
           padding: '20px 16px 16px',
         }}
@@ -75,7 +75,7 @@ const AppSidebar = () => {
           <div style={{ textAlign: 'center' }}>
             <h1
               style={{
-                fontSize: '18px',
+                fontSize: '20px',
                 color: '#ffffff',
                 fontWeight: '700',
                 margin: 0,
@@ -102,10 +102,10 @@ const AppSidebar = () => {
 
       <AppSidebarNav items={navigation} />
 
-      <CSidebarFooter
+      {/* <CSidebarFooter
         className="border-top d-none d-lg-flex"
         style={{
-          backgroundColor: '#1B4F8A',
+          backgroundColor: '#1a3a6b',
           borderTop: '1px solid rgba(255,255,255,0.15)',
         }}
       >
@@ -113,7 +113,7 @@ const AppSidebar = () => {
           onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
           style={{ color: '#ffffff' }}
         />
-      </CSidebarFooter>
+      </CSidebarFooter> */}
     </CSidebar>
   )
 }

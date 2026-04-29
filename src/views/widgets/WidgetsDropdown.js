@@ -138,7 +138,7 @@ const WidgetsDropdown = (props) => {
       value: '1,284',
       change: '+8.2% this month',
       isPositive: true,
-      color: '#1B4F8A',
+      color: '#1a3a6b',
       accent: '#1a6bbf',
       icon: cilHospital,
       chartData: [40, 55, 50, 65, 60, 75, 70, 80, 75, 85, 80, 90],

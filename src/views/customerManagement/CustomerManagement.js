@@ -201,7 +201,7 @@ const CustomerManagement = () => {
       <ToastContainer />
       <style>{`
         .cust-table thead th {
-          background: #1B4F8A !important;
+          background: #1a3a6b !important;
           color: #fff !important;
           font-size: 12px; font-weight: 600;
           padding: 12px 14px; border: none; letter-spacing: 0.3px;
@@ -215,8 +215,8 @@ const CustomerManagement = () => {
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; transition: all 0.2s;
         }
-        .cust-action-btn.view  { border-color: #1B4F8A; color: #1B4F8A; }
-        .cust-action-btn.view:hover  { background: #1B4F8A; color: #fff; }
+        .cust-action-btn.view  { border-color: #1a3a6b; color: #1a3a6b; }
+        .cust-action-btn.view:hover  { background: #1a3a6b; color: #fff; }
         .cust-action-btn.edit  { border-color: #f9a825; color: #f9a825; }
         .cust-action-btn.edit:hover  { background: #f9a825; color: #fff; }
         .cust-action-btn.delete { border-color: #ef4444; color: #ef4444; }
@@ -230,11 +230,11 @@ const CustomerManagement = () => {
           justify-content: center; gap: 4px; white-space: nowrap;
         }
         .cust-page-btn:hover:not(:disabled):not(.active) {
-          border-color: #1B4F8A; color: #1B4F8A; background: #eef4fb;
+          border-color: #1a3a6b; color: #1a3a6b; background: #eef4fb;
         }
-        .cust-page-btn.active { background: #1B4F8A; color: #fff; border-color: #1B4F8A; }
+        .cust-page-btn.active { background: #1a3a6b; color: #fff; border-color: #1a3a6b; }
         .cust-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .form-input:focus { border-color: #1B4F8A !important; box-shadow: 0 0 0 3px rgba(27,79,138,0.1); }
+        .form-input:focus { border-color: #1a3a6b !important; box-shadow: 0 0 0 3px rgba(27,79,138,0.1); }
       `}</style>
 
       {!isAdding ? (
@@ -242,7 +242,7 @@ const CustomerManagement = () => {
           {/* ── Page Header ── */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
-              <h5 style={{ color: '#1B4F8A', fontWeight: '700', margin: 0, fontSize: '18px' }}>Customer Management</h5>
+              <h5 style={{ color: '#1a3a6b', fontWeight: '700', margin: 0, fontSize: '18px' }}>Patient Management</h5>
               <p style={{ color: '#6b7280', fontSize: '12px', margin: '2px 0 0' }}>
                 {filteredData.length} customer{filteredData.length !== 1 ? 's' : ''} total
               </p>
@@ -252,12 +252,12 @@ const CustomerManagement = () => {
               style={{
                 display: 'flex', alignItems: 'center', gap: '7px',
                 padding: '8px 18px', borderRadius: '10px',
-                background: '#1B4F8A', color: '#fff',
+                background: '#1a3a6b', color: '#fff',
                 border: 'none', fontWeight: '600', fontSize: '13px',
                 cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,79,138,0.3)',
               }}
             >
-              <UserPlus size={15} /> Add Customer
+              <UserPlus size={15} /> Add Patient
             </button>
           </div>
 
@@ -416,8 +416,8 @@ const CustomerManagement = () => {
                     </button>
 
                     <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>
-                      Page <strong style={{ color: '#1B4F8A' }}>{currentPage}</strong> of{' '}
-                      <strong style={{ color: '#1B4F8A' }}>{totalPages}</strong>
+                      Page <strong style={{ color: '#1a3a6b' }}>{currentPage}</strong> of{' '}
+                      <strong style={{ color: '#1a3a6b' }}>{totalPages}</strong>
                     </span>
                   </div>
                 </div>
@@ -432,16 +432,16 @@ const CustomerManagement = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
             <button
               onClick={handleCancel}
-              style={{ width: '34px', height: '34px', borderRadius: '9px', border: '1.5px solid #1B4F8A', background: '#fff', color: '#1B4F8A', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              style={{ width: '34px', height: '34px', borderRadius: '9px', border: '1.5px solid #1a3a6b', background: '#fff', color: '#1a3a6b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
             >
               <ChevronLeft size={16} />
             </button>
             <div>
-              <h5 style={{ color: '#1B4F8A', fontWeight: '700', margin: 0, fontSize: '18px' }}>
-                {isEditing ? 'Edit Customer' : 'Add New Customer'}
+              <h5 style={{ color: '#1a3a6b', fontWeight: '700', margin: 0, fontSize: '18px' }}>
+                {isEditing ? 'Edit Patient' : 'Add New Patient'}
               </h5>
               <p style={{ color: '#9ca3af', fontSize: '12px', margin: '2px 0 0' }}>
-                {isEditing ? 'Update customer information below' : 'Fill in the details to add a new customer'}
+                {isEditing ? 'Update patient information below' : 'Fill in the details to add a new patient'}
               </p>
             </div>
           </div>
@@ -453,7 +453,7 @@ const CustomerManagement = () => {
                   <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: '#eef4fb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: '14px' }}>👤</span>
                   </div>
-                  <span style={{ color: '#1B4F8A', fontWeight: '700', fontSize: '13px' }}>Personal Information</span>
+                  <span style={{ color: '#1a3a6b', fontWeight: '700', fontSize: '13px' }}>Personal Information</span>
                 </div>
 
                 <CRow className="g-3">
@@ -543,7 +543,7 @@ const CustomerManagement = () => {
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '8px 24px', borderRadius: '10px', background: '#1B4F8A', color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,79,138,0.3)' }}
+                  style={{ padding: '8px 24px', borderRadius: '10px', background: '#1a3a6b', color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,79,138,0.3)' }}
                 >
                   {isEditing ? '✓ Update Customer' : '+ Add Customer'}
                 </button>

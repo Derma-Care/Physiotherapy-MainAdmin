@@ -18,11 +18,11 @@ import LoadingIndicator from '../../Utils/loader'
 import { Eye, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const STATUS_CONFIG = {
-  Confirmed:    { bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
-  'In-Progress':{ bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
-  Completed:    { bg: '#f0fdf4', color: '#14532d', dot: '#16a34a' },
-  Pending:      { bg: '#fef9c3', color: '#854d0e', dot: '#eab308' },
-  Rejected:     { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
+  Confirmed: { bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
+  'In-Progress': { bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
+  Completed: { bg: '#f0fdf4', color: '#14532d', dot: '#16a34a' },
+  Pending: { bg: '#fef9c3', color: '#854d0e', dot: '#eab308' },
+  Rejected: { bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
 }
 
 const statusLabelMap = {
@@ -35,26 +35,26 @@ const statusLabelMap = {
 
 const FILTER_BUTTONS = [
   { key: 'Service & Treatment', label: '🩺 Service & Treatment' },
-  { key: 'In-clinic',           label: '🏥 In-Clinic' },
-  { key: 'Video Consultation',  label: '📹 Video Consultation' },
+  { key: 'In-clinic', label: '🏥 In-Clinic' },
+  { key: 'Video Consultation', label: '📹 Video Consultation' },
 ]
 
 const STATUS_CHECKBOXES = [
-  { value: 'Confirmed',   label: 'Confirmed' },
+  { value: 'Confirmed', label: 'Confirmed' },
   { value: 'In-Progress', label: 'Active' },
-  { value: 'Completed',   label: 'Completed' },
+  { value: 'Completed', label: 'Completed' },
 ]
 
 const AppointmentManagement = () => {
-  const [filteredData, setFilteredData]     = useState([])
-  const [bookings, setBookings]             = useState([])
-  const [hospitals, setHospitals]           = useState([])
-  const [loading, setLoading]               = useState(true)
-  const [filterTypes, setFilterTypes]       = useState([])
-  const [statusFilters, setStatusFilters]   = useState([])
+  const [filteredData, setFilteredData] = useState([])
+  const [bookings, setBookings] = useState([])
+  const [hospitals, setHospitals] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filterTypes, setFilterTypes] = useState([])
+  const [statusFilters, setStatusFilters] = useState([])
   const [selectedHospitalId, setSelectedHospitalId] = useState('')
-  const [currentPage, setCurrentPage]       = useState(1)
-  const itemsPerPage = 7
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const navigate = useNavigate()
 
   const fetchAppointments = async (clinicId = '') => {
@@ -92,8 +92,8 @@ const AppointmentManagement = () => {
     const normalize = (val) => val?.toLowerCase().trim()
     const consultationTypeMap = {
       'Service & Treatment': 'services & treatments',
-      'video Consultation':  'online consultation',
-      'In-clinic':           'in-clinic consultation',
+      'video Consultation': 'online consultation',
+      'In-clinic': 'in-clinic consultation',
     }
     if (statusFilters.length > 0) {
       filtered = filtered.filter((item) =>
@@ -146,9 +146,9 @@ const AppointmentManagement = () => {
         .appt-filter-btn {
           padding: 7px 16px;
           border-radius: 20px;
-          border: 1.5px solid #1B4F8A;
+          border: 1.5px solid #1a3a6b;
           background: #fff;
-          color: #1B4F8A;
+          color: #1a3a6b;
           font-size: 12px;
           font-weight: 600;
           cursor: pointer;
@@ -159,12 +159,12 @@ const AppointmentManagement = () => {
           background: #e8f0fb;
         }
         .appt-filter-btn.active {
-          background: #1B4F8A;
+          background: #1a3a6b;
           color: #fff;
-          border-color: #1B4F8A;
+          border-color: #1a3a6b;
         }
         .appt-table thead th {
-          background: #1B4F8A !important;
+          background: #1a3a6b !important;
           color: #ffffff !important;
           font-size: 12px;
           font-weight: 600;
@@ -190,9 +190,9 @@ const AppointmentManagement = () => {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1.5px solid #1B4F8A;
+          border: 1.5px solid #1a3a6b;
           background: #fff;
-          color: #1B4F8A;
+          color: #1a3a6b;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -200,7 +200,7 @@ const AppointmentManagement = () => {
           transition: all 0.2s;
         }
         .appt-view-btn:hover {
-          background: #1B4F8A;
+          background: #1a3a6b;
           color: #fff;
         }
         .appt-page-btn {
@@ -218,11 +218,11 @@ const AppointmentManagement = () => {
           align-items: center;
           justify-content: center;
         }
-        .appt-page-btn:hover { border-color: #1B4F8A; color: #1B4F8A; }
+        .appt-page-btn:hover { border-color: #1a3a6b; color: #1a3a6b; }
         .appt-page-btn.active {
-          background: #1B4F8A;
+          background: #1a3a6b;
           color: #fff;
-          border-color: #1B4F8A;
+          border-color: #1a3a6b;
         }
         .appt-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .appt-status-badge {
@@ -251,7 +251,7 @@ const AppointmentManagement = () => {
         gap: '12px',
       }}>
         <div>
-          <h5 style={{ color: '#1B4F8A', fontWeight: '700', margin: 0, fontSize: '18px' }}>
+          <h5 style={{ color: '#1a3a6b', fontWeight: '700', margin: 0, fontSize: '18px' }}>
             Appointment Management
           </h5>
           <p style={{ color: '#6b7280', fontSize: '12px', margin: '2px 0 0' }}>
@@ -304,7 +304,7 @@ const AppointmentManagement = () => {
                   checked={statusFilters.includes(value)}
                   onChange={handleStatusChange}
                   style={{
-                    width: '15px', height: '15px', accentColor: '#1B4F8A', cursor: 'pointer',
+                    width: '15px', height: '15px', accentColor: '#1a3a6b', cursor: 'pointer',
                   }}
                 />
                 {label}
@@ -332,7 +332,7 @@ const AppointmentManagement = () => {
                 fetchAppointments(clinicId)
               }}
             >
-              <option value="">All Hospitals</option>
+              <option value="">All Clinics</option>
               {Array.isArray(hospitals) && hospitals.map((h) => (
                 <option key={h.hospitalId} value={h.hospitalId}>{h.name}</option>
               ))}
@@ -398,7 +398,7 @@ const AppointmentManagement = () => {
                     </CTableDataCell>
                     <CTableDataCell>
                       <span style={{
-                        background: '#eef4fb', color: '#1B4F8A',
+                        background: '#eef4fb', color: '#1a3a6b',
                         padding: '2px 8px', borderRadius: '6px',
                         fontSize: '11px', fontWeight: '600',
                       }}>
@@ -448,6 +448,7 @@ const AppointmentManagement = () => {
         </CTable>
 
         {/* Pagination */}
+        {/* Pagination */}
         {totalPages > 1 && (
           <div style={{
             display: 'flex',
@@ -458,17 +459,37 @@ const AppointmentManagement = () => {
             flexWrap: 'wrap',
             gap: '8px',
           }}>
-            <span style={{ fontSize: '12px', color: '#9ca3af' }}>
-              Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length}
-            </span>
+            {/* Rows per page */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                Rows per page:
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
+                style={{
+                  padding: '5px 8px',
+                  border: '1.5px solid #e5e7eb',
+                  borderRadius: '7px',
+                  fontSize: '12px',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  background: '#fff',
+                }}
+              >
+                {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
 
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {/* Page controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
                 className="appt-page-btn"
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => p - 1)}
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={13} /> Prev
               </button>
 
               {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -480,7 +501,7 @@ const AppointmentManagement = () => {
                 }, [])
                 .map((p, i) =>
                   p === '...' ? (
-                    <span key={`ellipsis-${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 4px' }}>…</span>
+                    <span key={`ellipsis-${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 2px' }}>…</span>
                   ) : (
                     <button
                       key={p}
@@ -497,8 +518,15 @@ const AppointmentManagement = () => {
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => p + 1)}
               >
-                <ChevronRight size={14} />
+                Next <ChevronRight size={13} />
               </button>
+
+              <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>
+                Page{' '}
+                <strong style={{ color: '#1a3a6b' }}>{currentPage}</strong>
+                {' '}of{' '}
+                <strong style={{ color: '#1a3a6b' }}>{totalPages}</strong>
+              </span>
             </div>
           </div>
         )}

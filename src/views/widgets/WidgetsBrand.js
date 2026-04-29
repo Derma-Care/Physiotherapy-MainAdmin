@@ -16,7 +16,7 @@ const WidgetsBrand = (props) => {
   return (
     <CCol sm={12}>
       <div style={{
-        background: 'linear-gradient(135deg, #1B4F8A 0%, #153d6e 100%)',
+        background: 'linear-gradient(135deg, #1a3a6b 0%, #153d6e 100%)',
         borderRadius: '20px',
         overflow: 'hidden',
         boxShadow: '0 12px 40px rgba(27,79,138,0.3)',
