@@ -1,28 +1,84 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-import ClinicAPI from './ClinicAPI'
 import { ClinicAllData, BASE_URL } from '../../baseUrl'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, Search, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import {
   CTable, CTableHead, CTableBody, CTableRow,
   CTableHeaderCell, CTableDataCell,
+  CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter,
+  CButton, CFormSelect,
 } from '@coreui/react'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
+import { statusapi } from '../../baseUrl'
 import LoadingIndicator from '../../Utils/loader'
 
+/* ═══════════════════════════════════════════════════════
+   STATUS MAPPING
+═══════════════════════════════════════════════════════ */
+const mapBackendStatusToUI = (status) => {
+  switch (status) {
+    case 'PENDING':                  return 'pending'
+    case 'VERIFICATION_IN_PROGRESS': return 'start'
+    case 'VERIFIED':                 return 'verified'
+    case 'REJECTED':                 return 'rejected'
+    default:                         return 'pending'
+  }
+}
+
+const UI_TO_BACKEND = {
+  pending:  'PENDING',
+  start:    'VERIFICATION_IN_PROGRESS',
+  verified: 'VERIFIED',
+  rejected: 'REJECTED',
+}
+
+const STATUS_LABEL = {
+  pending:  'Pending',
+  start:    'Started',
+  verified: 'Verified',
+  rejected: 'Rejected',
+}
+
+const statusStyles = {
+  pending:  { backgroundColor: '#FFE4B5', color: '#8B4513', fontWeight: '600' },
+  start:    { backgroundColor: '#BEE3F8', color: '#0C4A6E', fontWeight: '600' },
+  verified: { backgroundColor: '#C6F6D5', color: '#22543D', fontWeight: '600' },
+  rejected: { backgroundColor: '#FED7D7', color: '#822727', fontWeight: '600' },
+}
+
+const badgeStyle = (uiStatus) => ({
+  ...(statusStyles[uiStatus] || {}),
+  padding: '2px 10px',
+  borderRadius: '12px',
+  fontSize: '13px',
+  display: 'inline-block',
+})
+
+/* ═══════════════════════════════════════════════════════
+   COMPONENT
+═══════════════════════════════════════════════════════ */
 const ClinicManagement = ({ service, onBack }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [clinics, setClinics]           = useState([])
-  const [loading, setLoading]           = useState(false)
-  const [error, setError]               = useState(null)
-  const [searchTerm, setSearchTerm]     = useState('')
+  const [clinics,       setClinics]       = useState([])
+  const [loading,       setLoading]       = useState(false)
+  const [statusLoading, setStatusLoading] = useState(false)
+  const [error,         setError]         = useState(null)
+  const [searchTerm,    setSearchTerm]    = useState('')
   const [filterCategory, setFilterCategory] = useState('')
-  const [categories, setCategories]     = useState([])
-  const [currentPage, setCurrentPage]   = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [categories,    setCategories]    = useState([])
+  const [currentPage,   setCurrentPage]   = useState(1)
+  const [itemsPerPage,  setItemsPerPage]  = useState(5)
+
+  const [confirmModal, setConfirmModal] = useState({
+    visible:    false,
+    clinicId:   null,
+    clinicName: '',
+    fromStatus: '',
+    toStatus:   '',
+  })
 
   const handleAddClinic = () => {
     navigate('/add-clinic', {
@@ -66,6 +122,56 @@ const ClinicManagement = ({ service, onBack }) => {
       setError('Failed to load clinics')
     } finally {
       setLoading(false)
+    }
+  }
+
+  /* ── Status Handlers ── */
+  const handleDropdownChange = (uiStatus, clinicId) => {
+    const clinic = clinics.find((c) => c.hospitalId === clinicId)
+    if (!clinic) return
+    const currentUI = mapBackendStatusToUI(clinic.status)
+    if (currentUI === uiStatus) return
+
+    setConfirmModal({
+      visible:    true,
+      clinicId,
+      clinicName: clinic.name,
+      fromStatus: currentUI,
+      toStatus:   uiStatus,
+    })
+  }
+
+  const closeModal = () =>
+    setConfirmModal({ visible: false, clinicId: null, clinicName: '', fromStatus: '', toStatus: '' })
+
+  const handleConfirmStatusChange = async () => {
+    const { clinicId, toStatus, clinicName } = confirmModal
+    closeModal()
+
+    if (toStatus === 'pending') {
+      alert('Cannot reset to Pending — no backend API available for this transition.')
+      return
+    }
+
+    setStatusLoading(true)
+    try {
+      if (toStatus === 'start') {
+        await statusapi.startClinic(clinicId)
+      } else if (toStatus === 'verified') {
+        await statusapi.verifyClinic(clinicId)
+      } else if (toStatus === 'rejected') {
+        const reason =
+          window.prompt(`Enter rejection reason for "${clinicName}":`, 'Invalid documents submitted') ||
+          'Invalid documents submitted'
+        await statusapi.rejectClinic(clinicId, reason)
+      }
+      await fetchClinics()
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.response?.data || err.message
+      alert(`Failed to update status.\n\nReason: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`)
+      await fetchClinics()
+    } finally {
+      setStatusLoading(false)
     }
   }
 
@@ -139,6 +245,16 @@ const ClinicManagement = ({ service, onBack }) => {
         }
         .cm-page-btn.active { background: #185fa5; color: #fff; border-color: #185fa5; }
         .cm-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .cm-status-select {
+          border-radius: 20px !important;
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          padding: 3px 10px !important;
+          border: none !important;
+          cursor: pointer;
+          outline: none;
+          appearance: auto;
+        }
         .cm-filter-select:focus,
         .cm-search-input:focus {
           outline: none;
@@ -146,6 +262,51 @@ const ClinicManagement = ({ service, onBack }) => {
           box-shadow: 0 0 0 3px rgba(24,95,165,0.10);
         }
       `}</style>
+
+      {/* ── Confirmation Modal ── */}
+      <CModal visible={confirmModal.visible} onClose={closeModal} alignment="center">
+        <CModalHeader>
+          <CModalTitle>Confirm Status Change</CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          <p style={{ marginBottom: 0 }}>
+            Are you sure you want to change{' '}
+            <strong>{confirmModal.clinicName}</strong>'s status from{' '}
+            <span style={badgeStyle(confirmModal.fromStatus)}>
+              {STATUS_LABEL[confirmModal.fromStatus]}
+            </span>{' '}
+            to{' '}
+            <span style={badgeStyle(confirmModal.toStatus)}>
+              {STATUS_LABEL[confirmModal.toStatus]}
+            </span>?
+          </p>
+          {confirmModal.toStatus === 'verified' && (
+            <p className="mt-2 text-success" style={{ fontSize: 13 }}>
+              ✅ A verification confirmation email will be sent to the clinic's registered email.
+            </p>
+          )}
+          {confirmModal.toStatus === 'rejected' && (
+            <p className="mt-2 text-danger" style={{ fontSize: 13 }}>
+              ❌ You will be asked to enter a rejection reason. A rejection email will be sent to the clinic.
+            </p>
+          )}
+          {confirmModal.toStatus === 'start' && (
+            <p className="mt-2 text-info" style={{ fontSize: 13 }}>
+              🔍 A "verification in progress" notification email will be sent to the clinic.
+            </p>
+          )}
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={closeModal}>No, Cancel</CButton>
+          <CButton
+            style={{ backgroundColor: '#185fa5', color: '#fff' }}
+            onClick={handleConfirmStatusChange}
+            disabled={statusLoading}
+          >
+            {statusLoading ? 'Updating...' : 'Yes, Change'}
+          </CButton>
+        </CModalFooter>
+      </CModal>
 
       {/* ── Page Header ── */}
       <div style={{
@@ -185,7 +346,6 @@ const ClinicManagement = ({ service, onBack }) => {
         border: '1px solid #e8eef5',
         display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
       }}>
-        {/* Search */}
         <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
           <Search size={14} style={{
             position: 'absolute', left: '11px', top: '50%',
@@ -219,7 +379,6 @@ const ClinicManagement = ({ service, onBack }) => {
           )}
         </div>
 
-        {/* Category filter */}
         <select
           className="cm-filter-select"
           value={filterCategory}
@@ -262,7 +421,7 @@ const ClinicManagement = ({ service, onBack }) => {
             <CTable className="cm-table mb-0" hover responsive>
               <CTableHead>
                 <CTableRow>
-                  {['S.No', 'Clinic Name', 'Contact Number', 'Email Address', 'City', 'Actions'].map((h) => (
+                  {['S.No', 'Clinic Name', 'Contact Number', 'Email Address', 'City', 'Status', 'Actions'].map((h) => (
                     <CTableHeaderCell key={h} className={h === 'Actions' ? 'text-center' : ''}>
                       {h}
                     </CTableHeaderCell>
@@ -270,38 +429,62 @@ const ClinicManagement = ({ service, onBack }) => {
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {currentItems.map((clinic, index) => (
-                  <CTableRow key={clinic?.id || index}>
-                    <CTableDataCell style={{ color: '#9ca3af', fontWeight: '600', fontSize: '12px' }}>
-                      {indexOfFirstItem + index + 1}
-                    </CTableDataCell>
-                    <CTableDataCell style={{ fontWeight: '500' }}>{clinic?.name || '—'}</CTableDataCell>
-                    <CTableDataCell>{clinic?.contactNumber || '—'}</CTableDataCell>
-                    <CTableDataCell>{clinic?.emailAddress || '—'}</CTableDataCell>
-                    <CTableDataCell>
-                      {clinic?.city ? (
-                        <span style={{
-                          padding: '2px 10px', borderRadius: '20px',
-                          fontSize: '11px', fontWeight: '600',
-                          background: '#e6f1fb', color: '#0c447c',
-                        }}>
-                          {clinic.city}
-                        </span>
-                      ) : '—'}
-                    </CTableDataCell>
-                    <CTableDataCell className="text-center">
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
-                        <button
-                          className="cm-action-btn view"
-                          title="View"
-                          onClick={() => navigate(`/clinic-Management/${clinic.hospitalId}`)}
+                {currentItems.map((clinic, index) => {
+                  const uiStatus = mapBackendStatusToUI(clinic.status)
+                  return (
+                    <CTableRow key={clinic?.hospitalId || index}>
+                      <CTableDataCell style={{ color: '#9ca3af', fontWeight: '600', fontSize: '12px' }}>
+                        {indexOfFirstItem + index + 1}
+                      </CTableDataCell>
+                      <CTableDataCell style={{ fontWeight: '500' }}>{clinic?.name || '—'}</CTableDataCell>
+                      <CTableDataCell>{clinic?.contactNumber || '—'}</CTableDataCell>
+                      <CTableDataCell>{clinic?.emailAddress || '—'}</CTableDataCell>
+                      <CTableDataCell>
+                        {clinic?.city ? (
+                          <span style={{
+                            padding: '2px 10px', borderRadius: '20px',
+                            fontSize: '11px', fontWeight: '600',
+                            background: '#e6f1fb', color: '#0c447c',
+                          }}>
+                            {clinic.city}
+                          </span>
+                        ) : '—'}
+                      </CTableDataCell>
+
+                      {/* ── Status Dropdown ── */}
+                      <CTableDataCell>
+                        <select
+                          className="cm-status-select"
+                          value={uiStatus}
+                          onChange={(e) => handleDropdownChange(e.target.value, clinic.hospitalId)}
+                          disabled={statusLoading}
+                          style={{
+                            ...statusStyles[uiStatus],
+                            cursor: statusLoading ? 'not-allowed' : 'pointer',
+                          }}
                         >
-                          <Eye size={14} />
-                        </button>
-                      </div>
-                    </CTableDataCell>
-                  </CTableRow>
-                ))}
+                          <option value="pending">Pending</option>
+                          <option value="start">Started</option>
+                          <option value="verified">Verified</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      </CTableDataCell>
+
+                      {/* ── View Button ── */}
+                      <CTableDataCell className="text-center">
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
+                          <button
+                            className="cm-action-btn view"
+                            title="View"
+                            onClick={() => navigate(`/clinic-Management/${clinic.hospitalId}`)}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
+                      </CTableDataCell>
+                    </CTableRow>
+                  )
+                })}
               </CTableBody>
             </CTable>
 
@@ -311,7 +494,6 @@ const ClinicManagement = ({ service, onBack }) => {
               alignItems: 'center', padding: '12px 18px',
               borderTop: '1px solid #f0f0f0', flexWrap: 'wrap', gap: '10px',
             }}>
-              {/* Rows per page */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>
                   Rows per page:
@@ -329,16 +511,10 @@ const ClinicManagement = ({ service, onBack }) => {
                 </select>
               </div>
 
-              {/* Page controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button
-                  className="cm-page-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
+                <button className="cm-page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
                   <ChevronLeft size={13} /> Prev
                 </button>
-
                 {getPaginationPages().map((p, i) =>
                   p === '…' ? (
                     <span key={`e${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 2px' }}>…</span>
@@ -352,20 +528,11 @@ const ClinicManagement = ({ service, onBack }) => {
                     </button>
                   )
                 )}
-
-                <button
-                  className="cm-page-btn"
-                  disabled={currentPage === totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
+                <button className="cm-page-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
                   Next <ChevronRight size={13} />
                 </button>
-
                 <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>
-                  Page{' '}
-                  <strong style={{ color: '#185fa5' }}>{currentPage}</strong>
-                  {' '}of{' '}
-                  <strong style={{ color: '#185fa5' }}>{totalPages}</strong>
+                  Page <strong style={{ color: '#185fa5' }}>{currentPage}</strong> of <strong style={{ color: '#185fa5' }}>{totalPages}</strong>
                 </span>
               </div>
             </div>
