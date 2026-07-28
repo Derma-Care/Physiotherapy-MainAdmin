@@ -22,6 +22,50 @@ import {
 
 const TABS = ['Basic Details', 'Additional Details', 'Branch Details', 'Procedures']
 
+/* ── field requirement lists — kept in sync with AddClinic's validateTab ──
+   Tab 0 required: name, address, city, emailAddress, contactNumber, branch
+   Tab 0 optional: hospitalLogo (has its own required rule but only enforced on create)
+   Tab 1 required: openingTime, closingTime, consultationExpiration, freeFollowUps, latitude, longitude
+   Tab 1 optional: website, issuingAuthority, licenseNumber, subscription, walkthrough,
+                   loyaltyPoints, nabhScore, all certificate/document fields, others
+*/
+const REQUIRED_BASIC = ['name', 'contactNumber', 'city']
+const OPTIONAL_BASIC = ['hospitalLogo']
+
+const REQUIRED_ADDITIONAL = [
+  'emailAddress', 'openingTime', 'closingTime', 'consultationExpiration',
+  'freeFollowUps', 'latitude', 'longitude', 'branch', 'address',
+]
+const OPTIONAL_ADDITIONAL = [
+  'city', 'website', 'issuingAuthority', 'subscription', 'licenseNumber', 'walkthrough',
+  'loyaltyPoints', 'nabhScore',
+  'hospitalDocuments', 'contractorDocuments', 'businessRegistrationCertificate',
+  'biomedicalWasteManagementAuth', 'tradeLicense', 'fireSafetyCertificate',
+  'professionalIndemnityInsurance', 'drugLicenseCertificate', 'drugLicenseFormType',
+  'pharmacistCertificate', 'clinicalEstablishmentCertificate', 'others',
+]
+
+/** Build a save payload containing every required field as-is (already validated)
+ *  plus only the optional fields the user actually provided a value for —
+ *  so blank optional fields never overwrite existing saved data. */
+const buildPayload = (data, requiredKeys, optionalKeys) => {
+  const payload = {}
+  requiredKeys.forEach((k) => { payload[k] = data[k] })
+  optionalKeys.forEach((k) => {
+    const v = data[k]
+    const isEmpty =
+      v === undefined || v === null ||
+      (typeof v === 'string' && v.trim() === '') ||
+      (Array.isArray(v) && v.length === 0)
+    if (!isEmpty) payload[k] = v
+  })
+  return payload
+}
+
+/** True if a document field has an actual value (base64 string or non-empty array of files). */
+const hasDocValue = (v) =>
+  v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0)
+
 /* ── shared input style ── */
 const inp = (hasErr, disabled) => ({
   width: '100%',
@@ -131,54 +175,69 @@ const ClinicDetails = () => {
     window.open(url)
   }
 
-  /* ── validation ── */
+  /* ── validation ──
+     Only fields required by AddClinic are enforced here.
+     website / issuingAuthority / walkthrough / subscription / documents are optional. */
   const validateForm = () => {
     const errs = {}
     if (activeTab === 0) {
       const name = editableClinicData.name?.trim() || ''
       if (!name) errs.name = 'Clinic Name is required'
       else if (name.length < 3) errs.name = 'At least 3 characters'
+
       const num = editableClinicData.contactNumber?.trim() || ''
       if (!num) errs.contactNumber = 'Contact Number is required'
       else if (!/^[6-9]\d{9}$/.test(num)) errs.contactNumber = 'Must start with 6-9 and be 10 digits'
+
       if (!editableClinicData.city?.trim()) errs.city = 'City is required'
     }
     if (activeTab === 1) {
       if (!editableClinicData.emailAddress?.includes('@')) errs.emailAddress = 'Email must contain "@"'
-      if (!editableClinicData.website?.trim()) errs.website = 'Website is required'
-      if (!editableClinicData.issuingAuthority?.trim()) errs.issuingAuthority = 'Issuing Authority is required'
       if (!editableClinicData.openingTime) errs.openingTime = 'Opening time required'
       if (!editableClinicData.closingTime) errs.closingTime = 'Closing time required'
-      if (!editableClinicData.subscription) errs.subscription = 'Subscription required'
       if (!editableClinicData.consultationExpiration) errs.consultationExpiration = 'Required'
-      if (!editableClinicData.latitude) errs.latitude = 'Latitude required'
-      if (!editableClinicData.longitude) errs.longitude = 'Longitude required'
-      if (!editableClinicData.walkthrough?.trim()) errs.walkthrough = 'Walkthrough URL required'
-      if (!editableClinicData.branch?.trim()) errs.branch = 'Branch name required'
-      if (!editableClinicData.address?.trim()) errs.address = 'Address required'
       if (!editableClinicData.freeFollowUps || isNaN(editableClinicData.freeFollowUps) || editableClinicData.freeFollowUps < 1)
         errs.freeFollowUps = 'Must be a positive number'
+      if (editableClinicData.latitude === null || editableClinicData.latitude === undefined || editableClinicData.latitude === '')
+        errs.latitude = 'Latitude required'
+      if (editableClinicData.longitude === null || editableClinicData.longitude === undefined || editableClinicData.longitude === '')
+        errs.longitude = 'Longitude required'
+      if (!editableClinicData.branch?.trim()) errs.branch = 'Branch name required'
+      if (!editableClinicData.address?.trim()) errs.address = 'Address required'
+
+      // Optional fields — only validate format IF the user typed something in them.
+      if (editableClinicData.website?.trim() && !/^https?:\/\/[^\s]+$/.test(editableClinicData.website.trim())) {
+        errs.website = 'Enter a valid URL'
+      }
+      if (editableClinicData.issuingAuthority?.trim() && !/^[A-Za-z\s]*$/.test(editableClinicData.issuingAuthority)) {
+        errs.issuingAuthority = 'Only alphabets and spaces'
+      }
+      if (editableClinicData.walkthrough?.trim() && !/^https?:\/\/[^\s]+$/.test(editableClinicData.walkthrough.trim())) {
+        errs.walkthrough = 'Must start with http(s)://'
+      }
     }
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
 
-  /* ── save basic ── */
+  /* ── save basic — only required fields + any provided optional (hospitalLogo) ── */
   const handleSaveBasic = async () => {
     if (!validateForm()) return
     try {
-      await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, editableClinicData)
+      const payload = buildPayload(editableClinicData, REQUIRED_BASIC, OPTIONAL_BASIC)
+      await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
       await fetchClinicDetails()
       setIsEditing(false)
     } catch (err) { console.error(err) }
   }
 
-  /* ── save additional ── */
+  /* ── save additional — only required fields + whatever optional fields the user filled in ── */
   const handleSaveAdditional = async () => {
     if (!validateForm()) { toast.error('Please fix the errors before saving!'); return }
     try {
       localStorage.setItem(`clinic-${hospitalId}-consultation-expiration`, editableClinicData.consultationExpiration)
-      await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, editableClinicData)
+      const payload = buildPayload(editableClinicData, REQUIRED_ADDITIONAL, OPTIONAL_ADDITIONAL)
+      await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
       await fetchClinicDetails()
       setIsEditingAdditional(false)
     } catch (err) { console.error(err) }
@@ -464,34 +523,44 @@ const ClinicDetails = () => {
                       />
                     </Field>
                   </CCol>
+                  {(isEditingAdditional || hasDocValue(editableClinicData.website)) && (
                   <CCol md={6}>
-                    <Field label="Website" required error={formErrors.website}>
+                    <Field label="Website" error={formErrors.website}>
                       <input
                         className="cd-input"
                         style={inp(!!formErrors.website, !isEditingAdditional)}
                         value={editableClinicData.website || ''}
                         disabled={!isEditingAdditional}
                         placeholder="https://..."
-                        onChange={(e) => { set('website', e.target.value); clearErr('website') }}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          set('website', v)
+                          if (v.trim() && !/^https?:\/\/[^\s]+$/.test(v.trim())) setErr('website', 'Enter a valid URL')
+                          else clearErr('website')
+                        }}
                       />
                     </Field>
                   </CCol>
+                  )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.issuingAuthority)) && (
                   <CCol md={6}>
-                    <Field label="Issuing Authority" required error={formErrors.issuingAuthority}>
+                    <Field label="Issuing Authority" error={formErrors.issuingAuthority}>
                       <input
                         className="cd-input"
                         style={inp(!!formErrors.issuingAuthority, !isEditingAdditional)}
                         value={editableClinicData.issuingAuthority || ''}
                         disabled={!isEditingAdditional}
+                        placeholder="Issuing authority"
                         onChange={(e) => {
                           const v = e.target.value
                           set('issuingAuthority', v)
-                          if (!/^[A-Za-z\s]*$/.test(v)) setErr('issuingAuthority', 'Only alphabets and spaces')
+                          if (v.trim() && !/^[A-Za-z\s]*$/.test(v)) setErr('issuingAuthority', 'Only alphabets and spaces')
                           else clearErr('issuingAuthority')
                         }}
                       />
                     </Field>
                   </CCol>
+                  )}
                   <CCol md={6}>
                     <Field label="Opening Time" required error={formErrors.openingTime}>
                       <select
@@ -551,8 +620,9 @@ const ClinicDetails = () => {
                       />
                     </Field>
                   </CCol>
+                  {(isEditingAdditional || hasDocValue(editableClinicData.subscription)) && (
                   <CCol md={6}>
-                    <Field label="Subscription" required error={formErrors.subscription}>
+                    <Field label="Subscription" error={formErrors.subscription}>
                       <select
                         className="cd-input"
                         style={inp(!!formErrors.subscription, !isEditingAdditional)}
@@ -567,6 +637,8 @@ const ClinicDetails = () => {
                       </select>
                     </Field>
                   </CCol>
+                  )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.licenseNumber)) && (
                   <CCol md={6}>
                     <Field label="License Number">
                       <input
@@ -574,10 +646,12 @@ const ClinicDetails = () => {
                         style={inp(false, !isEditingAdditional)}
                         value={editableClinicData.licenseNumber || ''}
                         disabled={!isEditingAdditional}
+                        placeholder="License number"
                         onChange={(e) => set('licenseNumber', e.target.value)}
                       />
                     </Field>
                   </CCol>
+                  )}
                   <CCol md={6}>
                     <Field label="Latitude" required error={formErrors.latitude}>
                       <input
@@ -614,6 +688,7 @@ const ClinicDetails = () => {
                       />
                     </Field>
                   </CCol>
+                  {(isEditingAdditional || hasDocValue(editableClinicData.walkthrough)) && (
                   <CCol md={6}>
                     <Field label="Walkthrough URL" error={formErrors.walkthrough}>
                       <input
@@ -624,8 +699,7 @@ const ClinicDetails = () => {
                         placeholder="https://..."
                         onChange={(e) => {
                           const v = e.target.value; set('walkthrough', v)
-                          if (!v.trim()) setErr('walkthrough', 'Required')
-                          else if (!/^https?:\/\/[^\s]+$/.test(v)) setErr('walkthrough', 'Must start with http(s)://')
+                          if (v.trim() && !/^https?:\/\/[^\s]+$/.test(v.trim())) setErr('walkthrough', 'Must start with http(s)://')
                           else clearErr('walkthrough')
                         }}
                       />
@@ -637,6 +711,24 @@ const ClinicDetails = () => {
                       )}
                     </Field>
                   </CCol>
+                  )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.loyaltyPoints)) && (
+                  <CCol md={6}>
+                    <Field label="💎 Loyalty Points (% per ₹100 Spent)" >
+                      <input
+                        className="cd-input"
+                        type="number"
+                        min={0}
+                        style={inp(false, !isEditingAdditional)}
+                        value={editableClinicData.loyaltyPoints ?? ''}
+                        disabled={!isEditingAdditional}
+                        placeholder="e.g. 100"
+                        onChange={(e) => set('loyaltyPoints', e.target.value)}
+                      />
+                    </Field>
+                  </CCol>
+                  )}
+                  {hasDocValue(editableClinicData.nabhScore) && (
                   <CCol md={6}>
                     <Field label="NABH Score">
                       <input
@@ -648,6 +740,7 @@ const ClinicDetails = () => {
                       />
                     </Field>
                   </CCol>
+                  )}
                   <CCol md={6}>
                     <Field label="Branch" required error={formErrors.branch}>
                       <input
@@ -680,10 +773,8 @@ const ClinicDetails = () => {
                   </CCol>
                 </CRow>
 
-                <Divider />
-                <SectionBar text="Documents" />
-                <CRow className="g-3 mb-3">
-                  {[
+                {(() => {
+                  const DOC_FIELDS = [
                     ['Hospital Documents', 'hospitalDocuments'],
                     ['Hospital Contract Documents', 'contractorDocuments'],
                     ['Business Registration Certificate', 'businessRegistrationCertificate'],
@@ -695,32 +786,56 @@ const ClinicDetails = () => {
                     ['Drug License Form Type', 'drugLicenseFormType'],
                     ['Pharmacist Certificate', 'pharmacistCertificate'],
                     ['Clinical Establishment Certificate', 'clinicalEstablishmentCertificate'],
-                  ].map(([label, key]) => (
-                    <CCol md={6} key={key}>
-                      <label style={lbl}>{label} <span style={{ color: '#ef4444' }}>*</span></label>
-                      <DocumentField
-                        label={label}
-                        base64Data={editableClinicData[key]}
-                        clinicName={editableClinicData.name || 'Clinic'}
-                        isEditing={isEditingAdditional}
-                        openPdfPreview={openPdfPreview}
-                        onFileChange={(val) => set(key, val)}
-                      />
-                    </CCol>
-                  ))}
-                  <CCol md={6}>
-                    <label style={lbl}>Other Documents <span style={{ color: '#ef4444' }}>*</span></label>
-                    <DocumentField
-                      label="OtherDocuments"
-                      base64Data={editableClinicData.others}
-                      clinicName={editableClinicData.name || 'Clinic'}
-                      isEditing={isEditingAdditional}
-                      uploadType="multiple"
-                      openPdfPreview={openPdfPreview}
-                      onFileChange={(files) => set('others', files)}
-                    />
-                  </CCol>
-                </CRow>
+                  ]
+
+                  // In view mode, only show rows that actually have a document.
+                  // In edit mode, show every row so the user can upload into empty ones.
+                  const visibleDocFields = isEditingAdditional
+                    ? DOC_FIELDS
+                    : DOC_FIELDS.filter(([, key]) => hasDocValue(editableClinicData[key]))
+
+                  const showOthers = isEditingAdditional || hasDocValue(editableClinicData.others)
+                  const hasAnyDoc = visibleDocFields.length > 0 || showOthers
+
+                  // Nothing to show and not editing — skip the whole section, heading included.
+                  if (!hasAnyDoc) return null
+
+                  return (
+                    <>
+                      <Divider />
+                      <SectionBar text="Documents" />
+                      <CRow className="g-3 mb-3">
+                        {visibleDocFields.map(([label, key]) => (
+                          <CCol md={6} key={key}>
+                            <label style={lbl}>{label}</label>
+                            <DocumentField
+                              label={label}
+                              base64Data={editableClinicData[key]}
+                              clinicName={editableClinicData.name || 'Clinic'}
+                              isEditing={isEditingAdditional}
+                              openPdfPreview={openPdfPreview}
+                              onFileChange={(val) => set(key, val)}
+                            />
+                          </CCol>
+                        ))}
+                        {showOthers && (
+                          <CCol md={6}>
+                            <label style={lbl}>Other Documents</label>
+                            <DocumentField
+                              label="OtherDocuments"
+                              base64Data={editableClinicData.others}
+                              clinicName={editableClinicData.name || 'Clinic'}
+                              isEditing={isEditingAdditional}
+                              uploadType="multiple"
+                              openPdfPreview={openPdfPreview}
+                              onFileChange={(files) => set('others', files)}
+                            />
+                          </CCol>
+                        )}
+                      </CRow>
+                    </>
+                  )
+                })()}
 
                 <Divider />
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>

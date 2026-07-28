@@ -1,7 +1,10 @@
 // export const BASE_URL = 'http://alb-dev-sc-197990416.ap-south-1.elb.amazonaws.com/api'
+
+import axios from "axios"
+
 // const ipUrl = 'localhost'
-const ipUrl = '3.7.216.95:9090'
-export const BASE_URL = `http://${ipUrl}`
+const ipUrl = 'physioelite-api.chiselon.online'
+export const BASE_URL = `https://${ipUrl}`
 export const CLINIC_ADMIN_URL = `http://${ipUrl}`
 export const MainAdmin_URL = `${BASE_URL}/admin`
 export const Procedure_URL=`http://${ipUrl}`

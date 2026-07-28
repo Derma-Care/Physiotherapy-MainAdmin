@@ -100,8 +100,16 @@ const StyledSelect = ({ error, children, ...props }) => (
   </select>
 )
 
+/* ─── FileField ───
+   Handles three states:
+   1. Fresh file picked this session -> shows filename chip (green)
+   2. Edit mode: value already exists on record but no fresh filename -> shows "Existing file on record" chip (blue)
+   3. No value at all -> "No file chosen"
+*/
 const FileField = ({ label, name, required = true, accept, error, formData, setFormData, setErrors, inputRef, tooltip }) => {
   const fileName = formData[`${name}FileName`]
+  const hasExistingFile = !fileName && !!formData[name]
+
   const handleChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -121,25 +129,35 @@ const FileField = ({ label, name, required = true, accept, error, formData, setF
     setFormData(p => ({ ...p, [name]: base64, [`${name}FileName`]: file.name }))
     setErrors(p => ({ ...p, [name]: '' }))
   }
+
   const handleClear = () => {
     if (inputRef?.current) inputRef.current.value = ''
     setFormData(p => ({ ...p, [name]: null, [`${name}FileName`]: null }))
     setErrors(p => ({ ...p, [name]: '' }))
   }
+
   const content = (
     <div>
       <FieldLabel required={required}>{label}</FieldLabel>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: t.radiusSm, border: `1px solid ${error ? t.danger : t.border}`, backgroundColor: '#fff', fontSize: '12px', fontWeight: '600', color: t.text, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          📎 Choose File
+          📎 {hasExistingFile ? 'Replace File' : 'Choose File'}
           <input ref={inputRef} type="file" name={name} accept={accept} style={{ display: 'none' }} onChange={handleChange} />
         </label>
-        {fileName
-          ? (<div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', backgroundColor: '#dcfce7', border: '1px solid #86efac', fontSize: '11px', fontWeight: '600', color: t.success, maxWidth: '180px' }}>
+
+        {fileName ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', backgroundColor: '#dcfce7', border: '1px solid #86efac', fontSize: '11px', fontWeight: '600', color: t.success, maxWidth: '180px' }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
             <button onClick={handleClear} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.danger, padding: 0, lineHeight: 1, fontSize: '14px', fontWeight: '700' }}>×</button>
-          </div>)
-          : <span style={{ fontSize: '11px', color: t.textMuted }}>No file chosen</span>}
+          </div>
+        ) : hasExistingFile ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', backgroundColor: '#e0f2fe', border: '1px solid #7dd3fc', fontSize: '11px', fontWeight: '600', color: '#0369a1' }}>
+            <span>✓ Existing file on record</span>
+            <button onClick={handleClear} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.danger, padding: 0, lineHeight: 1, fontSize: '14px', fontWeight: '700' }}>×</button>
+          </div>
+        ) : (
+          <span style={{ fontSize: '11px', color: t.textMuted }}>No file chosen</span>
+        )}
       </div>
       <FieldError message={error} />
     </div>
@@ -160,7 +178,7 @@ const TABS = [
 ]
 
 /* ─── Per-tab validation ─── */
-const websiteRegex = /^(https?:\/\/)(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/
+const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/
 const normalizeWebsite = (url) => !/^https?:\/\//i.test(url) ? 'https://' + url : url
 
 const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, clinicTypeOption) => {
@@ -175,21 +193,17 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emailAddress)) errs.emailAddress = 'Enter a valid email'
     if (!formData.contactNumber?.trim()) errs.contactNumber = 'Contact number is required'
     else if (formData.contactNumber.trim().length !== 10 || !/^[5-9]\d{9}$/.test(formData.contactNumber.trim())) errs.contactNumber = 'Must be a 10-digit number starting with 5-9'
-    if (!formData.website?.trim()) errs.website = 'Website is required'
-    else if (!websiteRegex.test(normalizeWebsite(formData.website.trim()))) errs.website = 'Enter a valid URL (e.g. https://example.com)'
+    if (formData.website?.trim()) {
+      const normalizedWebsite = normalizeWebsite(formData.website.trim())
+      if (!websiteRegex.test(normalizedWebsite)) errs.website = 'Enter a valid URL (e.g. https://example.com)'
+    }
     if (!formData.branch?.trim()) errs.branch = 'Branch name is required'
   }
   if (tabId === 1) {
     if (!formData.openingTime) errs.openingTime = 'Opening time is required'
     if (!formData.closingTime) errs.closingTime = 'Closing time is required'
-    if (!formData.licenseNumber?.trim()) errs.licenseNumber = 'License number is required'
-    if (!formData.issuingAuthority?.trim()) errs.issuingAuthority = 'Issuing authority is required'
   }
   if (tabId === 2) {
-    if (!clinicTypeOption?.trim()) errs.clinicType = 'Please select a clinic type'
-    if (!selectedOption?.trim()) errs.medicinesSoldOnSite = 'Please select an option'
-    if (!selectedPharmacistOption?.trim()) errs.hasPharmacist = 'Please select an option'
-    if (!formData.subscription?.trim()) errs.subscription = 'Please select a subscription'
     if (!formData.consultationExpiration) errs.consultationExpiration = 'Consultation days are required'
     if (!formData.freeFollowUps && formData.freeFollowUps !== 0) errs.freeFollowUps = 'Free follow ups is required'
   }
@@ -201,20 +215,9 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
   }
   if (tabId === 4) {
     if (!formData.hospitalLogo) errs.hospitalLogo = 'Clinic logo is required'
-    if (!formData.hospitalDocuments) errs.hospitalDocuments = 'Please upload the document'
-    if (!formData.hospitalContract) errs.hospitalContract = 'Please upload the document'
-    if (!formData.clinicalEstablishmentCertificate) errs.clinicalEstablishmentCertificate = 'Please upload'
-    if (!formData.businessRegistrationCertificate) errs.businessRegistrationCertificate = 'Please upload'
-    if (selectedOption === 'Yes' && !formData.drugLicenseCertificate) errs.drugLicenseCertificate = 'Please upload'
-    if (selectedOption === 'Yes' && !formData.drugLicenseFormType) errs.drugLicenseFormType = 'Please upload'
-    if (selectedOption === 'Yes' && selectedPharmacistOption === 'Yes' && !formData.pharmacistCertificate) errs.pharmacistCertificate = 'Please upload'
-    if (!formData.biomedicalWasteManagementAuth) errs.biomedicalWasteManagementAuth = 'Please upload'
-    if (!formData.tradeLicense) errs.tradeLicense = 'Please upload'
-    if (!formData.fireSafetyCertificate) errs.fireSafetyCertificate = 'Please upload'
-    if (!formData.gstRegistrationCertificate) errs.gstRegistrationCertificate = 'Please upload'
   }
   if (tabId === 5) {
-    if (!formData.nabhScore && formData.nabhScore !== 0) errs.nabhScore = 'NABH Score is required. Please complete the questionnaire.'
+    // NABH score is optional; no validation block required.
   }
   return errs
 }
@@ -250,6 +253,9 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const [nabhScore, setNabhScore] = useState(null)
   const [nabhSubmitted, setNabhSubmitted] = useState(false)
 
+  // In edit mode, treat a completed NABH questionnaire on the record as already-submitted
+  // so the button doesn't force the user to redo it (they can still reopen via clearing state elsewhere if needed).
+
   const [formData, setFormData] = useState({
     name: '', address: '', city: '', contactNumber: '',
     openingTime: '', closingTime: '', hospitalLogo: null,
@@ -262,17 +268,40 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     tradeLicense: null, fireSafetyCertificate: null, professionalIndemnityInsurance: null,
     gstRegistrationCertificate: null, others: [], consultationExpiration: '',
     subscription: '', instagramHandle: '', twitterHandle: '', facebookHandle: '',
-    latitude: '', longitude: '', walkthrough: '', branch: '', nabhScore: null,
+    latitude: '', longitude: '', walkthrough: '', branch: '', loyaltyPoints: '', nabhScore: null,
   })
 
   const [existingDoctors, setExistingDoctors] = useState([])
 
+  // Load NABH state from localStorage on mount (only relevant for add mode's in-progress flow)
+  useEffect(() => {
+    if (mode === 'edit') return // edit mode pulls NABH state from initialData instead
+    const savedNabhScore = localStorage.getItem('nabhScore')
+    const savedNabhSubmitted = localStorage.getItem('nabhSubmitted')
+
+    if (savedNabhScore) {
+      const score = JSON.parse(savedNabhScore)
+      setNabhScore(score)
+      setFormData(prev => ({ ...prev, nabhScore: score }))
+    }
+
+    if (savedNabhSubmitted === 'true') {
+      setNabhSubmitted(true)
+    }
+  }, [mode])
+
   useEffect(() => {
     if (mode === 'edit' && initialData) {
-      setFormData(initialData)
-      setClinicTypeOption(initialData.clinicType)
-      setSelectedOption(initialData.medicinesSoldOnSite)
-      setSelectedPharmacistOption(initialData.hasPharmacist)
+      setFormData(prev => ({ ...prev, ...initialData }))
+      setClinicTypeOption(initialData.clinicType || '')
+      setSelectedOption(initialData.medicinesSoldOnSite || '')
+      setSelectedPharmacistOption(initialData.hasPharmacist || '')
+
+      // Load NABH score if editing
+      if (initialData.nabhScore !== null && initialData.nabhScore !== undefined) {
+        setNabhScore(initialData.nabhScore)
+        setNabhSubmitted(true)
+      }
     }
   }, [initialData, mode])
 
@@ -359,10 +388,21 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         setNabhScore(score)
         setFormData(prev => ({ ...prev, nabhScore: score }))
         setNabhSubmitted(true)
+
+        // Persist to localStorage (only meaningful for add-mode's multi-visit flow)
+        if (mode !== 'edit') {
+          localStorage.setItem('nabhScore', JSON.stringify(score))
+          localStorage.setItem('nabhSubmitted', 'true')
+        }
+
         setShowNabhModal(false)
         setErrors(prev => ({ ...prev, nabhScore: '' }))
+        toast.success('NABH Score saved successfully', { position: 'top-right' })
       }
-    } catch (error) { console.error('Error saving NABH answers:', error) }
+    } catch (error) {
+      console.error('Error saving NABH answers:', error)
+      toast.error('Failed to save NABH answers', { position: 'top-right' })
+    }
   }
 
   /* ── Next tab handler with validation ── */
@@ -391,20 +431,21 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    // Validate last tab
-    const tabErrors = validateTab(5, formData, selectedOption, selectedPharmacistOption, clinicTypeOption)
-    if (Object.keys(tabErrors).length > 0) {
-      setErrors(prev => ({ ...prev, ...tabErrors }))
-      toast.error('Please complete NABH questionnaire', { position: 'top-right' })
-      return
-    }
-
     setIsSubmitting(true)
     const { emailAddress, contactNumber, licenseNumber } = formData
     const safe = Array.isArray(existingDoctors) ? existingDoctors : []
-    const isEmailDup = safe.some(d => d.emailAddress?.toLowerCase() === emailAddress?.toLowerCase())
-    const isMobileDup = safe.some(d => d.contactNumber === contactNumber)
-    const isLicenseDup = safe.some(d => d.licenseNumber?.toLowerCase() === licenseNumber?.toLowerCase())
+
+    // Exclude the record currently being edited from duplicate checks,
+    // otherwise a clinic always "collides" with its own saved email/phone/license.
+    const currentId = initialData?._id
+    const others = (mode === 'edit' && currentId)
+      ? safe.filter(d => d._id !== currentId)
+      : safe
+
+    const isEmailDup = others.some(d => d.emailAddress?.toLowerCase() === emailAddress?.toLowerCase())
+    const isMobileDup = others.some(d => d.contactNumber === contactNumber)
+    const isLicenseDup = !!licenseNumber?.trim() &&
+      others.some(d => d.licenseNumber?.trim() && d.licenseNumber.toLowerCase() === licenseNumber.toLowerCase())
 
     if (isEmailDup || isMobileDup || isLicenseDup) {
       const newErrors = {}
@@ -419,6 +460,8 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     }
 
     try {
+      // Only re-encode a value if it's a fresh Blob/File picked this session.
+      // If it's already a base64 string (existing record or freshly-picked & converted), pass it through as-is.
       const convertIfExists = async (file) => {
         if (!file) return ''
         if (file instanceof Blob) return await convertFileToBase64(file)
@@ -437,7 +480,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         name: formData.name, address: formData.address, city: formData.city,
         contactNumber: formData.contactNumber, openingTime: formData.openingTime,
         closingTime: formData.closingTime, hospitalLogo: await convertIfExists(formData.hospitalLogo),
-        emailAddress: formData.emailAddress, website: normalizeWebsite(formData.website.trim()),
+        emailAddress: formData.emailAddress, website: formData.website?.trim() ? normalizeWebsite(formData.website.trim()) : '',
         licenseNumber: formData.licenseNumber, issuingAuthority: formData.issuingAuthority,
         hospitalDocuments: await convertIfExists(formData.hospitalDocuments),
         contractorDocuments: await convertIfExists(formData.hospitalContract),
@@ -457,22 +500,39 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         freeFollowUps: formData.freeFollowUps,
         instagramHandle: formData.instagramHandle, twitterHandle: formData.twitterHandle, facebookHandle: formData.facebookHandle,
         recommended: !!formData.recommended,
-        consultationExpiration: formData.consultationExpiration ? `${formData.consultationExpiration} days` : '',
+        consultationExpiration: formData.consultationExpiration
+          ? (String(formData.consultationExpiration).includes('day') ? formData.consultationExpiration : `${formData.consultationExpiration} days`)
+          : '',
         subscription: formData.subscription, latitude: formData.latitude, longitude: formData.longitude,
-        walkthrough: formData.walkthrough, nabhScore: formData.nabhScore, branch: formData.branch,
+        walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
       }
 
-      const response = await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
+      const isEdit = mode === 'edit' && !!currentId
+      const response = isEdit
+        ? await axios.put(`${BASE_URL}/admin/UpdateClinic/${currentId}`, clinicData)
+        : await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
+
       if (response.data.success) {
-        toast.success(response.data.message || 'Clinic Added Successfully', { position: 'top-right' })
-        setTimeout(() => {
-          sendDermaCareOnboardingEmail({
-            name: formData.name, email: formData.emailAddress,
-            password: response.data.data.clinicTemporaryPassword,
-            userID: response.data.data.clinicUsername,
-          })
-          navigate('/clinic-management', { state: { refresh: true, newClinic: response.data } })
-        }, 1000)
+        // Clear NABH localStorage after successful save (only relevant to add-mode flow)
+        localStorage.removeItem('nabhScore')
+        localStorage.removeItem('nabhSubmitted')
+
+        toast.success(response.data.message || (isEdit ? 'Clinic Updated Successfully' : 'Clinic Added Successfully'), { position: 'top-right' })
+
+        if (isEdit) {
+          setTimeout(() => {
+            navigate('/clinic-management', { state: { refresh: true } })
+          }, 800)
+        } else {
+          setTimeout(() => {
+            sendDermaCareOnboardingEmail({
+              name: formData.name, email: formData.emailAddress,
+              password: response.data.data.clinicTemporaryPassword,
+              userID: response.data.data.clinicUsername,
+            })
+            navigate('/clinic-management', { state: { refresh: true, newClinic: response.data } })
+          }, 1000)
+        }
       } else {
         toast.error(response.data.message || 'Something went wrong', { position: 'top-right' })
       }
@@ -511,7 +571,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             maxLength={10}
             onChange={e => { const v = e.target.value.replace(/\D/g, ''); setFormData(p => ({ ...p, contactNumber: v })); setErrors(p => ({ ...p, contactNumber: '' })) }} />
         </Field>
-        <Field label="Website" required error={errors.website}>
+        <Field label="Website" error={errors.website}>
           <Input type="text" name="website" value={formData.website} error={errors.website}
             onChange={e => { const v = e.target.value; setFormData(p => ({ ...p, website: v })); setErrors(p => ({ ...p, website: '' })) }} />
         </Field>
@@ -555,10 +615,10 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             {timings.map((slot, idx) => <option key={idx} value={slot.closingTime}>{slot.closingTime}</option>)}
           </StyledSelect>
         </Field>
-        <Field label="License Number" required error={errors.licenseNumber}>
+        <Field label="License Number" error={errors.licenseNumber}>
           <Input type="text" name="licenseNumber" value={formData.licenseNumber} error={errors.licenseNumber} onChange={handleInputChange} />
         </Field>
-        <Field label="Issuing Authority" required error={errors.issuingAuthority}>
+        <Field label="Issuing Authority" error={errors.issuingAuthority}>
           <Input type="text" name="issuingAuthority" value={formData.issuingAuthority} error={errors.issuingAuthority}
             onChange={handleInputChange} onKeyDown={e => { if (/[0-9]/.test(e.key)) e.preventDefault() }} />
         </Field>
@@ -570,7 +630,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     <>
       <SectionHeading title="Clinic Configuration" subtitle="Subscription, medicines and operations settings" />
       <FieldGrid>
-        <Field label="Clinic Type" required error={errors.clinicType}>
+        <Field label="Clinic Type" error={errors.clinicType}>
           <StyledSelect value={clinicTypeOption} error={errors.clinicType}
             onChange={e => { setClinicTypeOption(e.target.value); setErrors(p => ({ ...p, clinicType: '' })) }}>
             <option value="">Select Type</option>
@@ -580,7 +640,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             <option value="Private Limited">Private Limited</option>
           </StyledSelect>
         </Field>
-        <Field label="Medicines Sold On-Site" required error={errors.medicinesSoldOnSite}>
+        <Field label="Medicines Sold On-Site" error={errors.medicinesSoldOnSite}>
           <StyledSelect value={selectedOption} error={errors.medicinesSoldOnSite}
             onChange={e => { setSelectedOption(e.target.value); setErrors(p => ({ ...p, medicinesSoldOnSite: '' })) }}>
             <option value="">Select an option</option>
@@ -588,7 +648,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             <option value="No">No</option>
           </StyledSelect>
         </Field>
-        <Field label="Clinic Has a Valid Pharmacist" required error={errors.hasPharmacist}>
+        <Field label="Clinic Has a Valid Pharmacist" error={errors.hasPharmacist}>
           <StyledSelect value={selectedPharmacistOption} error={errors.hasPharmacist}
             onChange={e => { setSelectedPharmacistOption(e.target.value); setErrors(p => ({ ...p, hasPharmacist: '' })) }}>
             <option value="">Select an option</option>
@@ -596,7 +656,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             <option value="No">No</option>
           </StyledSelect>
         </Field>
-        <Field label="Subscription" required error={errors.subscription}>
+        <Field label="Subscription" error={errors.subscription}>
           <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
             <option value="">Select Subscription</option>
             <option value="Free">Free</option>
@@ -653,6 +713,10 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
               if (v.trim()) { try { new URL(v) } catch { setErrors(p => ({ ...p, walkthrough: 'Enter a valid URL' })) } }
             }} />
         </Field>
+        <Field label="Loyalty Points">
+          <Input type="number" min="0" name="loyaltyPoints" placeholder="e.g. 100" value={formData.loyaltyPoints || ''}
+            onChange={handleInputChange} />
+        </Field>
       </FieldGrid>
 
       <Divider />
@@ -679,29 +743,29 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
           required error={errors.hospitalLogo} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.hospitalLogo} />
         <FileField label="Clinic Contract" name="hospitalContract"
-          required error={errors.hospitalContract} formData={formData} setFormData={setFormData}
+          required={false} error={errors.hospitalContract} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.clinicContract} />
         <FileField label="Clinic Documents" name="hospitalDocuments" accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
-          required error={errors.hospitalDocuments} formData={formData} setFormData={setFormData}
+          required={false} error={errors.hospitalDocuments} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.hospitalDocuments} />
         <FileField label="Clinical Establishment Registration" name="clinicalEstablishmentCertificate"
-          required error={errors.clinicalEstablishmentCertificate} formData={formData} setFormData={setFormData}
+          required={false} error={errors.clinicalEstablishmentCertificate} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.clinicalEstablishmentCertificate} />
         <FileField label="Business Registration Certificate" name="businessRegistrationCertificate"
-          required error={errors.businessRegistrationCertificate} formData={formData} setFormData={setFormData}
+          required={false} error={errors.businessRegistrationCertificate} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.businessRegistrationCertificate} />
         <FileField label="Biomedical Waste Management Auth" name="biomedicalWasteManagementAuth"
           tooltip="Issued by State Pollution Control Board (SPCB)"
-          required error={errors.biomedicalWasteManagementAuth} formData={formData} setFormData={setFormData}
+          required={false} error={errors.biomedicalWasteManagementAuth} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.biomedicalWasteManagementAuth} />
         <FileField label="Trade Licence / Shop & Establishment" name="tradeLicense"
-          required error={errors.tradeLicense} formData={formData} setFormData={setFormData}
+          required={false} error={errors.tradeLicense} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.tradeLicence} />
         <FileField label="Fire Safety Certificate" name="fireSafetyCertificate"
-          required error={errors.fireSafetyCertificate} formData={formData} setFormData={setFormData}
+          required={false} error={errors.fireSafetyCertificate} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.fireSafetyCertificate} />
         <FileField label="GST Registration Certificate" name="gstRegistrationCertificate"
-          required error={errors.gstRegistrationCertificate} formData={formData} setFormData={setFormData}
+          required={false} error={errors.gstRegistrationCertificate} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.gstRegistrationCertificate} />
         <FileField label="Professional Indemnity Insurance" name="professionalIndemnityInsurance"
           required={false} error={errors.professionalIndemnityInsurance} formData={formData} setFormData={setFormData}
@@ -713,10 +777,10 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
           <SectionHeading title="Drug Licence Documents" />
           <FieldGrid>
             <FileField label="Drug Licence Certificate" name="drugLicenseCertificate"
-              required error={errors.drugLicenseCertificate} formData={formData} setFormData={setFormData}
+              required={false} error={errors.drugLicenseCertificate} formData={formData} setFormData={setFormData}
               setErrors={setErrors} inputRef={refs.drugLicenseCertificate} />
             <FileField label="Drug Licence Form Type 20/21" name="drugLicenseFormType"
-              required error={errors.drugLicenseFormType} formData={formData} setFormData={setFormData}
+              required={false} error={errors.drugLicenseFormType} formData={formData} setFormData={setFormData}
               setErrors={setErrors} inputRef={refs.drugLicenseFormType} />
           </FieldGrid>
         </>
@@ -725,7 +789,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       {selectedPharmacistOption === 'Yes' && (
         <FieldGrid>
           <FileField label="Pharmacist Certificate" name="pharmacistCertificate"
-            required error={errors.pharmacistCertificate} formData={formData} setFormData={setFormData}
+            required={false} error={errors.pharmacistCertificate} formData={formData} setFormData={setFormData}
             setErrors={setErrors} inputRef={refs.pharmacistCertificate} />
           <div />
         </FieldGrid>
@@ -742,7 +806,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
             {formData.others.map((file, index) => (
               <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', backgroundColor: '#e0f2fe', border: '1px solid #7dd3fc', fontSize: '11px', color: '#0369a1' }}>
-                <span>{file.name}</span>
+                <span>{file?.name || `File ${index + 1}`}</span>
                 <button type="button" onClick={() => setFormData(p => ({ ...p, others: p.others.filter((_, i) => i !== index) }))}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.danger, padding: 0, fontWeight: '700', fontSize: '14px' }}>×</button>
               </div>
@@ -767,6 +831,11 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
           variant={nabhSubmitted ? 'secondary' : 'primary'}>
           {nabhSubmitted ? '✓ Questionnaire Submitted' : 'Open NABH Questionnaire'}
         </Btn>
+        {mode === 'edit' && nabhSubmitted && (
+          <Btn variant="secondary" onClick={() => setNabhSubmitted(false)}>
+            Retake Questionnaire
+          </Btn>
+        )}
       </div>
       <FieldError message={errors.nabhScore} />
     </>
@@ -784,7 +853,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       <div style={{ backgroundColor: t.primary, borderRadius: t.radius, padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', boxShadow: t.shadowMd }}>
         <div>
           <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '500' }}>CLINIC MANAGEMENT</div>
-          <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff' }}>Add New Clinic</div>
+          <div style={{ fontSize: '15px', fontWeight: '700', color: '#fff' }}>{mode === 'edit' ? 'Edit Clinic' : 'Add New Clinic'}</div>
         </div>
         <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
           Step {activeTab + 1} of {TABS.length}
@@ -841,7 +910,15 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
       {/* Tab Content Card */}
       <div style={{ backgroundColor: '#fff', color: t.text, borderRadius: t.radius, boxShadow: t.shadow, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-        <CForm onSubmit={handleSubmit} style={{ padding: '24px' }}>
+        <CForm
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+            }
+          }}
+          style={{ padding: "24px" }}
+        >
 
           {/* Render active tab content */}
           {tabContent[activeTab]()}
@@ -862,11 +939,23 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
                   Next →
                 </Btn>
               ) : (
-                <Btn type="submit" disabled={isSubmitting} variant="success">
-                  {isSubmitting
-                    ? <><span className="spinner-border spinner-border-sm me-1" style={{ width: '12px', height: '12px' }} />Saving...</>
-                    : '✓ Save Clinic'
-                  }
+                <Btn
+                  type="button"
+                  variant="success"
+                  disabled={isSubmitting}
+                  onClick={handleSubmit}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm me-1"
+                        style={{ width: "12px", height: "12px" }}
+                      />
+                      {/* Saving... */}
+                    </>
+                  ) : (
+                    mode === 'edit' ? '✓ Update Clinic' : '✓ Save Clinic'
+                  )}
                 </Btn>
               )}
             </div>

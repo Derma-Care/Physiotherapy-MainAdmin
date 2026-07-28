@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import axios from 'axios'
+ 
 import { ClinicAllData, BASE_URL } from '../../baseUrl'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, Search, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
@@ -12,6 +12,7 @@ import {
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import { statusapi } from '../../baseUrl'
 import LoadingIndicator from '../../Utils/loader'
+import axios from 'axios'
 
 /* ═══════════════════════════════════════════════════════
    STATUS MAPPING
@@ -86,13 +87,13 @@ const ClinicManagement = ({ service, onBack }) => {
     })
   }
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const res = await CategoryData()
-      setCategories(res.data)
-    }
-    fetchCategories()
-  }, [])
+  // useEffect(() => {
+  //   const fetchCategories = async () => {
+  //     const res = await CategoryData()
+  //     setCategories(res.data)
+  //   }
+  //   fetchCategories()
+  // }, [])
 
   useEffect(() => {
     fetchClinics()
