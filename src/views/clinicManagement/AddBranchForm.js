@@ -74,6 +74,11 @@ const AddBranchForm = ({ clinicId }) => {
 
   /* ── load ── */
   useEffect(() => { loadBranches() }, [])
+  useEffect(() => {
+    const onRefresh = () => { loadBranches() }
+    window.addEventListener('clinic:branches:refresh', onRefresh)
+    return () => window.removeEventListener('clinic:branches:refresh', onRefresh)
+  }, [])
   useEffect(() => { if (clinicId) setFormData((p) => ({ ...p, clinicId })) }, [clinicId])
   useEffect(() => { setCurrentPage(1) }, [searchTerm, filterCity])
 
@@ -88,6 +93,15 @@ const AddBranchForm = ({ clinicId }) => {
   }
 
   const flash = (setter, msg) => { setter(msg); setTimeout(() => setter(''), 3000) }
+
+  const buildBranchPayload = (currentData, baseBranch = {}) => {
+    const payload = { ...baseBranch }
+    Object.entries(currentData).forEach(([key, value]) => {
+      const isEmpty = value === undefined || value === null || (typeof value === 'string' && value.trim() === '')
+      if (!isEmpty) payload[key] = value
+    })
+    return payload
+  }
 
   /* ── form change ── */
   const handleChange = (e) => {
@@ -131,7 +145,10 @@ const AddBranchForm = ({ clinicId }) => {
     try {
       setSubmitLoading(true)
       if (editingBranch) {
-        await updateBranchData(editingBranch.branchId, formData)
+        const payload = buildBranchPayload(formData, editingBranch)
+        await updateBranchData(editingBranch.branchId, payload)
+        const updatedBranch = { ...editingBranch, ...payload }
+        setBranches((prev) => prev.map((branch) => (branch.branchId === editingBranch.branchId ? updatedBranch : branch)))
         flash(setSuccess, 'Branch updated successfully!')
       } else {
         await createNewBranch(formData)
@@ -139,6 +156,7 @@ const AddBranchForm = ({ clinicId }) => {
       }
       setModalVisible(false)
       resetForm()
+      setEditingBranch(null)
       loadBranches()
     } catch (err) {
       flash(setError, `Error ${editingBranch ? 'updating' : 'creating'} branch: ${err.message}`)

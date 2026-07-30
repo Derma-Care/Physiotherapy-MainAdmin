@@ -569,7 +569,11 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         <Field label="Contact Number" required error={errors.contactNumber}>
           <Input type="tel" name="contactNumber" value={formData.contactNumber} error={errors.contactNumber}
             maxLength={10}
-            onChange={e => { const v = e.target.value.replace(/\D/g, ''); setFormData(p => ({ ...p, contactNumber: v })); setErrors(p => ({ ...p, contactNumber: '' })) }} />
+            onChange={e => {
+              const v = e.target.value.replace(/\D/g, '')
+              setFormData(p => ({ ...p, contactNumber: v }))
+              setErrors(p => ({ ...p, contactNumber: '' }))
+            }} />
         </Field>
         <Field label="Website" error={errors.website}>
           <Input type="text" name="website" value={formData.website} error={errors.website}
@@ -580,7 +584,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         </Field>
         <Field label="City" required error={errors.city}>
           <Input type="text" name="city" value={formData.city} error={errors.city} onChange={handleInputChange}
-            onKeyDown={e => { if (/[0-9]/.test(e.key)) e.preventDefault() }} />
+            onKeyDown={e => { if (/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete') e.preventDefault() }} />
         </Field>
         <Field label="Branch" required error={errors.branch}>
           <Input type="text" placeholder="e.g. Hyderabad Main" value={formData.branch || ''} error={errors.branch}
@@ -745,7 +749,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         <FileField label="Clinic Contract" name="hospitalContract"
           required={false} error={errors.hospitalContract} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.clinicContract} />
-        <FileField label="Clinic Documents" name="hospitalDocuments" accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
+        <FileField label="Letter at LOGO" name="hospitalDocuments" accept=".pdf,.doc,.docx,.jpeg,.png,.zip"
           required={false} error={errors.hospitalDocuments} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.hospitalDocuments} />
         <FileField label="Clinical Establishment Registration" name="clinicalEstablishmentCertificate"

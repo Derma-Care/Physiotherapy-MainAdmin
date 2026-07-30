@@ -12,6 +12,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { BASE_URL, UpdateClinic, DeleteClinic, DoctorAllData, CLINIC_ADMIN_URL } from '../../baseUrl'
 import { getClinicTimings } from './AddClinicAPI'
 import AddBranchForm from './AddBranchForm'
+import { fetchBranchById, updateBranchData } from './AddBranchAPI'
 import ProcedureManagementDoctor from './ProcedureManagementDoctor'
 import DocumentField from './DocumentField'
 import {
@@ -48,9 +49,11 @@ const OPTIONAL_ADDITIONAL = [
 /** Build a save payload containing every required field as-is (already validated)
  *  plus only the optional fields the user actually provided a value for —
  *  so blank optional fields never overwrite existing saved data. */
-const buildPayload = (data, requiredKeys, optionalKeys) => {
-  const payload = {}
-  requiredKeys.forEach((k) => { payload[k] = data[k] })
+const buildPayload = (data, requiredKeys, optionalKeys, baseData = {}) => {
+  const payload = { ...baseData }
+  requiredKeys.forEach((k) => {
+    if (data[k] !== undefined) payload[k] = data[k]
+  })
   optionalKeys.forEach((k) => {
     const v = data[k]
     const isEmpty =
@@ -151,6 +154,35 @@ const ClinicDetails = () => {
     } catch (err) { console.error(err) }
   }
 
+  const syncBranchRecord = async (prevClinic, newClinic) => {
+    try {
+      const res = await fetchBranchById(hospitalId)
+      const branches = Array.isArray(res?.data) ? res.data : []
+      if (branches.length === 0) return
+
+      const oldBranch = prevClinic?.branch?.trim()
+      const match = branches.find((b) => oldBranch
+        ? b.branchName === oldBranch || b.branchName === oldBranch.trim()
+        : true) || branches[0]
+
+      const payload = {
+        ...match,
+        branchName: newClinic.branch ?? match.branchName,
+        address: newClinic.address ?? match.address,
+        city: newClinic.city ?? match.city,
+        contactNumber: newClinic.contactNumber ?? match.contactNumber,
+        email: newClinic.emailAddress ?? match.email,
+        latitude: newClinic.latitude ?? match.latitude,
+        longitude: newClinic.longitude ?? match.longitude,
+        virtualClinicTour: newClinic.walkthrough ?? match.virtualClinicTour,
+      }
+
+      await updateBranchData(match.branchId, payload)
+    } catch (e) {
+      console.error('Failed to sync branch record:', e)
+    }
+  }
+
   useEffect(() => {
     if (hospitalId) { fetchClinicDetails(); fetchAllDoctors() }
   }, [hospitalId])
@@ -224,9 +256,14 @@ const ClinicDetails = () => {
   const handleSaveBasic = async () => {
     if (!validateForm()) return
     try {
-      const payload = buildPayload(editableClinicData, REQUIRED_BASIC, OPTIONAL_BASIC)
+      const payload = buildPayload(editableClinicData, REQUIRED_BASIC, OPTIONAL_BASIC, clinicData || {})
       await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
+      const merged = { ...(clinicData || {}), ...(editableClinicData || {}), ...payload }
+      setClinicData(merged)
+      setEditableClinicData(merged)
+      await syncBranchRecord(clinicData, merged)
       await fetchClinicDetails()
+      try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
       setIsEditing(false)
     } catch (err) { console.error(err) }
   }
@@ -236,9 +273,14 @@ const ClinicDetails = () => {
     if (!validateForm()) { toast.error('Please fix the errors before saving!'); return }
     try {
       localStorage.setItem(`clinic-${hospitalId}-consultation-expiration`, editableClinicData.consultationExpiration)
-      const payload = buildPayload(editableClinicData, REQUIRED_ADDITIONAL, OPTIONAL_ADDITIONAL)
+      const payload = buildPayload(editableClinicData, REQUIRED_ADDITIONAL, OPTIONAL_ADDITIONAL, clinicData || {})
       await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
+      const merged = { ...(clinicData || {}), ...(editableClinicData || {}), ...payload }
+      setClinicData(merged)
+      setEditableClinicData(merged)
+      await syncBranchRecord(clinicData, merged)
       await fetchClinicDetails()
+      try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
       setIsEditingAdditional(false)
     } catch (err) { console.error(err) }
   }
@@ -406,11 +448,17 @@ const ClinicDetails = () => {
                         onChange={(e) => {
                           const v = e.target.value
                           set('contactNumber', v)
-                          if (!v.trim()) setErr('contactNumber', 'Required')
-                          else if (!/^\d*$/.test(v)) setErr('contactNumber', 'Only digits allowed')
-                          else if (v.length === 10 && !/^[6-9]\d{9}$/.test(v)) setErr('contactNumber', 'Must start with 6-9')
-                          else if (v.length < 10) setErr('contactNumber', 'Must be 10 digits')
-                          else clearErr('contactNumber')
+                          if (v === '') {
+                            setErr('contactNumber', 'Required')
+                          } else if (!/^\d*$/.test(v)) {
+                            setErr('contactNumber', 'Only digits allowed')
+                          } else if (v.length > 0 && v.length < 10) {
+                            setErr('contactNumber', 'Must be 10 digits')
+                          } else if (v.length === 10 && !/^[6-9]\d{9}$/.test(v)) {
+                            setErr('contactNumber', 'Must start with 6-9')
+                          } else {
+                            clearErr('contactNumber')
+                          }
                         }}
                       />
                     </Field>
@@ -426,7 +474,7 @@ const ClinicDetails = () => {
                         onChange={(e) => {
                           const v = e.target.value
                           set('city', v)
-                          if (!v.trim()) setErr('city', 'Required')
+                          if (v === '') setErr('city', 'Required')
                           else clearErr('city')
                         }}
                       />
@@ -519,7 +567,12 @@ const ClinicDetails = () => {
                         style={inp(false, !isEditingAdditional)}
                         value={editableClinicData.city || ''}
                         disabled={!isEditingAdditional}
-                        onChange={(e) => { set('city', e.target.value); clearErr('city') }}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          set('city', v)
+                          if (v === '') setErr('city', 'Required')
+                          else clearErr('city')
+                        }}
                       />
                     </Field>
                   </CCol>
@@ -775,7 +828,7 @@ const ClinicDetails = () => {
 
                 {(() => {
                   const DOC_FIELDS = [
-                    ['Hospital Documents', 'hospitalDocuments'],
+                    ['Letter at Logo', 'hospitalDocuments'],
                     ['Hospital Contract Documents', 'contractorDocuments'],
                     ['Business Registration Certificate', 'businessRegistrationCertificate'],
                     ['Biomedical Waste Management Auth', 'biomedicalWasteManagementAuth'],
