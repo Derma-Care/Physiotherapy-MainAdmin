@@ -175,6 +175,7 @@ const TABS = [
   { id: 3, label: 'Location & Social', icon: '📍' },
   { id: 4, label: 'Documents', icon: '📄' },
   { id: 5, label: 'NABH Score', icon: '🏆' },
+  { id: 6, label: 'Permissions', icon: '🔒' },
 ]
 
 /* ─── Per-tab validation ─── */
@@ -252,6 +253,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const [showNabhModal, setShowNabhModal] = useState(false)
   const [nabhScore, setNabhScore] = useState(null)
   const [nabhSubmitted, setNabhSubmitted] = useState(false)
+  const [loadingPermissions, setLoadingPermissions] = useState(false)
 
   // In edit mode, treat a completed NABH questionnaire on the record as already-submitted
   // so the button doesn't force the user to redo it (they can still reopen via clearing state elsewhere if needed).
@@ -266,12 +268,42 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     medicinesSoldOnSite: '', drugLicenseCertificate: null, drugLicenseFormType: null,
     hasPharmacist: '', pharmacistCertificate: null, biomedicalWasteManagementAuth: null,
     tradeLicense: null, fireSafetyCertificate: null, professionalIndemnityInsurance: null,
-    gstRegistrationCertificate: null, others: [], consultationExpiration: '',
+    gstRegistrationCertificate: null, newFeatureInput: '', others: [], consultationExpiration: '',
     subscription: '', instagramHandle: '', twitterHandle: '', facebookHandle: '',
     latitude: '', longitude: '', walkthrough: '', branch: '', loyaltyPoints: '', nabhScore: null,
+    permissions: {},
   })
 
+
+
   const [existingDoctors, setExistingDoctors] = useState([])
+
+  // Load master feature template
+  useEffect(() => {
+    const loadTemplatePermissions = async () => {
+      try {
+        if (mode !== 'edit') setLoadingPermissions(true)
+        const res = await axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/0001/000101`)
+        if (res.data.success && res.data.data?.permissions) {
+          const keys = Object.keys(res.data.data.permissions)
+          if (keys.length > 0) {
+            setFormData(prev => {
+              const newPerms = { ...(prev.permissions || {}) }
+              keys.forEach(k => {
+                if (!newPerms[k]) newPerms[k] = []
+              })
+              return { ...prev, permissions: newPerms }
+            })
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load master template permissions", err)
+      } finally {
+        if (mode !== 'edit') setLoadingPermissions(false)
+      }
+    }
+    loadTemplatePermissions()
+  }, [mode])
 
   // Load NABH state from localStorage on mount (only relevant for add mode's in-progress flow)
   useEffect(() => {
@@ -301,6 +333,19 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       if (initialData.nabhScore !== null && initialData.nabhScore !== undefined) {
         setNabhScore(initialData.nabhScore)
         setNabhSubmitted(true)
+      }
+
+      // Fetch permissions if edit mode
+      if (initialData.clinicId && initialData.branchId) {
+        setLoadingPermissions(true)
+        axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/${initialData.clinicId}/${initialData.branchId}`)
+          .then(res => {
+            if (res.data.success && res.data.data?.permissions) {
+              setFormData(p => ({ ...p, permissions: res.data.data.permissions }))
+            }
+          })
+          .catch(err => console.error('Error fetching permissions', err))
+          .finally(() => setLoadingPermissions(false))
       }
     }
   }, [initialData, mode])
@@ -344,6 +389,65 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     setErrors(prev => ({ ...prev, [name]: '' }))
+  }
+
+  const handleFeatureToggle = (feature) => {
+    setFormData(prev => {
+      const perms = { ...(prev.permissions || {}) }
+      if (perms[feature] && perms[feature].length > 0) {
+        perms[feature] = []
+      } else {
+        perms[feature] = ['create', 'read', 'update', 'delete']
+      }
+      return { ...prev, permissions: perms }
+    })
+  }
+
+  const handleAddNewFeature = () => {
+    const featureName = formData.newFeatureInput?.trim()
+    if (!featureName) return
+
+    setFormData(prev => {
+      const perms = { ...(prev.permissions || {}) }
+      if (!perms[featureName]) {
+        perms[featureName] = [] // Add it with empty array (not enabled yet, or we can default to enabled)
+      }
+      return { ...prev, permissions: perms, newFeatureInput: '' }
+    })
+  }
+
+  const handleDeleteFeature = (feature) => {
+    setFormData(prev => {
+      const perms = { ...(prev.permissions || {}) }
+      delete perms[feature]
+      return { ...prev, permissions: perms }
+    })
+  }
+
+  const togglePermission = (feature, action) => {
+    setFormData(prev => {
+      const perms = { ...(prev.permissions || {}) }
+      if (!perms[feature]) perms[feature] = []
+      if (perms[feature].includes(action)) {
+        perms[feature] = perms[feature].filter(a => a !== action)
+      } else {
+        perms[feature] = [...perms[feature], action]
+      }
+      return { ...prev, permissions: perms }
+    })
+  }
+
+  const toggleAllActions = (feature) => {
+    setFormData(prev => {
+      const perms = { ...(prev.permissions || {}) }
+      const availableActions = ['create', 'read', 'update', 'delete']
+      if (perms[feature] && perms[feature].length === availableActions.length) {
+        perms[feature] = []
+      } else {
+        perms[feature] = [...availableActions]
+      }
+      return { ...prev, permissions: perms }
+    })
   }
 
   const convertFileToBase64 = (file) => new Promise((resolve, reject) => {
@@ -513,9 +617,30 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         : await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
 
       if (response.data.success) {
-        // Clear NABH localStorage after successful save (only relevant to add-mode flow)
+        // Clear NABH localStorage after successful save
         localStorage.removeItem('nabhScore')
         localStorage.removeItem('nabhSubmitted')
+
+        // Update permissions if provided
+        if (Object.keys(formData.permissions || {}).length > 0) {
+          const clinicIdToUse = isEdit ? initialData.clinicId : response.data.data?.clinicId
+          const branchIdToUse = isEdit ? initialData.branchId : response.data.data?.branchId
+          if (clinicIdToUse && branchIdToUse) {
+            try {
+              if (isEdit) {
+                await axios.put(`${MainAdmin_URL}/updatePermissionsByClinicIdAndBranchId/${clinicIdToUse}/${branchIdToUse}`, { permissions: formData.permissions })
+              } else {
+                await axios.post(`${MainAdmin_URL}/createPermisssions`, {
+                  clinicId: clinicIdToUse,
+                  branchId: branchIdToUse,
+                  permissions: formData.permissions
+                })
+              }
+            } catch (err) {
+              console.error('Failed to save permissions', err)
+            }
+          }
+        }
 
         toast.success(response.data.message || (isEdit ? 'Clinic Updated Successfully' : 'Clinic Added Successfully'), { position: 'top-right' })
 
@@ -845,7 +970,99 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     </>
   )
 
-  const tabContent = [renderTab0, renderTab1, renderTab2, renderTab3, renderTab4, renderTab5]
+  const renderTab6 = () => {
+    const backendFeatures = Object.keys(formData.permissions || {})
+    const hasPermissions = backendFeatures.length > 0
+
+    return (
+      <>
+        <SectionHeading title="Clinic Permissions" subtitle="Manage permissions for this clinic" />
+
+        {loadingPermissions ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 0' }}>
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <span style={{ marginLeft: '10px', color: t.textMuted, fontSize: '14px' }}>Loading permissions...</span>
+          </div>
+        ) : (
+          <div>
+            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: t.surface, borderRadius: t.radiusSm, border: `1px solid ${t.border}` }}>
+              <div style={{ fontWeight: '600', marginBottom: '10px', fontSize: '14px' }}>Add New Module / Feature</div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. Billing, Reports, Dashboard"
+                  value={formData.newFeatureInput || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, newFeatureInput: e.target.value }))}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewFeature())}
+                  style={{ maxWidth: '300px' }}
+                />
+                <button type="button" className="btn btn-primary btn-sm" onClick={handleAddNewFeature}>Add Feature</button>
+              </div>
+            </div>
+
+            {!hasPermissions ? (
+              <div style={{ padding: '30px', textAlign: 'center', backgroundColor: t.surface, borderRadius: t.radiusSm, border: `1px dashed ${t.border}`, marginTop: '16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: t.textMuted }}>No permissions added yet</div>
+                <div style={{ fontSize: '12px', color: t.textLight, marginTop: '4px' }}>Type a feature name above to add it to this clinic's permissions.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>
+                {backendFeatures.map(feature => {
+                  const assignedActions = formData.permissions[feature] || []
+                  const featureAvailableActions = ['create', 'read', 'update', 'delete']
+                  const actionsToRender = featureAvailableActions
+
+                  const isFeatureChecked = assignedActions.length > 0
+                  const allSelected = isFeatureChecked && assignedActions.length === actionsToRender.length
+                  return (
+                    <div key={feature} style={{ width: '48%', padding: '12px', border: `1px solid ${t.border}`, borderRadius: t.radiusSm, backgroundColor: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <label style={{ fontSize: '14px', fontWeight: '700', color: t.text, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                          <input type="checkbox" checked={isFeatureChecked} onChange={() => handleFeatureToggle(feature)} style={{ accentColor: t.primary, width: '16px', height: '16px' }} />
+                          {feature}
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {isFeatureChecked && (
+                            <label style={{ fontSize: '12px', color: t.textMuted, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
+                              <input type="checkbox" checked={allSelected} onChange={() => toggleAllActions(feature)} style={{ accentColor: t.primary }} />
+                              Select All
+                            </label>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFeature(feature)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
+                            title="Remove Feature"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                      {isFeatureChecked && (
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
+                          {actionsToRender.map(action => (
+                            <label key={action} style={{ fontSize: '12px', color: t.text, display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
+                              <input type="checkbox" checked={assignedActions.includes(action)} onChange={() => togglePermission(feature, action)} style={{ accentColor: t.primary }} />
+                              <span style={{ textTransform: 'capitalize' }}>{action}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    )
+  }
+
+  const tabContent = [renderTab0, renderTab1, renderTab2, renderTab3, renderTab4, renderTab5, renderTab6]
   const isLastTab = activeTab === TABS.length - 1
 
   /* ── Render ── */

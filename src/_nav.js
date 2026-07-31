@@ -64,6 +64,12 @@ const _nav = [
     to: '/clinic-Management',
     icon: <CIcon icon={cilHospital} customClassName="nav-icon" />,
   },
+  {
+    component: CNavItem,
+    name: 'Feature Permissions',
+    to: '/feature-management',
+    icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
+  },
   // {
   //   component: CNavItem,
   //   name: 'Category Management',

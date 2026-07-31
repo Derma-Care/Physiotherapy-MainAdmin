@@ -13,7 +13,7 @@ import { BASE_URL, UpdateClinic, DeleteClinic, DoctorAllData, CLINIC_ADMIN_URL }
 import { getClinicTimings } from './AddClinicAPI'
 import AddBranchForm from './AddBranchForm'
 import { fetchBranchById, updateBranchData } from './AddBranchAPI'
-import ProcedureManagementDoctor from './ProcedureManagementDoctor'
+import ClinicPermissionsTab from './ClinicPermissionsTab'
 import DocumentField from './DocumentField'
 import {
   ArrowLeft, Building2, Phone, MapPin, Mail, Globe,
@@ -21,7 +21,7 @@ import {
   Edit2, Trash2, Save, X, User, Briefcase,
 } from 'lucide-react'
 
-const TABS = ['Basic Details', 'Additional Details', 'Branch Details', 'Procedures']
+const TABS = ['Basic Details', 'Additional Details', 'Branch Details', 'Permissions']
 
 /* ── field requirement lists — kept in sync with AddClinic's validateTab ──
    Tab 0 required: name, address, city, emailAddress, contactNumber, branch
@@ -99,6 +99,17 @@ const SectionBar = ({ text }) => (
 
 const Divider = () => (
   <div style={{ borderTop: '0.5px solid #e5e7eb', margin: '18px 0' }} />
+)
+
+/* ── form field helper ── */
+const Field = ({ label, required, error, children }) => (
+  <div>
+    <label style={lbl}>
+      {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
+    </label>
+    {children}
+    {error && <div style={errTxt}>{error}</div>}
+  </div>
 )
 
 const ClinicDetails = () => {
@@ -297,16 +308,7 @@ const ClinicDetails = () => {
     }
   }
 
-  /* ── form field helper ── */
-  const Field = ({ label, required, error, children }) => (
-    <div>
-      <label style={lbl}>
-        {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
-      </label>
-      {children}
-      {error && <div style={errTxt}>{error}</div>}
-    </div>
-  )
+
 
   return (
     <div style={{ fontFamily: 'inherit' }}>
@@ -519,7 +521,7 @@ const ClinicDetails = () => {
                       <button className="cd-btn-primary" onClick={handleSaveBasic}>
                         <Save size={14} /> Save
                       </button>
-                      <button className="cd-btn-secondary" onClick={() => { setIsEditing(false); setEditableClinicData(clinicData) }}>
+                      <button className="cd-btn-secondary" onClick={() => { setIsEditing(false); setEditableClinicData(clinicData); setFormErrors({}) }}>
                         <X size={14} /> Cancel
                       </button>
                     </>
@@ -897,7 +899,7 @@ const ClinicDetails = () => {
                       <button className="cd-btn-primary" onClick={handleSaveAdditional}>
                         <Save size={14} /> Save
                       </button>
-                      <button className="cd-btn-secondary" onClick={() => { setIsEditingAdditional(false); setEditableClinicData(clinicData) }}>
+                      <button className="cd-btn-secondary" onClick={() => { setIsEditingAdditional(false); setEditableClinicData(clinicData); setFormErrors({}) }}>
                         <X size={14} /> Cancel
                       </button>
                     </>
@@ -913,8 +915,8 @@ const ClinicDetails = () => {
             {/* ══ TAB 2: Branch Details ══ */}
             {activeTab === 2 && <AddBranchForm clinicId={hospitalId} />}
 
-            {/* ══ TAB 3: Procedures ══ */}
-            {activeTab === 3 && <ProcedureManagementDoctor clinicId={hospitalId} />}
+            {/* ══ TAB 3: Permissions ══ */}
+            {activeTab === 3 && <ClinicPermissionsTab clinicData={clinicData} fetchClinicDetails={fetchClinicDetails} />}
           </>
         )}
       </div>

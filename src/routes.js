@@ -35,6 +35,7 @@ const AdsManagement = React.lazy(() => import('./views/AdsManagement/AdsManageme
 const AdsServiceManagement = React.lazy(
   () => import('./views/AdsServiceManagement/AdsServiceManagement'),
 )
+const FeatureManagement = React.lazy(() => import('./views/FeatureManagement/FeatureManagement'))
 const DoctorDetailsPage = React.lazy(() => import('./views/Doctors/DoctorDetailsPage'))
 
 // ✅ Employee Management routes
@@ -85,6 +86,7 @@ const routes = [
   { path: '/ads-management', name: 'Ads Management', element: AdsManagement },
   { path: '/payouts', name: 'Payouts', element: Payouts },
   { path: '/ads-service-management', name: 'Ads Service Management', element: AdsServiceManagement },
+  { path: '/feature-management', name: 'Feature Management', element: FeatureManagement },
   { path: '/provider-management/:id', name: 'Patient View Details', element: PatientViewDetails },
   { path: '/clinicDetails', name: 'ClinicDetails', element: ClinicManagementDetails },
   { path: '/branchManagement', name: 'BranchManagement', element: BranchManagement },
