@@ -23,13 +23,6 @@ import {
 
 const TABS = ['Basic Details', 'Additional Details', 'Branch Details', 'Permissions']
 
-/* ── field requirement lists — kept in sync with AddClinic's validateTab ──
-   Tab 0 required: name, address, city, emailAddress, contactNumber, branch
-   Tab 0 optional: hospitalLogo (has its own required rule but only enforced on create)
-   Tab 1 required: openingTime, closingTime, consultationExpiration, freeFollowUps, latitude, longitude
-   Tab 1 optional: website, issuingAuthority, licenseNumber, subscription, walkthrough,
-                   loyaltyPoints, nabhScore, all certificate/document fields, others
-*/
 const REQUIRED_BASIC = ['name', 'contactNumber', 'city']
 const OPTIONAL_BASIC = ['hospitalLogo']
 
@@ -39,37 +32,34 @@ const REQUIRED_ADDITIONAL = [
 ]
 const OPTIONAL_ADDITIONAL = [
   'city', 'website', 'issuingAuthority', 'subscription', 'licenseNumber', 'walkthrough',
-  'loyaltyPoints', 'nabhScore',
+  'location', 'loyaltyPoints', 'nabhScore',
   'hospitalDocuments', 'contractorDocuments', 'businessRegistrationCertificate',
   'biomedicalWasteManagementAuth', 'tradeLicense', 'fireSafetyCertificate',
   'professionalIndemnityInsurance', 'drugLicenseCertificate', 'drugLicenseFormType',
   'pharmacistCertificate', 'clinicalEstablishmentCertificate', 'others',
 ]
 
-/** Build a save payload containing every required field as-is (already validated)
- *  plus only the optional fields the user actually provided a value for —
- *  so blank optional fields never overwrite existing saved data. */
 const buildPayload = (data, requiredKeys, optionalKeys, baseData = {}) => {
   const payload = { ...baseData }
   requiredKeys.forEach((k) => {
     if (data[k] !== undefined) payload[k] = data[k]
   })
   optionalKeys.forEach((k) => {
-    const v = data[k]
-    const isEmpty =
-      v === undefined || v === null ||
-      (typeof v === 'string' && v.trim() === '') ||
-      (Array.isArray(v) && v.length === 0)
-    if (!isEmpty) payload[k] = v
-  })
+  const v = data[k]
+
+  // Skip only undefined and empty arrays
+  if (v === undefined) return
+  if (Array.isArray(v) && v.length === 0) return
+
+  // Send empty string also
+  payload[k] = v
+})
   return payload
 }
 
-/** True if a document field has an actual value (base64 string or non-empty array of files). */
 const hasDocValue = (v) =>
   v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0)
 
-/* ── shared input style ── */
 const inp = (hasErr, disabled) => ({
   width: '100%',
   padding: '8px 12px',
@@ -101,7 +91,6 @@ const Divider = () => (
   <div style={{ borderTop: '0.5px solid #e5e7eb', margin: '18px 0' }} />
 )
 
-/* ── form field helper ── */
 const Field = ({ label, required, error, children }) => (
   <div>
     <label style={lbl}>
@@ -131,7 +120,6 @@ const ClinicDetails = () => {
   const [allDoctors, setAllDoctors] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
 
-  /* ── sync tab from URL ── */
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     setActiveTab(params.get('tab') ? Number(params.get('tab')) : 0)
@@ -142,7 +130,6 @@ const ClinicDetails = () => {
     navigate(`/clinic-management/${hospitalId}?tab=${idx}`)
   }
 
-  /* ── fetch clinic ── */
   const fetchClinicDetails = async () => {
     setLoading(true)
     try {
@@ -165,34 +152,48 @@ const ClinicDetails = () => {
     } catch (err) { console.error(err) }
   }
 
-  const syncBranchRecord = async (prevClinic, newClinic) => {
-    try {
-      const res = await fetchBranchById(hospitalId)
-      const branches = Array.isArray(res?.data) ? res.data : []
-      if (branches.length === 0) return
+const syncBranchRecord = async (prevClinic, newClinic) => {
+  try {
+    const res = await fetchBranchById(hospitalId)
+    const branches = Array.isArray(res?.data) ? res.data : []
+    if (branches.length === 0) return
 
-      const oldBranch = prevClinic?.branch?.trim()
-      const match = branches.find((b) => oldBranch
-        ? b.branchName === oldBranch || b.branchName === oldBranch.trim()
-        : true) || branches[0]
+    const oldBranch = prevClinic?.branch?.trim()
+    const match =
+      branches.find((b) => b.branchId === prevClinic?.branchId) ||
+      branches.find((b) => oldBranch && b.branchName?.trim() === oldBranch) ||
+      branches[0]
 
-      const payload = {
-        ...match,
-        branchName: newClinic.branch ?? match.branchName,
-        address: newClinic.address ?? match.address,
-        city: newClinic.city ?? match.city,
-        contactNumber: newClinic.contactNumber ?? match.contactNumber,
-        email: newClinic.emailAddress ?? match.email,
-        latitude: newClinic.latitude ?? match.latitude,
-        longitude: newClinic.longitude ?? match.longitude,
-        virtualClinicTour: newClinic.walkthrough ?? match.virtualClinicTour,
-      }
+    console.log('[syncBranchRecord] branches:', branches.map(b => ({ id: b.branchId, name: b.branchName })))
+    console.log('[syncBranchRecord] matched branch:', match?.branchId, match?.branchName)
 
-      await updateBranchData(match.branchId, payload)
-    } catch (e) {
-      console.error('Failed to sync branch record:', e)
+    const payload = {
+      ...match,
+      branchName: newClinic.branch ?? match.branchName,
+      address: newClinic.address ?? match.address,
+      city: newClinic.city ?? match.city,
+      contactNumber: newClinic.contactNumber ?? match.contactNumber,
+      email: newClinic.emailAddress ?? match.email,
+      latitude: newClinic.latitude ?? match.latitude,
+      longitude: newClinic.longitude ?? match.longitude,
+
+      virtualClinicTour:
+        newClinic.walkthrough !== undefined
+          ? (newClinic.walkthrough === null ? '' : newClinic.walkthrough)
+          : match.virtualClinicTour,
+
+      location:
+        newClinic.location !== undefined
+          ? (newClinic.location === null ? '' : newClinic.location)
+          : match.location,
     }
+
+    console.log('[syncBranchRecord] outgoing payload.location:', JSON.stringify(payload.location))
+    await updateBranchData(match.branchId, payload)
+  } catch (e) {
+    console.error('Failed to sync branch record:', e)
   }
+}
 
   useEffect(() => {
     if (hospitalId) { fetchClinicDetails(); fetchAllDoctors() }
@@ -206,7 +207,6 @@ const ClinicDetails = () => {
     fetchTimings()
   }, [])
 
-  /* ── helpers ── */
   const set = (key, val) => setEditableClinicData((p) => ({ ...p, [key]: val }))
   const clearErr = (key) => setFormErrors((p) => { const u = { ...p }; delete u[key]; return u })
   const setErr = (key, msg) => setFormErrors((p) => ({ ...p, [key]: msg }))
@@ -218,9 +218,6 @@ const ClinicDetails = () => {
     window.open(url)
   }
 
-  /* ── validation ──
-     Only fields required by AddClinic are enforced here.
-     website / issuingAuthority / walkthrough / subscription / documents are optional. */
   const validateForm = () => {
     const errs = {}
     if (activeTab === 0) {
@@ -248,7 +245,6 @@ const ClinicDetails = () => {
       if (!editableClinicData.branch?.trim()) errs.branch = 'Branch name required'
       if (!editableClinicData.address?.trim()) errs.address = 'Address required'
 
-      // Optional fields — only validate format IF the user typed something in them.
       if (editableClinicData.website?.trim() && !/^https?:\/\/[^\s]+$/.test(editableClinicData.website.trim())) {
         errs.website = 'Enter a valid URL'
       }
@@ -258,16 +254,19 @@ const ClinicDetails = () => {
       if (editableClinicData.walkthrough?.trim() && !/^https?:\/\/[^\s]+$/.test(editableClinicData.walkthrough.trim())) {
         errs.walkthrough = 'Must start with http(s)://'
       }
+      if (editableClinicData.location?.trim() && !/^https?:\/\/[^\s]+$/.test(editableClinicData.location.trim())) {
+        errs.location = 'Must start with http(s)://'
+      }
     }
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
 
-  /* ── save basic — only required fields + any provided optional (hospitalLogo) ── */
   const handleSaveBasic = async () => {
     if (!validateForm()) return
     try {
       const payload = buildPayload(editableClinicData, REQUIRED_BASIC, OPTIONAL_BASIC, clinicData || {})
+      
       await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
       const merged = { ...(clinicData || {}), ...(editableClinicData || {}), ...payload }
       setClinicData(merged)
@@ -279,7 +278,6 @@ const ClinicDetails = () => {
     } catch (err) { console.error(err) }
   }
 
-  /* ── save additional — only required fields + whatever optional fields the user filled in ── */
   const handleSaveAdditional = async () => {
     if (!validateForm()) { toast.error('Please fix the errors before saving!'); return }
     try {
@@ -296,7 +294,6 @@ const ClinicDetails = () => {
     } catch (err) { console.error(err) }
   }
 
-  /* ── delete clinic ── */
   const handleDeleteClinic = async () => {
     try {
       const res = await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId}`)
@@ -307,8 +304,6 @@ const ClinicDetails = () => {
       toast.error(err.message)
     }
   }
-
-
 
   return (
     <div style={{ fontFamily: 'inherit' }}>
@@ -352,7 +347,6 @@ const ClinicDetails = () => {
         .cd-btn-danger:hover { background: #dc2626; color: #fff; border-color: #dc2626; }
       `}</style>
 
-      {/* ── Header ── */}
       <div style={{
         background: '#1a3a6b', borderRadius: '10px 10px 0 0',
         padding: '16px 20px',
@@ -387,7 +381,6 @@ const ClinicDetails = () => {
         </button>
       </div>
 
-      {/* ── Tab Bar ── */}
       <div style={{
         background: '#fff',
         borderLeft: '0.5px solid #d0dce9', borderRight: '0.5px solid #d0dce9',
@@ -402,7 +395,6 @@ const ClinicDetails = () => {
         ))}
       </div>
 
-      {/* ── Content ── */}
       <div style={{
         background: '#fff', border: '0.5px solid #d0dce9',
         borderTop: 'none', borderRadius: '0 0 10px 10px',
@@ -415,7 +407,6 @@ const ClinicDetails = () => {
           </div>
         ) : (
           <>
-            {/* ══ TAB 0: Basic Details ══ */}
             {activeTab === 0 && (
               <div>
                 <SectionBar text="Basic Information" />
@@ -514,7 +505,6 @@ const ClinicDetails = () => {
 
                 <Divider />
 
-                {/* Action buttons */}
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   {isEditing ? (
                     <>
@@ -539,7 +529,6 @@ const ClinicDetails = () => {
               </div>
             )}
 
-            {/* ══ TAB 1: Additional Details ══ */}
             {activeTab === 1 && (
               <div>
                 <SectionBar text="Clinic Settings" />
@@ -767,6 +756,30 @@ const ClinicDetails = () => {
                     </Field>
                   </CCol>
                   )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.location)) && (
+                  <CCol md={6}>
+                    <Field label="Clinic Location URL" error={formErrors.location}>
+                      <input
+                        className="cd-input"
+                        style={inp(!!formErrors.location, !isEditingAdditional)}
+                        value={editableClinicData.location ?? ''}
+                        disabled={!isEditingAdditional}
+                        placeholder="https://maps.google.com/..."
+                        onChange={(e) => {
+                          const v = e.target.value; set('location', v)
+                          if (v.trim() && !/^https?:\/\/[^\s]+$/.test(v.trim())) setErr('location', 'Must start with http(s)://')
+                          else clearErr('location')
+                        }}
+                      />
+                      {!isEditingAdditional && editableClinicData.location && !formErrors.location && (
+                        <a href={editableClinicData.location} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: '12px', color: '#1a3a6b', marginTop: '4px', display: 'block' }}>
+                          Open Location ↗
+                        </a>
+                      )}
+                    </Field>
+                  </CCol>
+                  )}
                   {(isEditingAdditional || hasDocValue(editableClinicData.loyaltyPoints)) && (
                   <CCol md={6}>
                     <Field label="💎 Loyalty Points (% per ₹100 Spent)" >
@@ -777,7 +790,7 @@ const ClinicDetails = () => {
                         style={inp(false, !isEditingAdditional)}
                         value={editableClinicData.loyaltyPoints ?? ''}
                         disabled={!isEditingAdditional}
-                        placeholder="e.g. 100"
+                        placeholder="e.g. 2.5% per ₹100 spent"
                         onChange={(e) => set('loyaltyPoints', e.target.value)}
                       />
                     </Field>
@@ -832,7 +845,7 @@ const ClinicDetails = () => {
                   const DOC_FIELDS = [
                     ['Letter at Logo', 'hospitalDocuments'],
                     ['Hospital Contract Documents', 'contractorDocuments'],
-                    ['Business Registration Certificate', 'businessRegistrationCertificate'],
+                    ['Offer at LOGO', 'businessRegistrationCertificate'],
                     ['Biomedical Waste Management Auth', 'biomedicalWasteManagementAuth'],
                     ['Trade License', 'tradeLicense'],
                     ['Fire Safety Certificate', 'fireSafetyCertificate'],
@@ -843,8 +856,6 @@ const ClinicDetails = () => {
                     ['Clinical Establishment Certificate', 'clinicalEstablishmentCertificate'],
                   ]
 
-                  // In view mode, only show rows that actually have a document.
-                  // In edit mode, show every row so the user can upload into empty ones.
                   const visibleDocFields = isEditingAdditional
                     ? DOC_FIELDS
                     : DOC_FIELDS.filter(([, key]) => hasDocValue(editableClinicData[key]))
@@ -852,7 +863,6 @@ const ClinicDetails = () => {
                   const showOthers = isEditingAdditional || hasDocValue(editableClinicData.others)
                   const hasAnyDoc = visibleDocFields.length > 0 || showOthers
 
-                  // Nothing to show and not editing — skip the whole section, heading included.
                   if (!hasAnyDoc) return null
 
                   return (
@@ -912,16 +922,13 @@ const ClinicDetails = () => {
               </div>
             )}
 
-            {/* ══ TAB 2: Branch Details ══ */}
             {activeTab === 2 && <AddBranchForm clinicId={hospitalId} />}
 
-            {/* ══ TAB 3: Permissions ══ */}
             {activeTab === 3 && <ClinicPermissionsTab clinicData={clinicData} fetchClinicDetails={fetchClinicDetails} />}
           </>
         )}
       </div>
 
-      {/* ══ Delete Clinic Modal ══ */}
       <CModal visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} backdrop="static">
         <CModalHeader style={{ background: '#1a3a6b', borderBottom: 'none', padding: '14px 20px' }}>
           <strong style={{ color: '#fff', fontSize: '15px' }}>Delete Clinic</strong>
@@ -941,7 +948,6 @@ const ClinicDetails = () => {
         </CModalFooter>
       </CModal>
 
-      {/* ══ Doctor Profile Modal ══ */}
       <CModal visible={showDoctorModal} onClose={() => setShowDoctorModal(false)} size="lg" backdrop="static">
         <CModalHeader style={{ background: '#1a3a6b', borderBottom: 'none', padding: '14px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1009,7 +1015,6 @@ const ClinicDetails = () => {
                 </div>
               ))}
 
-              {/* Services */}
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <span style={{ width: '3px', height: '16px', background: '#1a3a6b', borderRadius: '2px' }} />

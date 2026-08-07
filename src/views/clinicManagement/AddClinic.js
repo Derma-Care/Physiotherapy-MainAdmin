@@ -22,6 +22,8 @@ import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { getClinicTimings } from './AddClinicAPI'
+import { updateBranchData } from './AddBranchAPI'
+
 
 /* ─── Design tokens ─── */
 const t = {
@@ -38,6 +40,8 @@ const t = {
   shadow: '0 1px 3px rgba(0,0,0,0.07)',
   shadowMd: '0 4px 12px rgba(0,0,0,0.08)',
 }
+
+
 
 /* ─── Shared UI primitives ─── */
 const SectionHeading = ({ title, subtitle }) => (
@@ -212,7 +216,10 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
     if (!formData.latitude) errs.latitude = 'Latitude is required'
     else { const lat = parseFloat(formData.latitude); if (isNaN(lat) || lat < -90 || lat > 90) errs.latitude = 'Must be between -90 and 90' }
     if (!formData.longitude) errs.longitude = 'Longitude is required'
-    else { const lng = parseFloat(formData.longitude); if (isNaN(lng) || lng < -180 || lng > 180) errs.longitude = 'Must be between -180 and 180' }
+    else { const lng = parseFloat(formData.longitude); if (isNaN(lng) || lng > 180 || lng < -180) errs.longitude = 'Must be between -180 and 180' }
+    if (formData.location?.trim()) {
+      try { new URL(formData.location) } catch { errs.location = 'Enter a valid URL' }
+    }
   }
   if (tabId === 4) {
     if (!formData.hospitalLogo) errs.hospitalLogo = 'Clinic logo is required'
@@ -270,36 +277,101 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     tradeLicense: null, fireSafetyCertificate: null, professionalIndemnityInsurance: null,
     gstRegistrationCertificate: null, newFeatureInput: '', others: [], consultationExpiration: '',
     subscription: '', instagramHandle: '', twitterHandle: '', facebookHandle: '',
-    latitude: '', longitude: '', walkthrough: '', branch: '', loyaltyPoints: '', nabhScore: null,
+    latitude: '', longitude: '', walkthrough: '', location: '', branch: '', loyaltyPoints: '', nabhScore: null,
     permissions: {},
   })
 
 
 
   const [existingDoctors, setExistingDoctors] = useState([])
+  const [masterPermissions, setMasterPermissions] = useState({})
 
-  // Load master feature template
+  const getResponseData = (body) => body?.data?.data ?? body?.data ?? body
+
+  const looksLikePermissionsMap = (obj) => {
+    return obj && typeof obj === 'object' && !Array.isArray(obj) && Object.values(obj).every(value => Array.isArray(value))
+  }
+
+  const extractPermissions = (response) => {
+    if (!response) return {}
+    const payload = getResponseData(response)
+    if (!payload) return {}
+
+    if (Array.isArray(payload)) {
+      if (payload.length === 0) return {}
+      const first = payload[0]
+      if (first && typeof first === 'object') {
+        if (first.permissions || first.data) return extractPermissions(first.permissions ?? first.data)
+        if (looksLikePermissionsMap(first)) return first
+        const mapped = payload.reduce((acc, item) => {
+          if (item && typeof item === 'object') {
+            if (item.module && Array.isArray(item.actions)) {
+              acc[item.module] = item.actions
+            }
+            if (item.permissions && looksLikePermissionsMap(item.permissions)) {
+              Object.assign(acc, item.permissions)
+            }
+          }
+          return acc
+        }, {})
+        return Object.keys(mapped).length > 0 ? mapped : {}
+      }
+      return {}
+    }
+
+    if (typeof payload === 'object') {
+      if (payload.data || payload.permissions) return extractPermissions(payload.permissions ?? payload.data)
+      if (looksLikePermissionsMap(payload)) return payload
+      if (payload.module && Array.isArray(payload.actions)) return { [payload.module]: payload.actions }
+    }
+
+    return {}
+  }
+
+  const mergePermissionTemplates = (masterPermissions = {}, clinicPermissions = {}) => {
+    const merged = {}
+    const allFeatures = new Set([...Object.keys(masterPermissions), ...Object.keys(clinicPermissions)])
+    allFeatures.forEach((feature) => {
+      if (Object.prototype.hasOwnProperty.call(clinicPermissions, feature)) {
+        merged[feature] = Array.isArray(clinicPermissions[feature]) ? [...clinicPermissions[feature]] : []
+      } else {
+        merged[feature] = []
+      }
+    })
+    return merged
+  }
+
+  // FIX: strips out features with no actions checked. This is used ONLY when
+  // building what actually gets written to the backend (create/update payload) —
+  // never for what's rendered in the picker, so the picker still shows every
+  // available master feature to choose from, but the saved record only reflects
+  // the permissions you actually gave, exactly like the Permissions tab.
+  const sanitizePermissions = (perms) =>
+    Object.fromEntries(
+      Object.entries(perms || {}).filter(([, actions]) => Array.isArray(actions) && actions.length > 0),
+    )
+
+  // Load master feature template (add mode only)
   useEffect(() => {
+    if (mode === 'edit') return
+
     const loadTemplatePermissions = async () => {
       try {
-        if (mode !== 'edit') setLoadingPermissions(true)
-        const res = await axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/0001/000101`)
-        if (res.data.success && res.data.data?.permissions) {
-          const keys = Object.keys(res.data.data.permissions)
-          if (keys.length > 0) {
-            setFormData(prev => {
-              const newPerms = { ...(prev.permissions || {}) }
-              keys.forEach(k => {
-                if (!newPerms[k]) newPerms[k] = []
-              })
-              return { ...prev, permissions: newPerms }
-            })
-          }
+        setLoadingPermissions(true)
+        const res = await axios.get(`${BASE_URL}/admin/getAllPermisssions`)
+        const permissionsSource = extractPermissions(res)
+
+        if (Object.keys(permissionsSource).length > 0) {
+          setMasterPermissions(permissionsSource)
+          setFormData(prev => ({
+            ...prev,
+            permissions: mergePermissionTemplates(permissionsSource, prev.permissions || {})
+          }))
         }
       } catch (err) {
         console.error("Failed to load master template permissions", err)
       } finally {
-        if (mode !== 'edit') setLoadingPermissions(false)
+        setLoadingPermissions(false)
       }
     }
     loadTemplatePermissions()
@@ -324,7 +396,8 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
   useEffect(() => {
     if (mode === 'edit' && initialData) {
-      setFormData(prev => ({ ...prev, ...initialData }))
+      const { permissions: initialPermissions, ...initialRest } = initialData
+      setFormData(prev => ({ ...prev, ...initialRest }))
       setClinicTypeOption(initialData.clinicType || '')
       setSelectedOption(initialData.medicinesSoldOnSite || '')
       setSelectedPharmacistOption(initialData.hasPharmacist || '')
@@ -337,15 +410,47 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
       // Fetch permissions if edit mode
       if (initialData.clinicId && initialData.branchId) {
-        setLoadingPermissions(true)
-        axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/${initialData.clinicId}/${initialData.branchId}`)
-          .then(res => {
-            if (res.data.success && res.data.data?.permissions) {
-              setFormData(p => ({ ...p, permissions: res.data.data.permissions }))
+        const loadClinicPermissions = async () => {
+          setLoadingPermissions(true)
+          try {
+            const [masterRes, clinicRes] = await Promise.all([
+              axios.get(`${BASE_URL}/admin/getAllPermisssions`),
+              // axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/${initialData.clinicId}/${initialData.branchId}`),
+            ])
+
+            const masterPermissions = extractPermissions(masterRes)
+            const clinicPermissions = extractPermissions(clinicRes)
+            const mergedPermissions = mergePermissionTemplates(masterPermissions, clinicPermissions)
+
+            setMasterPermissions(masterPermissions)
+            setFormData(prev => ({ ...prev, permissions: mergedPermissions }))
+          } catch (err) {
+            console.error('Error fetching permissions', err)
+            try {
+              const clinicRes = await axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/${initialData.clinicId}/${initialData.branchId}`)
+              const clinicPermissions = extractPermissions(clinicRes)
+              const masterRes = await axios.get(`${BASE_URL}/admin/getAllPermisssions`)
+              const masterPermissions = extractPermissions(masterRes)
+              const mergedPermissions = mergePermissionTemplates(masterPermissions, clinicPermissions)
+
+              setMasterPermissions(masterPermissions)
+              setFormData(prev => ({ ...prev, permissions: mergedPermissions }))
+            } catch (secondErr) {
+              console.error('Fallback clinic permissions fetch failed', secondErr)
+              try {
+                const masterRes = await axios.get(`${BASE_URL}/admin/getAllPermisssions`)
+                const masterPermissions = extractPermissions(masterRes)
+                setMasterPermissions(masterPermissions)
+                setFormData(prev => ({ ...prev, permissions: masterPermissions }))
+              } catch (thirdErr) {
+                console.error('Fallback master permissions fetch failed', thirdErr)
+              }
             }
-          })
-          .catch(err => console.error('Error fetching permissions', err))
-          .finally(() => setLoadingPermissions(false))
+          } finally {
+            setLoadingPermissions(false)
+          }
+        }
+        loadClinicPermissions()
       }
     }
   }, [initialData, mode])
@@ -580,6 +685,12 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         }))
       }
 
+      // FIX: formData.permissions holds every master feature (many as empty
+      // placeholder arrays) so the picker UI has something to show/check. Only the
+      // features that actually have actions checked should be written to the
+      // backend — same rule the Permissions tab uses on save.
+      const finalPermissions = sanitizePermissions(formData.permissions || {})
+
       const clinicData = {
         name: formData.name, address: formData.address, city: formData.city,
         contactNumber: formData.contactNumber, openingTime: formData.openingTime,
@@ -607,8 +718,10 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         consultationExpiration: formData.consultationExpiration
           ? (String(formData.consultationExpiration).includes('day') ? formData.consultationExpiration : `${formData.consultationExpiration} days`)
           : '',
-        subscription: formData.subscription, latitude: formData.latitude, longitude: formData.longitude,
+        subscription: formData.subscription, latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
         walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
+        // FIX: only the permissions actually given, not every master placeholder.
+        permissions: finalPermissions,
       }
 
       const isEdit = mode === 'edit' && !!currentId
@@ -621,26 +734,33 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         localStorage.removeItem('nabhScore')
         localStorage.removeItem('nabhSubmitted')
 
-        // Update permissions if provided
-        if (Object.keys(formData.permissions || {}).length > 0) {
+        // Update permissions if any were actually given
+        if (Object.keys(finalPermissions).length > 0) {
           const clinicIdToUse = isEdit ? initialData.clinicId : response.data.data?.clinicId
           const branchIdToUse = isEdit ? initialData.branchId : response.data.data?.branchId
           if (clinicIdToUse && branchIdToUse) {
             try {
-              if (isEdit) {
-                await axios.put(`${MainAdmin_URL}/updatePermissionsByClinicIdAndBranchId/${clinicIdToUse}/${branchIdToUse}`, { permissions: formData.permissions })
-              } else {
-                await axios.post(`${MainAdmin_URL}/createPermisssions`, {
-                  clinicId: clinicIdToUse,
-                  branchId: branchIdToUse,
-                  permissions: formData.permissions
-                })
-              }
+              await axios.put(`${BASE_URL}/admin/updatePermissions/${clinicIdToUse}/${branchIdToUse}`, { permissions: finalPermissions })
             } catch (err) {
               console.error('Failed to save permissions', err)
             }
           }
         }
+
+        // NEW — explicitly push location/virtualClinicTour onto the auto-created branch record.
+  // CreateClinic on the backend creates a branch alongside the clinic, but does not
+  // appear to copy location/walkthrough into it — so we push it explicitly here.
+  if (!isEdit && response.data.data?.branchId) {
+    try {
+      await updateBranchData(response.data.data.branchId, {
+        location: clinicData.location,
+        virtualClinicTour: clinicData.walkthrough,
+      })
+    } catch (err) {
+      console.error('Failed to sync location to auto-created branch', err)
+    }
+    try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
+  }
 
         toast.success(response.data.message || (isEdit ? 'Clinic Updated Successfully' : 'Clinic Added Successfully'), { position: 'top-right' })
 
@@ -842,8 +962,27 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
               if (v.trim()) { try { new URL(v) } catch { setErrors(p => ({ ...p, walkthrough: 'Enter a valid URL' })) } }
             }} />
         </Field>
-        <Field label="Loyalty Points">
-          <Input type="number" min="0" name="loyaltyPoints" placeholder="e.g. 100" value={formData.loyaltyPoints || ''}
+        <Field label="Clinic Location URL" error={errors.location}>
+          <Input
+            type="url"
+            placeholder="https://maps.google.com/..."
+            name="location"
+            value={formData.location || ''}
+            error={errors.location}
+            onChange={e => {
+              const v = e.target.value
+              setFormData(p => ({ ...p, location: v }))
+              if (v.trim()) {
+                try { new URL(v); setErrors(p => ({ ...p, location: '' })) }
+                catch { setErrors(p => ({ ...p, location: 'Enter a valid URL' })) }
+              } else {
+                setErrors(p => ({ ...p, location: '' }))
+              }
+            }}
+          />
+        </Field>
+        <Field label="💎 Loyalty Points (% per ₹100 Spent)">
+          <Input type="number" min="0" name="loyaltyPoints" placeholder="e.g. 2.5% per ₹100 spent" value={formData.loyaltyPoints || ''}
             onChange={handleInputChange} />
         </Field>
       </FieldGrid>
@@ -880,7 +1019,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         <FileField label="Clinical Establishment Registration" name="clinicalEstablishmentCertificate"
           required={false} error={errors.clinicalEstablishmentCertificate} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.clinicalEstablishmentCertificate} />
-        <FileField label="Business Registration Certificate" name="businessRegistrationCertificate"
+        <FileField label="Offer at LOGO" name="businessRegistrationCertificate"
           required={false} error={errors.businessRegistrationCertificate} formData={formData} setFormData={setFormData}
           setErrors={setErrors} inputRef={refs.businessRegistrationCertificate} />
         <FileField label="Biomedical Waste Management Auth" name="biomedicalWasteManagementAuth"
@@ -971,7 +1110,8 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   )
 
   const renderTab6 = () => {
-    const backendFeatures = Object.keys(formData.permissions || {})
+    const mergedPermissions = mergePermissionTemplates(masterPermissions, formData.permissions || {})
+    const backendFeatures = Object.keys(mergedPermissions)
     const hasPermissions = backendFeatures.length > 0
 
     return (
@@ -987,21 +1127,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
           </div>
         ) : (
           <div>
-            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: t.surface, borderRadius: t.radiusSm, border: `1px solid ${t.border}` }}>
-              <div style={{ fontWeight: '600', marginBottom: '10px', fontSize: '14px' }}>Add New Module / Feature</div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. Billing, Reports, Dashboard"
-                  value={formData.newFeatureInput || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, newFeatureInput: e.target.value }))}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewFeature())}
-                  style={{ maxWidth: '300px' }}
-                />
-                <button type="button" className="btn btn-primary btn-sm" onClick={handleAddNewFeature}>Add Feature</button>
-              </div>
-            </div>
+            
 
             {!hasPermissions ? (
               <div style={{ padding: '30px', textAlign: 'center', backgroundColor: t.surface, borderRadius: t.radiusSm, border: `1px dashed ${t.border}`, marginTop: '16px' }}>
@@ -1011,7 +1137,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>
                 {backendFeatures.map(feature => {
-                  const assignedActions = formData.permissions[feature] || []
+                  const assignedActions = mergedPermissions[feature] || []
                   const featureAvailableActions = ['create', 'read', 'update', 'delete']
                   const actionsToRender = featureAvailableActions
 

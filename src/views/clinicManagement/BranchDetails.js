@@ -63,24 +63,37 @@ const BranchDetails = () => {
     }
   }
 
-  /* ── fetch branch ── */
   useEffect(() => {
-    const fetchBranch = async () => {
-      try {
-        setLoading(true)
-        const branch = await fetchBranchByBranchId(branchId)
-        setBranchData(branch.data)
-        if (branch.data?.clinicId) {
-          await fetchAllDoctors(branch.data.clinicId, branchId)
-        }
-      } catch (err) {
-        console.error('Error fetching branch:', err)
-      } finally {
-        setLoading(false)
+  const fetchBranch = async () => {
+    try {
+      setLoading(true)
+      const branch = await fetchBranchByBranchId(branchId)
+      setBranchData(branch.data)
+      if (branch.data?.clinicId) {
+        await fetchAllDoctors(branch.data.clinicId, branchId)
       }
+    } catch (err) {
+      console.error('Error fetching branch:', err)
+    } finally {
+      setLoading(false)
     }
-    fetchBranch()
-  }, [branchId])
+  }
+  fetchBranch()
+}, [branchId])
+
+
+  useEffect(() => {
+  const handleBranchRefresh = async () => {
+    try {
+      const branch = await fetchBranchByBranchId(branchId)
+      setBranchData(branch.data)
+    } catch (err) {
+      console.error('Error refreshing branch:', err)
+    }
+  }
+  window.addEventListener('clinic:branches:refresh', handleBranchRefresh)
+  return () => window.removeEventListener('clinic:branches:refresh', handleBranchRefresh)
+}, [branchId])
 
   /* ── delete doctor ── */
   const handleDeleteDoctor = async () => {
@@ -122,7 +135,7 @@ const BranchDetails = () => {
       }, [])
 
   /* ── branch detail field ── */
-  const BranchField = ({ icon: Icon, label, value }) => (
+  const BranchField = ({ icon: Icon, label, value, isLink, openLink }) => (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '12px',
       background: '#f7fafd', border: '0.5px solid #e2ecf7',
@@ -144,9 +157,30 @@ const BranchDetails = () => {
         <span style={{ fontSize: '11px', fontWeight: '600', color: '#7a90a8', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
           {label}
         </span>
-        <span style={{ fontSize: '13px', fontWeight: '500', color: '#1e293b', wordBreak: 'break-word' }}>
-          {value || '—'}
-        </span>
+        {isLink && value ? (
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: '13px', fontWeight: '500', color: '#185fa5', wordBreak: 'break-word' }}
+          >
+            {value}
+          </a>
+        ) : (
+          <span style={{ fontSize: '13px', fontWeight: '500', color: '#1e293b', wordBreak: 'break-word' }}>
+            {value || '—'}
+          </span>
+        )}
+        {openLink && value && (
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: '12px', color: '#185fa5', marginTop: '2px' }}
+          >
+            Open Location ↗
+          </a>
+        )}
       </div>
     </div>
   )
@@ -283,7 +317,8 @@ const BranchDetails = () => {
                 <BranchField icon={Phone}       label="Contact Number"  value={branchData.contactNumber} />
                 <BranchField icon={Mail}        label="Email"           value={branchData.email} />
                 <BranchField icon={Globe}       label="Coordinates"     value={`${branchData.latitude || '—'}, ${branchData.longitude || '—'}`} />
-                <BranchField icon={Globe}       label="Virtual Tour"    value={branchData.virtualClinicTour || 'N/A'} />
+                <BranchField icon={Globe}       label="Virtual Tour"    value={branchData.virtualClinicTour || 'N/A'} isLink={!!branchData.virtualClinicTour} />
+                <BranchField icon={MapPin}      label="Clinic Location URL" value={branchData.location || 'N/A'} openLink={!!branchData.location} />
               </div>
             </div>
           ) : (

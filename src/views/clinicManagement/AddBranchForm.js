@@ -68,7 +68,7 @@ const AddBranchForm = ({ clinicId }) => {
     clinicId: clinicId || '',
     branchName: '', address: '', city: '',
     contactNumber: '', email: '',
-    latitude: '', longitude: '', virtualClinicTour: '',
+    latitude: '', longitude: '', virtualClinicTour: '', location: '',
   }
   const [formData, setFormData] = useState(initialForm)
 
@@ -94,14 +94,17 @@ const AddBranchForm = ({ clinicId }) => {
 
   const flash = (setter, msg) => { setter(msg); setTimeout(() => setter(''), 3000) }
 
-  const buildBranchPayload = (currentData, baseBranch = {}) => {
-    const payload = { ...baseBranch }
-    Object.entries(currentData).forEach(([key, value]) => {
-      const isEmpty = value === undefined || value === null || (typeof value === 'string' && value.trim() === '')
-      if (!isEmpty) payload[key] = value
-    })
-    return payload
+const buildBranchPayload = (currentData) => {
+  const cleanUrl = (v) => {
+    const trimmed = v?.trim() ?? ""
+    return trimmed === "" ? "" : trimmed   // explicit: whitespace-only becomes truly empty
   }
+  return {
+    ...currentData,
+    location: cleanUrl(currentData.location),
+    virtualClinicTour: cleanUrl(currentData.virtualClinicTour),
+  }
+}
 
   /* ── form change ── */
   const handleChange = (e) => {
@@ -135,33 +138,38 @@ const AddBranchForm = ({ clinicId }) => {
       if (!/^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/.test(formData.virtualClinicTour.trim()))
         errs.virtualClinicTour = 'Must be a valid URL starting with http:// or https://'
     }
+    if (formData.location?.trim()) {
+  if (!/^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/.test(formData.location.trim()))
+    errs.location = 'Must be a valid URL starting with http:// or https://'
+}
     setValidationErrors(errs)
     return Object.keys(errs).length === 0
   }
 
-  /* ── submit ── */
-  const handleSubmit = async () => {
-    if (!validateForm()) return
-    try {
-      setSubmitLoading(true)
-      if (editingBranch) {
-        const payload = buildBranchPayload(formData, editingBranch)
-        await updateBranchData(editingBranch.branchId, payload)
-        const updatedBranch = { ...editingBranch, ...payload }
-        setBranches((prev) => prev.map((branch) => (branch.branchId === editingBranch.branchId ? updatedBranch : branch)))
-        flash(setSuccess, 'Branch updated successfully!')
-      } else {
-        await createNewBranch(formData)
-        flash(setSuccess, 'Branch created successfully!')
-      }
-      setModalVisible(false)
-      resetForm()
-      setEditingBranch(null)
-      loadBranches()
-    } catch (err) {
-      flash(setError, `Error ${editingBranch ? 'updating' : 'creating'} branch: ${err.message}`)
-    } finally { setSubmitLoading(false) }
-  }
+const handleSubmit = async () => {
+  if (!validateForm()) return
+  try {
+    setSubmitLoading(true)
+    const payload = buildBranchPayload(formData)
+
+    if (editingBranch) {
+      await updateBranchData(editingBranch.branchId, payload)
+      const updatedBranch = { ...editingBranch, ...payload }
+      setBranches((prev) => prev.map((branch) => (branch.branchId === editingBranch.branchId ? updatedBranch : branch)))
+      flash(setSuccess, 'Branch updated successfully!')
+    } else {
+      await createNewBranch(payload)
+      flash(setSuccess, 'Branch created successfully!')
+    }
+    setModalVisible(false)
+    resetForm()
+    setEditingBranch(null)
+    loadBranches()
+    try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
+  } catch (err) {
+    flash(setError, `Error ${editingBranch ? 'updating' : 'creating'} branch: ${err.message}`)
+  } finally { setSubmitLoading(false) }
+}
 
   /* ── delete ── */
   const handleDelete = async () => {
@@ -188,6 +196,7 @@ const AddBranchForm = ({ clinicId }) => {
       latitude: branch.latitude || '',
       longitude: branch.longitude || '',
       virtualClinicTour: branch.virtualClinicTour || '',
+      location: branch.location || '',
     })
     setValidationErrors({})
     setModalVisible(true)
@@ -560,6 +569,16 @@ const AddBranchForm = ({ clinicId }) => {
                   onChange={handleChange} />
               </Field>
             </CCol>
+            <CCol md={12}>
+  <Field label="Clinic Location URL" error={validationErrors.location}>
+    <input className="abf-input"
+      style={inp(!!validationErrors.location, false)}
+      name="location" value={formData.location}
+      placeholder="https://..."
+      onChange={handleChange} />
+      
+  </Field>
+</CCol>
           </CRow>
         </CModalBody>
 

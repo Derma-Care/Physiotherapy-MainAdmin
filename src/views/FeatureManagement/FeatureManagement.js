@@ -3,54 +3,123 @@ import axios from 'axios'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { BASE_URL, MainAdmin_URL } from '../../baseUrl'
+import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 const FeatureManagement = () => {
-  const staticClinicId = '0001'
-  const staticBranchId = '000101'
-
   const [loading, setLoading] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [originalPermissions, setOriginalPermissions] = useState({})
+  const [permissionsId, setPermissionsId] = useState('')
 
   const [permissionsData, setPermissionsData] = useState({})
   const [activePermissionTab, setActivePermissionTab] = useState('')
   const [newFeatureName, setNewFeatureName] = useState('')
 
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  const [featureToDelete, setFeatureToDelete] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
   const availableActions = ['create', 'read', 'update', 'delete']
+
+  // Helper: pull the permissions object out of the API response
+  // regardless of which shape the backend actually sends back.
+  const extractPermissions = (body) => {
+    if (!body) return null
+
+    if (body.data && typeof body.data === 'object' && body.data.permissions) {
+      return body.data.permissions
+    }
+    if (body.permissions && typeof body.permissions === 'object') {
+      return body.permissions
+    }
+    if (
+      body.data &&
+      typeof body.data === 'object' &&
+      !('permissions' in body.data) &&
+      Object.keys(body.data).length > 0
+    ) {
+      return body.data
+    }
+    const looksLikePermissionsMap = Object.values(body).every(v => Array.isArray(v))
+    if (looksLikePermissionsMap && Object.keys(body).length > 0) {
+      return body
+    }
+    return null
+  }
+
+  const getResponseData = (body) => {
+    if (!body) return null
+    return body.data ?? body
+  }
+
+  const getPermissionsItems = (body) => {
+    const data = getResponseData(body)
+    if (!data) return []
+    if (Array.isArray(data)) return data
+    if (typeof data === 'object') return [data]
+    return []
+  }
+
+  const getPermissionsId = (record) => {
+    if (!record || typeof record !== 'object') return ''
+    return record._id || record.id || record.permissionsId || record.permissionId || ''
+  }
 
   // Fetch permissions on mount
   useEffect(() => {
     const fetchPermissions = async () => {
       setLoading(true)
-      console.log('Fetching permissions for:', staticClinicId, staticBranchId)
       try {
-        const res = await axios.get(`${MainAdmin_URL}/getPermissionsByClinicIdAndBranchId/${staticClinicId}/${staticBranchId}`)
-        console.log('GET Permissions API Response:', res.data)
-        if (res.data.success && res.data.data?.permissions) {
-          if (Object.keys(res.data.data.permissions).length > 0 || res.data.data.id) {
-            setPermissionsData(res.data.data.permissions)
-            setIsEditMode(true)
-            const keys = Object.keys(res.data.data.permissions)
-            if (keys.length > 0) setActivePermissionTab(keys[0])
-          } else {
-            setPermissionsData({})
-            setIsEditMode(false)
-          }
-        } else {
-          setPermissionsData({})
-          setIsEditMode(false)
+        const listRes = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
+        const items = getPermissionsItems(listRes.data)
+        const firstItem = items.length > 0 ? items[0] : null
+        const permissionsRecord = firstItem || null
+        const fetchedId = getPermissionsId(permissionsRecord)
+        const perms = extractPermissions(permissionsRecord)
+
+        if (perms && Object.keys(perms).length > 0) {
+          setPermissionsData(perms)
+          setOriginalPermissions(perms)
+          setPermissionsId(fetchedId)
+          setIsEditMode(true)
+          setIsEditing(false)
+          setHasChanges(false)
+          setActivePermissionTab(Object.keys(perms)[0])
+          return
         }
+
+        setPermissionsData({})
+        setOriginalPermissions({})
+        setPermissionsId('')
+        setIsEditMode(false)
+        setIsEditing(true)
+        setHasChanges(false)
       } catch (err) {
         console.error('Error fetching permissions', err)
         setPermissionsData({})
+        setOriginalPermissions({})
+        setPermissionsId('')
         setIsEditMode(false)
+        setIsEditing(true)
+        setHasChanges(false)
       } finally {
         setLoading(false)
       }
     }
     fetchPermissions()
-  }, [staticClinicId, staticBranchId])
+  }, [])
+
+  const ensureEditing = () => {
+    if (isEditMode && !isEditing) {
+      setIsEditing(true)
+    }
+  }
 
   const handleAddFeature = () => {
+    ensureEditing()
+
     const feature = newFeatureName.trim()
     if (!feature) return
 
@@ -65,20 +134,68 @@ const FeatureManagement = () => {
     }))
     setActivePermissionTab(feature)
     setNewFeatureName('')
+    setHasChanges(true)
   }
 
+  // Open the confirmation popup instead of deleting immediately
   const handleDeleteFeature = (feature) => {
-    setPermissionsData(prev => {
-      const perms = { ...prev }
-      delete perms[feature]
-      return perms
-    })
-    if (activePermissionTab === feature) {
-      setActivePermissionTab('')
+    ensureEditing()
+    setFeatureToDelete(feature)
+    setDeleteModalVisible(true)
+  }
+
+  // Called when the user confirms deletion in the popup
+  const confirmDeleteFeature = async () => {
+    if (!featureToDelete) return
+    setDeleting(true)
+
+    const updatedPermissions = { ...permissionsData }
+    delete updatedPermissions[featureToDelete]
+
+    const afterDelete = () => {
+      setPermissionsData(updatedPermissions)
+      if (activePermissionTab === featureToDelete) {
+        setActivePermissionTab('')
+      }
+      setHasChanges(true)
+      toast.success(`'${featureToDelete}' removed from permissions.`)
+      setDeleting(false)
+      setDeleteModalVisible(false)
+      setFeatureToDelete('')
+    }
+
+    if (isEditMode && permissionsId) {
+      try {
+        const res = await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
+          permissions: updatedPermissions
+        })
+        const savedPerms = extractPermissions(res?.data)
+        if (savedPerms && Object.keys(savedPerms).length > 0) {
+          setPermissionsData(savedPerms)
+          setOriginalPermissions(savedPerms)
+        } else {
+          setPermissionsData(updatedPermissions)
+        }
+        setHasChanges(false)
+        toast.success(`'${featureToDelete}' deleted successfully.`)
+      } catch (err) {
+        console.error('Failed to delete feature from API', err)
+        toast.error('Failed to delete feature. Please try again.')
+      } finally {
+        setDeleting(false)
+        setDeleteModalVisible(false)
+        setFeatureToDelete('')
+        if (activePermissionTab === featureToDelete) {
+          setActivePermissionTab('')
+        }
+      }
+    } else {
+      afterDelete()
     }
   }
 
   const togglePermission = (feature, action) => {
+    if (isEditMode && !isEditing) return
     setPermissionsData(prev => {
       const perms = { ...prev }
       if (!perms[feature]) perms[feature] = []
@@ -89,9 +206,11 @@ const FeatureManagement = () => {
       }
       return perms
     })
+    setHasChanges(true)
   }
 
   const toggleAllActions = (feature) => {
+    if (isEditMode && !isEditing) return
     setPermissionsData(prev => {
       const perms = { ...prev }
       if (perms[feature] && perms[feature].length === availableActions.length) {
@@ -101,31 +220,55 @@ const FeatureManagement = () => {
       }
       return perms
     })
+    setHasChanges(true)
   }
 
   const handleSave = async () => {
     setLoading(true)
     try {
-      if (isEditMode) {
-        await axios.put(`http://localhost:8081/admin/updatePermissionsByClinicIdAndBranchId/${staticClinicId}/${staticBranchId}`, {
+      let res
+      if (isEditMode && permissionsId) {
+        res = await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
           permissions: permissionsData
         })
         toast.success('Permissions updated successfully!')
       } else {
-        await axios.post(`http://localhost:8081/admin/createPermisssions`, {
-          clinicId: staticClinicId,
-          branchId: staticBranchId,
+        res = await axios.post(`${MainAdmin_URL}/createPermissions`, {
           permissions: permissionsData
         })
         toast.success('Permissions created successfully!')
         setIsEditMode(true)
       }
+
+      const savedPerms = extractPermissions(res?.data)
+      if (savedPerms && Object.keys(savedPerms).length > 0) {
+        setPermissionsData(savedPerms)
+        setOriginalPermissions(savedPerms)
+      }
+
+      const responseData = getResponseData(res?.data)
+      const responseId = getPermissionsId(responseData)
+      if (responseId) {
+        setPermissionsId(responseId)
+      }
+      setHasChanges(false)
+      setIsEditing(false)
     } catch (err) {
       console.error('Failed to save permissions', err)
       toast.error('Failed to save permissions. Please try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEdit = () => {
+    setIsEditing(true)
+  }
+
+  const handleCancel = () => {
+    setPermissionsData(originalPermissions)
+    setIsEditing(false)
+    setHasChanges(false)
   }
 
   const t = {
@@ -147,18 +290,41 @@ const FeatureManagement = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h4 style={{ color: t.primary, margin: 0, fontWeight: '700' }}>Features & Permissions Management</h4>
-          <div style={{ fontSize: '13px', color: t.textMuted, marginTop: '4px' }}>
-            Clinic ID: {staticClinicId} | Branch ID: {staticBranchId}
-          </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className="btn btn-primary"
-          style={{ backgroundColor: t.primary, borderColor: t.primary }}
-        >
-          {loading ? 'Saving...' : 'Save Permissions'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {(!isEditMode || hasChanges || isEditing) ? (
+            <>
+              {isEditMode && (hasChanges || isEditing) && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="btn btn-light"
+                  style={{ color: t.text, borderColor: t.border, background: '#fff' }}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="btn btn-primary"
+                style={{ backgroundColor: t.primary, borderColor: t.primary }}
+              >
+                {loading ? 'Saving...' : 'Save Permissions'}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="btn btn-primary"
+              style={{ backgroundColor: t.primary, borderColor: t.primary }}
+            >
+              Edit Permissions
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '20px', border: `1px solid ${t.border}`, borderRadius: t.radius, overflow: 'hidden' }}>
@@ -263,6 +429,14 @@ const FeatureManagement = () => {
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isVisible={deleteModalVisible}
+        message={`Delete the feature '${featureToDelete}'? This action cannot be undone.`}
+        onConfirm={confirmDeleteFeature}
+        onCancel={() => { setDeleteModalVisible(false); setFeatureToDelete('') }}
+        confirmDisabled={deleting}
+      />
     </div>
   )
 }
