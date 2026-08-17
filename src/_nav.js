@@ -1,40 +1,21 @@
 import React from 'react'
+import { CNavItem } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-// import {
-//   cilBell,
-//   cilDescription,
-//   cilUser,
-//   cilNotes,
-//   cilPencil,
-//   cilPuzzle,
-//   cilApps,
-//   cilLayers,
-//   cilStar,
-//   cilHospital,
-//   cilShieldAlt,
-//   cilCash,
-//   cilChartLine,
-//   cilSpeaker,
-//   cilSettings,
-// } from '@coreui/icons'
-import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
-import appointmentIcon from './assets/images/avatars/calendar.png'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-// import CIcon from '@coreui/icons-react'
 import {
-  cilSpeedometer,
+  cilChartLine,
   cilCalendar,
-  cilUser,
   cilHospital,
   cilSettings,
-  cilApps,
-  cilList,
-  cilTag,
   cilBell,
-  // cilWalletva,
   cilWallet,
-  cilChartLine,
   cibGoogleAds,
+  cilLayers,
+  cilSitemap,
+  cilCreditCard,
+  cilPeople,
+  cilDescription,
+  cilLifeRing,
+  cilNotes,
 } from '@coreui/icons'
 
 const _nav = [
@@ -44,96 +25,84 @@ const _nav = [
     to: '/dashboard',
     icon: <CIcon icon={cilChartLine} customClassName="nav-icon" />,
   },
-
+  {
+    component: CNavItem,
+    name: 'Server Management',
+    to: '/server-management',
+    icon: <CIcon icon={cilLayers} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Clinic Management',
+    to: '/clinic-Management',
+    icon: <CIcon icon={cilHospital} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Branch Management',
+    to: '/branchManagement',
+    icon: <CIcon icon={cilSitemap} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Subscription Management',
+    to: '/subscription-management',
+    icon: <CIcon icon={cilCreditCard} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Users Management',
+    to: '/users-management',
+    icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
+  },
   {
     component: CNavItem,
     name: 'Appointment Management',
     to: '/appointment-management',
     icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
   },
-  // {
-  //   component: CNavItem,
-  //   name: 'Patient Management',
-  //   to: '/patient-management',
-  //   icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
-  // },
-
   {
     component: CNavItem,
-    name: 'Clinic Management ',
-    to: '/clinic-Management',
-    icon: <CIcon icon={cilHospital} customClassName="nav-icon" />,
+    name: 'Reports',
+    to: '/reports',
+    icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
-    name: 'Feature Permissions',
+    name: 'Payments',
+    to: '/payouts',
+    icon: <CIcon icon={cilWallet} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Notifications',
+    to: '/push-Notifications',
+    icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Support Center',
+    to: '/support-center',
+    icon: <CIcon icon={cilLifeRing} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Audit Logs',
+    to: '/audit-logs',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Settings',
     to: '/feature-management',
     icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
   },
-  // {
-  //   component: CNavItem,
-  //   name: 'Category Management',
-  //   to: '/category-management',
-
-  //   icon: <CIcon icon={cilApps} customClassName="nav-icon" />,
-  // },
-  // {
-  //   component: CNavItem,
-  //   name: 'Service Management',
-  //   to: '/service-management',
-  //   icon: <CIcon icon={cilSettings} customClassName="nav-icon" />,
-  // },
-  // {
-  //   component: CNavItem,
-  //   name: 'Procedure Management',
-  //   to: '/procedure-management',
-  //   icon: <CIcon icon={cilList} customClassName="nav-icon" />,
-  // },
-    {
-    component:CNavItem,
-    name:'Ads Management',
-    to:'/ads-management',
+  {
+    component: CNavItem,
+    name: 'Ads Management',
+    to: '/ads-management',
     icon: <CIcon icon={cibGoogleAds} customClassName="nav-icon" />,
   },
-  // {
-  //   component: CNavItem,
-  //   to: '/ads-management',
-  //   name: 'Category Ads Management',
-  //   icon: <CIcon icon={cilTag} customClassName="nav-icon" />,
-  // },
-  {
-    component: CNavItem,
-    to: '/ads-service-management',
-    name: 'Service Ads Management',
-    icon: <CIcon icon={cilTag} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    to: '/push-Notifications',
-    name: 'Push Notifications',
-    icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
-  },
-
-  {
-    component: CNavItem,
-    to: '/payouts',
-    name: 'Payouts',
-    icon: <CIcon icon={cilWallet} customClassName="nav-icon" />,
-  },
-  // {
-  //   component: CNavItem,
-  //   to: '/Doctors-Management',
-  //   name: 'Doctors Management',
-  //   icon: <CIcon icon={cilPencil} customClassName="nav-icon" />,
-
-  // },
-
-  // {
-  //   component: CNavItem,
-  //   name: 'Reports',
-  //   to: '/reports',
-  //   icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
-  // },
 ]
 
 export default _nav
