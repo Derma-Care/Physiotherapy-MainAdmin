@@ -32,9 +32,12 @@ const ReassignAppointment = React.lazy(
   () => import('./views/ReassignAppointmnet/reassginAppointemnt'),
 )
 const AdsManagement = React.lazy(() => import('./views/AdsManagement/AdsManagement'))
-const AdsServiceManagement = React.lazy(
-  () => import('./views/AdsServiceManagement/AdsServiceManagement'),
-)
+const ServerManagement = React.lazy(() => import('./views/serverManagement/ServerManagement'))
+const SubscriptionManagement = React.lazy(() => import('./views/subscriptionManagement/SubscriptionManagement'))
+const UsersManagement = React.lazy(() => import('./views/usersManagement/UsersManagement'))
+const Reports = React.lazy(() => import('./views/reports/Reports'))
+const SupportCenter = React.lazy(() => import('./views/supportCenter/SupportCenter'))
+const AuditLogs = React.lazy(() => import('./views/auditLogs/AuditLogs'))
 const FeatureManagement = React.lazy(() => import('./views/FeatureManagement/FeatureManagement'))
 const DoctorDetailsPage = React.lazy(() => import('./views/Doctors/DoctorDetailsPage'))
 
@@ -85,7 +88,12 @@ const routes = [
   { path: '/reassign-Appointment', name: 'Reassign Appointment', element: ReassignAppointment },
   { path: '/ads-management', name: 'Ads Management', element: AdsManagement },
   { path: '/payouts', name: 'Payouts', element: Payouts },
-  { path: '/ads-service-management', name: 'Ads Service Management', element: AdsServiceManagement },
+  { path: '/server-management', name: 'Server Management', element: ServerManagement },
+  { path: '/subscription-management', name: 'Subscription Management', element: SubscriptionManagement },
+  { path: '/users-management', name: 'Users Management', element: UsersManagement },
+  { path: '/reports', name: 'Reports', element: Reports },
+  { path: '/support-center', name: 'Support Center', element: SupportCenter },
+  { path: '/audit-logs', name: 'Audit Logs', element: AuditLogs },
   { path: '/feature-management', name: 'Feature Management', element: FeatureManagement },
   { path: '/provider-management/:id', name: 'Patient View Details', element: PatientViewDetails },
   { path: '/clinicDetails', name: 'ClinicDetails', element: ClinicManagementDetails },

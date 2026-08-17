@@ -1,13 +1,22 @@
 import React, { useEffect, useState } from 'react'
- 
+
 import { ClinicAllData, BASE_URL } from '../../baseUrl'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, Search, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import {
-  CTable, CTableHead, CTableBody, CTableRow,
-  CTableHeaderCell, CTableDataCell,
-  CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter,
-  CButton, CFormSelect,
+  CTable,
+  CTableHead,
+  CTableBody,
+  CTableRow,
+  CTableHeaderCell,
+  CTableDataCell,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
+  CButton,
+  CFormSelect,
 } from '@coreui/react'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import { statusapi } from '../../baseUrl'
@@ -19,31 +28,36 @@ import axios from 'axios'
 ═══════════════════════════════════════════════════════ */
 const mapBackendStatusToUI = (status) => {
   switch (status) {
-    case 'PENDING':                  return 'pending'
-    case 'VERIFICATION_IN_PROGRESS': return 'start'
-    case 'VERIFIED':                 return 'verified'
-    case 'REJECTED':                 return 'rejected'
-    default:                         return 'pending'
+    case 'PENDING':
+      return 'pending'
+    case 'VERIFICATION_IN_PROGRESS':
+      return 'start'
+    case 'VERIFIED':
+      return 'verified'
+    case 'REJECTED':
+      return 'rejected'
+    default:
+      return 'pending'
   }
 }
 
 const UI_TO_BACKEND = {
-  pending:  'PENDING',
-  start:    'VERIFICATION_IN_PROGRESS',
+  pending: 'PENDING',
+  start: 'VERIFICATION_IN_PROGRESS',
   verified: 'VERIFIED',
   rejected: 'REJECTED',
 }
 
 const STATUS_LABEL = {
-  pending:  'Pending',
-  start:    'Started',
+  pending: 'Pending',
+  start: 'Started',
   verified: 'Verified',
   rejected: 'Rejected',
 }
 
 const statusStyles = {
-  pending:  { backgroundColor: '#FFE4B5', color: '#8B4513', fontWeight: '600' },
-  start:    { backgroundColor: '#BEE3F8', color: '#0C4A6E', fontWeight: '600' },
+  pending: { backgroundColor: '#FFE4B5', color: '#8B4513', fontWeight: '600' },
+  start: { backgroundColor: '#BEE3F8', color: '#0C4A6E', fontWeight: '600' },
   verified: { backgroundColor: '#C6F6D5', color: '#22543D', fontWeight: '600' },
   rejected: { backgroundColor: '#FED7D7', color: '#822727', fontWeight: '600' },
 }
@@ -63,22 +77,22 @@ const ClinicManagement = ({ service, onBack }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [clinics,       setClinics]       = useState([])
-  const [loading,       setLoading]       = useState(false)
+  const [clinics, setClinics] = useState([])
+  const [loading, setLoading] = useState(false)
   const [statusLoading, setStatusLoading] = useState(false)
-  const [error,         setError]         = useState(null)
-  const [searchTerm,    setSearchTerm]    = useState('')
+  const [error, setError] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
-  const [categories,    setCategories]    = useState([])
-  const [currentPage,   setCurrentPage]   = useState(1)
-  const [itemsPerPage,  setItemsPerPage]  = useState(5)
+  const [categories, setCategories] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const [confirmModal, setConfirmModal] = useState({
-    visible:    false,
-    clinicId:   null,
+    visible: false,
+    clinicId: null,
     clinicName: '',
     fromStatus: '',
-    toStatus:   '',
+    toStatus: '',
   })
 
   const handleAddClinic = () => {
@@ -134,16 +148,22 @@ const ClinicManagement = ({ service, onBack }) => {
     if (currentUI === uiStatus) return
 
     setConfirmModal({
-      visible:    true,
+      visible: true,
       clinicId,
       clinicName: clinic.name,
       fromStatus: currentUI,
-      toStatus:   uiStatus,
+      toStatus: uiStatus,
     })
   }
 
   const closeModal = () =>
-    setConfirmModal({ visible: false, clinicId: null, clinicName: '', fromStatus: '', toStatus: '' })
+    setConfirmModal({
+      visible: false,
+      clinicId: null,
+      clinicName: '',
+      fromStatus: '',
+      toStatus: '',
+    })
 
   const handleConfirmStatusChange = async () => {
     const { clinicId, toStatus, clinicName } = confirmModal
@@ -162,14 +182,18 @@ const ClinicManagement = ({ service, onBack }) => {
         await statusapi.verifyClinic(clinicId)
       } else if (toStatus === 'rejected') {
         const reason =
-          window.prompt(`Enter rejection reason for "${clinicName}":`, 'Invalid documents submitted') ||
-          'Invalid documents submitted'
+          window.prompt(
+            `Enter rejection reason for "${clinicName}":`,
+            'Invalid documents submitted',
+          ) || 'Invalid documents submitted'
         await statusapi.rejectClinic(clinicId, reason)
       }
       await fetchClinics()
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data || err.message
-      alert(`Failed to update status.\n\nReason: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`)
+      alert(
+        `Failed to update status.\n\nReason: ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`,
+      )
       await fetchClinics()
     } finally {
       setStatusLoading(false)
@@ -184,12 +208,14 @@ const ClinicManagement = ({ service, onBack }) => {
       c.emailAddress?.toLowerCase().startsWith(searchTerm.toLowerCase()),
   )
 
-  useEffect(() => { setCurrentPage(1) }, [searchTerm, filterCategory])
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterCategory])
 
-  const indexOfLastItem  = currentPage * itemsPerPage
+  const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems     = filteredClinics.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages       = Math.ceil(filteredClinics.length / itemsPerPage)
+  const currentItems = filteredClinics.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredClinics.length / itemsPerPage)
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page)
@@ -271,15 +297,15 @@ const ClinicManagement = ({ service, onBack }) => {
         </CModalHeader>
         <CModalBody>
           <p style={{ marginBottom: 0 }}>
-            Are you sure you want to change{' '}
-            <strong>{confirmModal.clinicName}</strong>'s status from{' '}
+            Are you sure you want to change <strong>{confirmModal.clinicName}</strong>'s status from{' '}
             <span style={badgeStyle(confirmModal.fromStatus)}>
               {STATUS_LABEL[confirmModal.fromStatus]}
             </span>{' '}
             to{' '}
             <span style={badgeStyle(confirmModal.toStatus)}>
               {STATUS_LABEL[confirmModal.toStatus]}
-            </span>?
+            </span>
+            ?
           </p>
           {confirmModal.toStatus === 'verified' && (
             <p className="mt-2 text-success" style={{ fontSize: 13 }}>
@@ -288,7 +314,8 @@ const ClinicManagement = ({ service, onBack }) => {
           )}
           {confirmModal.toStatus === 'rejected' && (
             <p className="mt-2 text-danger" style={{ fontSize: 13 }}>
-              ❌ You will be asked to enter a rejection reason. A rejection email will be sent to the clinic.
+              ❌ You will be asked to enter a rejection reason. A rejection email will be sent to
+              the clinic.
             </p>
           )}
           {confirmModal.toStatus === 'start' && (
@@ -298,7 +325,9 @@ const ClinicManagement = ({ service, onBack }) => {
           )}
         </CModalBody>
         <CModalFooter>
-          <CButton color="secondary" onClick={closeModal}>No, Cancel</CButton>
+          <CButton color="secondary" onClick={closeModal}>
+            No, Cancel
+          </CButton>
           <CButton
             style={{ backgroundColor: '#185fa5', color: '#fff' }}
             onClick={handleConfirmStatusChange}
@@ -310,11 +339,16 @@ const ClinicManagement = ({ service, onBack }) => {
       </CModal>
 
       {/* ── Page Header ── */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', marginBottom: '20px',
-        flexWrap: 'wrap', gap: '12px',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
         <div>
           <h5 style={{ color: '#185fa5', fontWeight: '700', margin: 0, fontSize: '18px' }}>
             {service?.categoryName ? `${service.categoryName} Clinics` : 'Clinic Management'}
@@ -326,11 +360,18 @@ const ClinicManagement = ({ service, onBack }) => {
         <button
           onClick={handleAddClinic}
           style={{
-            display: 'flex', alignItems: 'center', gap: '7px',
-            padding: '8px 18px', borderRadius: '10px',
-            background: '#185fa5', color: '#fff',
-            border: 'none', fontWeight: '600', fontSize: '13px',
-            cursor: 'pointer', boxShadow: '0 4px 12px rgba(24,95,165,0.28)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '8px 18px',
+            borderRadius: '10px',
+            background: '#185fa5',
+            color: '#fff',
+            border: 'none',
+            fontWeight: '600',
+            fontSize: '13px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(24,95,165,0.28)',
             transition: 'background 0.15s',
           }}
           onMouseOver={(e) => (e.currentTarget.style.background = '#0c447c')}
@@ -341,17 +382,31 @@ const ClinicManagement = ({ service, onBack }) => {
       </div>
 
       {/* ── Search + Filter Bar ── */}
-      <div style={{
-        background: '#fff', borderRadius: '14px', padding: '14px 18px',
-        marginBottom: '16px', boxShadow: '0 2px 12px rgba(24,95,165,0.07)',
-        border: '1px solid #e8eef5',
-        display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
-      }}>
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: '14px',
+          padding: '14px 18px',
+          marginBottom: '16px',
+          boxShadow: '0 2px 12px rgba(24,95,165,0.07)',
+          border: '1px solid #e8eef5',
+          display: 'flex',
+          gap: '12px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
         <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-          <Search size={14} style={{
-            position: 'absolute', left: '11px', top: '50%',
-            transform: 'translateY(-50%)', color: '#9ca3af',
-          }} />
+          <Search
+            size={14}
+            style={{
+              position: 'absolute',
+              left: '11px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#9ca3af',
+            }}
+          />
           <input
             type="text"
             className="cm-search-input"
@@ -359,9 +414,12 @@ const ClinicManagement = ({ service, onBack }) => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
-              width: '100%', padding: '8px 12px 8px 34px',
-              border: '1.5px solid #e5e7eb', borderRadius: '9px',
-              fontSize: '13px', color: '#374151',
+              width: '100%',
+              padding: '8px 12px 8px 34px',
+              border: '1.5px solid #e5e7eb',
+              borderRadius: '9px',
+              fontSize: '13px',
+              color: '#374151',
               transition: 'border-color 0.2s, box-shadow 0.2s',
             }}
           />
@@ -369,10 +427,16 @@ const ClinicManagement = ({ service, onBack }) => {
             <button
               onClick={() => setSearchTerm('')}
               style={{
-                position: 'absolute', right: '10px', top: '50%',
-                transform: 'translateY(-50%)', background: 'none',
-                border: 'none', cursor: 'pointer', color: '#9ca3af',
-                display: 'flex', alignItems: 'center',
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9ca3af',
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
               <X size={13} />
@@ -380,7 +444,7 @@ const ClinicManagement = ({ service, onBack }) => {
           )}
         </div>
 
-        <select
+        {/* <select
           className="cm-filter-select"
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
@@ -397,24 +461,44 @@ const ClinicManagement = ({ service, onBack }) => {
               {cat.categoryName}
             </option>
           ))}
-        </select>
+        </select> */}
       </div>
 
       {/* ── Table Card ── */}
-      <div style={{
-        background: '#fff', borderRadius: '14px', overflow: 'hidden',
-        boxShadow: '0 2px 12px rgba(24,95,165,0.08)', border: '1px solid #e8eef5',
-      }}>
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: '14px',
+          overflow: 'hidden',
+          boxShadow: '0 2px 12px rgba(24,95,165,0.08)',
+          border: '1px solid #e8eef5',
+        }}
+      >
         {loading ? (
           <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center' }}>
             <LoadingIndicator message="Fetching clinic details, please wait..." />
           </div>
         ) : error ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
-            <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>{error}
+          <div
+            style={{
+              padding: '60px 20px',
+              textAlign: 'center',
+              color: '#9ca3af',
+              fontSize: '14px',
+            }}
+          >
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>⚠️</div>
+            {error}
           </div>
         ) : filteredClinics.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+          <div
+            style={{
+              padding: '60px 20px',
+              textAlign: 'center',
+              color: '#9ca3af',
+              fontSize: '14px',
+            }}
+          >
             <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏥</div>No clinics found.
           </div>
         ) : (
@@ -422,7 +506,15 @@ const ClinicManagement = ({ service, onBack }) => {
             <CTable className="cm-table mb-0" hover responsive>
               <CTableHead>
                 <CTableRow>
-                  {['S.No', 'Clinic Name', 'Contact Number', 'Email Address', 'City', 'Status', 'Actions'].map((h) => (
+                  {[
+                    'S.No',
+                    'Clinic Name',
+                    'Contact Number',
+                    'Email Address',
+                    'City',
+                    'Status',
+                    'Actions',
+                  ].map((h) => (
                     <CTableHeaderCell key={h} className={h === 'Actions' ? 'text-center' : ''}>
                       {h}
                     </CTableHeaderCell>
@@ -434,22 +526,33 @@ const ClinicManagement = ({ service, onBack }) => {
                   const uiStatus = mapBackendStatusToUI(clinic.status)
                   return (
                     <CTableRow key={clinic?.hospitalId || index}>
-                      <CTableDataCell style={{ color: '#9ca3af', fontWeight: '600', fontSize: '12px' }}>
+                      <CTableDataCell
+                        style={{ color: '#9ca3af', fontWeight: '600', fontSize: '12px' }}
+                      >
                         {indexOfFirstItem + index + 1}
                       </CTableDataCell>
-                      <CTableDataCell style={{ fontWeight: '500' }}>{clinic?.name || '—'}</CTableDataCell>
+                      <CTableDataCell style={{ fontWeight: '500' }}>
+                        {clinic?.name || '—'}
+                      </CTableDataCell>
                       <CTableDataCell>{clinic?.contactNumber || '—'}</CTableDataCell>
                       <CTableDataCell>{clinic?.emailAddress || '—'}</CTableDataCell>
                       <CTableDataCell>
                         {clinic?.city ? (
-                          <span style={{
-                            padding: '2px 10px', borderRadius: '20px',
-                            fontSize: '11px', fontWeight: '600',
-                            background: '#e6f1fb', color: '#0c447c',
-                          }}>
+                          <span
+                            style={{
+                              padding: '2px 10px',
+                              borderRadius: '20px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              background: '#e6f1fb',
+                              color: '#0c447c',
+                            }}
+                          >
                             {clinic.city}
                           </span>
-                        ) : '—'}
+                        ) : (
+                          '—'
+                        )}
                       </CTableDataCell>
 
                       {/* ── Status Dropdown ── */}
@@ -490,35 +593,62 @@ const ClinicManagement = ({ service, onBack }) => {
             </CTable>
 
             {/* ── Pagination ── */}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              alignItems: 'center', padding: '12px 18px',
-              borderTop: '1px solid #f0f0f0', flexWrap: 'wrap', gap: '10px',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 18px',
+                borderTop: '1px solid #f0f0f0',
+                flexWrap: 'wrap',
+                gap: '10px',
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>
                   Rows per page:
                 </span>
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
                   style={{
-                    padding: '5px 8px', border: '1.5px solid #e5e7eb',
-                    borderRadius: '7px', fontSize: '12px', color: '#374151',
-                    cursor: 'pointer', outline: 'none', background: '#fff',
+                    padding: '5px 8px',
+                    border: '1.5px solid #e5e7eb',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    background: '#fff',
                   }}
                 >
-                  {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+                  {[5, 10, 25, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button className="cm-page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}>
+                <button
+                  className="cm-page-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
                   <ChevronLeft size={13} /> Prev
                 </button>
                 {getPaginationPages().map((p, i) =>
                   p === '…' ? (
-                    <span key={`e${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 2px' }}>…</span>
+                    <span
+                      key={`e${i}`}
+                      style={{ fontSize: '12px', color: '#9ca3af', padding: '0 2px' }}
+                    >
+                      …
+                    </span>
                   ) : (
                     <button
                       key={p}
@@ -527,13 +657,25 @@ const ClinicManagement = ({ service, onBack }) => {
                     >
                       {p}
                     </button>
-                  )
+                  ),
                 )}
-                <button className="cm-page-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>
+                <button
+                  className="cm-page-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
                   Next <ChevronRight size={13} />
                 </button>
-                <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>
-                  Page <strong style={{ color: '#185fa5' }}>{currentPage}</strong> of <strong style={{ color: '#185fa5' }}>{totalPages}</strong>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginLeft: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Page <strong style={{ color: '#185fa5' }}>{currentPage}</strong> of{' '}
+                  <strong style={{ color: '#185fa5' }}>{totalPages}</strong>
                 </span>
               </div>
             </div>
