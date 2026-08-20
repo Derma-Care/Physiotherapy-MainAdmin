@@ -186,6 +186,79 @@ const TABS = [
 const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/
 const normalizeWebsite = (url) => !/^https?:\/\//i.test(url) ? 'https://' + url : url
 
+
+// Subscription date helpers
+const formatDate = (date) => {
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${day}-${month}-${year}`
+}
+
+const calculateSubscriptionDates = (subscriptionType) => {
+  if (!subscriptionType) {
+    return {
+      startDate: '',
+      endDate: '',
+    }
+  }
+
+  const startDate = new Date()
+  startDate.setHours(0, 0, 0, 0)
+
+  const endDate = new Date(startDate)
+
+  switch (subscriptionType) {
+    case 'Monthly':
+      endDate.setMonth(endDate.getMonth() + 1)
+      break
+
+    case 'Quarterly':
+      endDate.setMonth(endDate.getMonth() + 3)
+      break
+
+    case 'Half Yearly':
+      endDate.setMonth(endDate.getMonth() + 6)
+      break
+
+    case 'Yearly':
+    case 'First Year':
+      endDate.setFullYear(endDate.getFullYear() + 1)
+      break
+
+    case 'Second Year':
+      endDate.setFullYear(endDate.getFullYear() + 2)
+      break
+
+    case 'Third Year':
+      endDate.setFullYear(endDate.getFullYear() + 3)
+      break
+
+    case 'Fourth Year':
+      endDate.setFullYear(endDate.getFullYear() + 4)
+      break
+
+    case 'Fifth Year':
+      endDate.setFullYear(endDate.getFullYear() + 5)
+      break
+
+    default:
+      return {
+        startDate: '',
+        endDate: '',
+      }
+  }
+
+  // End date is one day before the next subscription period
+  endDate.setDate(endDate.getDate() - 1)
+
+  return {
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+  }
+}
+
 const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, clinicTypeOption) => {
   const errs = {}
   if (tabId === 0) {
@@ -276,7 +349,13 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     hasPharmacist: '', pharmacistCertificate: null, biomedicalWasteManagementAuth: null,
     tradeLicense: null, fireSafetyCertificate: null, professionalIndemnityInsurance: null,
     gstRegistrationCertificate: null, newFeatureInput: '', others: [], consultationExpiration: '',
-    subscription: '', instagramHandle: '', twitterHandle: '', facebookHandle: '',
+    subscription: '',
+subscriptionDates: '',
+subscriptionStartDate: '',
+subscriptionEndDate: '',
+instagramHandle: '',
+twitterHandle: '',
+facebookHandle: '',
     latitude: '', longitude: '', walkthrough: '', location: '', branch: '', loyaltyPoints: '', nabhScore: null,
     permissions: {},
   })
@@ -718,7 +797,12 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         consultationExpiration: formData.consultationExpiration
           ? (String(formData.consultationExpiration).includes('day') ? formData.consultationExpiration : `${formData.consultationExpiration} days`)
           : '',
-        subscription: formData.subscription, latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
+        subscription: formData.subscription,
+subscriptionDates: formData.subscriptionDates,
+subscriptionStartDate: formData.subscriptionStartDate,
+subscriptionEndDate: formData.subscriptionEndDate,
+
+latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
         walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
         // FIX: only the permissions actually given, not every master placeholder.
         permissions: finalPermissions,
@@ -908,12 +992,69 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         <Field label="Subscription" error={errors.subscription}>
           <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
             <option value="">Select Subscription</option>
-            <option value="Free">Free</option>
             <option value="Basic">Basic</option>
-            <option value="Standard">Standard</option>
-            <option value="Premium">Premium</option>
+            <option value="Pro">Pro</option>
+            <option value="Elite">Elite</option>
+            <option value="Enterprise">Enterprise</option>
           </StyledSelect>
         </Field>
+        <Field label="Subscription Mode" error={errors.subscriptionDates}>
+  <StyledSelect
+    name="subscriptionDates"
+    value={formData.subscriptionDates || ''}
+    error={errors.subscriptionDates}
+    onChange={(e) => {
+      const subscriptionType = e.target.value
+
+      const { startDate, endDate } =
+        calculateSubscriptionDates(subscriptionType)
+
+      setFormData(prev => ({
+        ...prev,
+        subscriptionDates: subscriptionType,
+        subscriptionStartDate: startDate,
+        subscriptionEndDate: endDate,
+      }))
+
+      setErrors(prev => ({
+        ...prev,
+        subscriptionDates: '',
+      }))
+    }}
+  >
+    <option value="">Select Subscription Period</option>
+    <option value="Monthly">Monthly</option>
+    <option value="Quarterly">Quarterly</option>
+    <option value="Half Yearly">Half Yearly</option>
+    <option value="Yearly">Yearly</option>
+    <option value="First Year">First Year</option>
+    <option value="Second Year">Second Year</option>
+    <option value="Third Year">Third Year</option>
+    <option value="Fourth Year">Fourth Year</option>
+    <option value="Fifth Year">Fifth Year</option>
+  </StyledSelect>
+
+  {formData.subscriptionStartDate &&
+    formData.subscriptionEndDate && (
+      <div
+        style={{
+          marginTop: '8px',
+          padding: '8px 10px',
+          borderRadius: t.radiusSm,
+          backgroundColor: '#f0f4ff',
+          border: `1px solid ${t.border}`,
+          fontSize: '12px',
+          color: t.primary,
+          fontWeight: '600',
+        }}
+      >
+        📅 Start Date: {formData.subscriptionStartDate}
+        <br />
+        📅 End Date: {formData.subscriptionEndDate}
+      </div>
+    )}
+</Field>
+
         <Field label="Consultation Expiration (days)" required error={errors.consultationExpiration}>
           <Input type="text" name="consultationExpiration" value={formData.consultationExpiration}
             error={errors.consultationExpiration} placeholder="01–99"

@@ -69,6 +69,8 @@ const AddBranchForm = ({ clinicId }) => {
     branchName: '', address: '', city: '',
     contactNumber: '', email: '',
     latitude: '', longitude: '', virtualClinicTour: '', location: '',
+    branchImage: '',
+    adminName: '',
   }
   const [formData, setFormData] = useState(initialForm)
 
@@ -103,6 +105,8 @@ const buildBranchPayload = (currentData) => {
     ...currentData,
     location: cleanUrl(currentData.location),
     virtualClinicTour: cleanUrl(currentData.virtualClinicTour),
+    branchImage: currentData.branchImage || '',
+    adminName: currentData.adminName || '',
   }
 }
 
@@ -118,6 +122,10 @@ const buildBranchPayload = (currentData) => {
     const errs = {}
     if (!formData.branchName || !/^.{3,50}$/.test(formData.branchName.trim()) || !/[A-Za-z]/.test(formData.branchName))
       errs.branchName = 'Branch Name must be 3–50 characters and contain at least one letter.'
+    if (formData.adminName && formData.adminName.trim() !== '') {
+      if (!/^[A-Za-z\s]{2,50}$/.test(formData.adminName.trim()))
+        errs.adminName = 'Admin Name must be 2–50 letters and spaces.'
+    }
     if (!formData.clinicId || !/^\d{1,10}$/.test(String(formData.clinicId).trim()))
       errs.clinicId = 'Clinic ID must be 1–10 digits.'
     if (!formData.address || formData.address.trim().length < 5 || formData.address.trim().length > 500 || !/[A-Za-z]/.test(formData.address))
@@ -197,6 +205,8 @@ const handleSubmit = async () => {
       longitude: branch.longitude || '',
       virtualClinicTour: branch.virtualClinicTour || '',
       location: branch.location || '',
+      branchImage: branch.branchImage || '',
+      adminName: branch.adminName || '',
     })
     setValidationErrors({})
     setModalVisible(true)
@@ -506,6 +516,14 @@ const handleSubmit = async () => {
               </Field>
             </CCol>
             <CCol md={6}>
+              <Field label="Admin Name" error={validationErrors.adminName}>
+                <input className="abf-input" style={inp(!!validationErrors.adminName, false)}
+                  name="adminName" value={formData.adminName}
+                  placeholder="e.g. Neha.."
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={6}>
               <Field label="Address" required error={validationErrors.address}>
                 <input className="abf-input" style={inp(!!validationErrors.address, false)}
                   name="address" value={formData.address}
@@ -570,15 +588,44 @@ const handleSubmit = async () => {
               </Field>
             </CCol>
             <CCol md={12}>
-  <Field label="Clinic Location URL" error={validationErrors.location}>
-    <input className="abf-input"
-      style={inp(!!validationErrors.location, false)}
-      name="location" value={formData.location}
-      placeholder="https://..."
-      onChange={handleChange} />
-      
-  </Field>
-</CCol>
+              <Field label="Clinic Location URL" error={validationErrors.location}>
+                <input className="abf-input"
+                  style={inp(!!validationErrors.location, false)}
+                  name="location" value={formData.location}
+                  placeholder="https://..."
+                  onChange={handleChange} />
+              </Field>
+            </CCol>
+            <CCol md={12}>
+              <Field label="Branch Image">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="abf-input"
+                  style={{ ...inp(false, false), cursor: 'pointer' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        const base64String = reader.result?.split(',')[1] || ''
+                        setFormData((p) => ({ ...p, branchImage: base64String }))
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }} 
+                />
+                {formData.branchImage && (
+                  <div style={{ marginTop: '10px' }}>
+                    <img 
+                      src={`data:image/jpeg;base64,${formData.branchImage}`} 
+                      alt="Branch Preview" 
+                      style={{ maxWidth: '120px', borderRadius: '8px', border: '1px solid #e5e7eb' }} 
+                    />
+                  </div>
+                )}
+              </Field>
+            </CCol>
           </CRow>
         </CModalBody>
 

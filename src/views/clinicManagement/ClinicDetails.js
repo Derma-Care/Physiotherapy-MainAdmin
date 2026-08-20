@@ -31,7 +31,9 @@ const REQUIRED_ADDITIONAL = [
   'freeFollowUps', 'latitude', 'longitude', 'branch', 'address',
 ]
 const OPTIONAL_ADDITIONAL = [
-  'city', 'website', 'issuingAuthority', 'subscription', 'licenseNumber', 'walkthrough',
+  'city', 'website', 'issuingAuthority', 'subscription',
+  'subscriptionDates', 'subscriptionStartDate', 'subscriptionEndDate',
+  'licenseNumber', 'walkthrough',
   'location', 'loyaltyPoints', 'nabhScore',
   'hospitalDocuments', 'contractorDocuments', 'businessRegistrationCertificate',
   'biomedicalWasteManagementAuth', 'tradeLicense', 'fireSafetyCertificate',
@@ -59,6 +61,79 @@ const buildPayload = (data, requiredKeys, optionalKeys, baseData = {}) => {
 
 const hasDocValue = (v) =>
   v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0)
+
+// Subscription date helpers — mirrors the calculation used in AddClinic.jsx so
+// the "Edit Clinic" flow computes the same start/end dates for a given period.
+const formatDate = (date) => {
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${day}-${month}-${year}`
+}
+
+const calculateSubscriptionDates = (subscriptionType) => {
+  if (!subscriptionType) {
+    return {
+      startDate: '',
+      endDate: '',
+    }
+  }
+
+  const startDate = new Date()
+  startDate.setHours(0, 0, 0, 0)
+
+  const endDate = new Date(startDate)
+
+  switch (subscriptionType) {
+    case 'Monthly':
+      endDate.setMonth(endDate.getMonth() + 1)
+      break
+
+    case 'Quarterly':
+      endDate.setMonth(endDate.getMonth() + 3)
+      break
+
+    case 'Half Yearly':
+      endDate.setMonth(endDate.getMonth() + 6)
+      break
+
+    case 'Yearly':
+    case 'First Year':
+      endDate.setFullYear(endDate.getFullYear() + 1)
+      break
+
+    case 'Second Year':
+      endDate.setFullYear(endDate.getFullYear() + 2)
+      break
+
+    case 'Third Year':
+      endDate.setFullYear(endDate.getFullYear() + 3)
+      break
+
+    case 'Fourth Year':
+      endDate.setFullYear(endDate.getFullYear() + 4)
+      break
+
+    case 'Fifth Year':
+      endDate.setFullYear(endDate.getFullYear() + 5)
+      break
+
+    default:
+      return {
+        startDate: '',
+        endDate: '',
+      }
+  }
+
+  // End date is one day before the next subscription period
+  endDate.setDate(endDate.getDate() - 1)
+
+  return {
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+  }
+}
 
 const inp = (hasErr, disabled) => ({
   width: '100%',
@@ -675,10 +750,67 @@ const syncBranchRecord = async (prevClinic, newClinic) => {
                         onChange={(e) => { set('subscription', e.target.value); clearErr('subscription') }}
                       >
                         <option value="">Select subscription</option>
-                        {['Free', 'Basic', 'Standard', 'Premium'].map((s) => (
+                        {['Basic', 'Expensive', 'Pro', 'Elite'].map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
+                    </Field>
+                  </CCol>
+                  )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.subscriptionDates)) && (
+                  <CCol md={6}>
+                    <Field label="Subscription Period" error={formErrors.subscriptionDates}>
+                      <select
+                        className="cd-input"
+                        style={inp(!!formErrors.subscriptionDates, !isEditingAdditional)}
+                        value={editableClinicData.subscriptionDates || ''}
+                        disabled={!isEditingAdditional}
+                        onChange={(e) => {
+                          const subscriptionType = e.target.value
+
+                          const { startDate, endDate } =
+                            calculateSubscriptionDates(subscriptionType)
+
+                          setEditableClinicData((p) => ({
+                            ...p,
+                            subscriptionDates: subscriptionType,
+                            subscriptionStartDate: startDate,
+                            subscriptionEndDate: endDate,
+                          }))
+
+                          clearErr('subscriptionDates')
+                        }}
+                      >
+                        <option value="">Select Subscription Period</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Half Yearly">Half Yearly</option>
+                        <option value="Yearly">Yearly</option>
+                        <option value="First Year">First Year</option>
+                        <option value="Second Year">Second Year</option>
+                        <option value="Third Year">Third Year</option>
+                        <option value="Fourth Year">Fourth Year</option>
+                        <option value="Fifth Year">Fifth Year</option>
+                      </select>
+
+                      {editableClinicData.subscriptionStartDate && editableClinicData.subscriptionEndDate && (
+                        <div
+                          style={{
+                            marginTop: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            backgroundColor: '#f0f4ff',
+                            border: '1px solid #e5e7eb',
+                            fontSize: '12px',
+                            color: '#1a3a6b',
+                            fontWeight: '600',
+                          }}
+                        >
+                          📅 Start Date: {editableClinicData.subscriptionStartDate}
+                          <br />
+                          📅 End Date: {editableClinicData.subscriptionEndDate}
+                        </div>
+                      )}
                     </Field>
                   </CCol>
                   )}

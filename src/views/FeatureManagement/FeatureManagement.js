@@ -12,10 +12,19 @@ const FeatureManagement = () => {
   const [hasChanges, setHasChanges] = useState(false)
   const [originalPermissions, setOriginalPermissions] = useState({})
   const [permissionsId, setPermissionsId] = useState('')
+  const [selectedPlan, setSelectedPlan] = useState('Basic')
+  
+  // New state to hold permissions for ALL plans
+  const [fullPermissionsData, setFullPermissionsData] = useState({
+    Basic: {},
+    Pro: {},
+    Elite: {},
+    Enterprise: {}
+  })
 
-  const [permissionsData, setPermissionsData] = useState({})
   const [activePermissionTab, setActivePermissionTab] = useState('')
   const [newFeatureName, setNewFeatureName] = useState('')
+  const [customFeatures, setCustomFeatures] = useState([]) // newly added features in this session
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [featureToDelete, setFeatureToDelete] = useState('')
@@ -67,48 +76,78 @@ const FeatureManagement = () => {
     return record._id || record.id || record.permissionsId || record.permissionId || ''
   }
 
-  // Fetch permissions on mount
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      setLoading(true)
-      try {
-        const listRes = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
-        const items = getPermissionsItems(listRes.data)
-        const firstItem = items.length > 0 ? items[0] : null
-        const permissionsRecord = firstItem || null
-        const fetchedId = getPermissionsId(permissionsRecord)
-        const perms = extractPermissions(permissionsRecord)
+  const loadData = (body, plan) => {
+    const items = getPermissionsItems(body)
+    const record = items.length > 0 ? items[0] : null
+    
+    if (record) {
+      setPermissionsId(getPermissionsId(record))
+      const perms = extractPermissions(record) || {}
+      
+      // Determine if this is the new structured format or the old flat format
+      const hasPlanKeys = Object.keys(perms).some(key => ['Basic', 'Pro', 'Elite', 'Enterprise'].includes(key))
+      
+      let parsedFullData = {
+        Basic: {},
+        Pro: {},
+        Elite: {},
+        Enterprise: {}
+      }
 
-        if (perms && Object.keys(perms).length > 0) {
-          setPermissionsData(perms)
-          setOriginalPermissions(perms)
-          setPermissionsId(fetchedId)
-          setIsEditMode(true)
-          setIsEditing(false)
-          setHasChanges(false)
-          setActivePermissionTab(Object.keys(perms)[0])
-          return
-        }
-
-        setPermissionsData({})
-        setOriginalPermissions({})
-        setPermissionsId('')
-        setIsEditMode(false)
-        setIsEditing(true)
+      if (hasPlanKeys) {
+        parsedFullData = { ...parsedFullData, ...perms }
+      } else if (Object.keys(perms).length > 0) {
+        // It's the old flat format, map everything to Basic
+        parsedFullData.Basic = perms
+      }
+      
+      setFullPermissionsData(parsedFullData)
+      
+      // Set Original Permissions to the full parsed data
+      setOriginalPermissions(parsedFullData)
+      
+      const allFeatures = ['Basic', 'Pro', 'Elite', 'Enterprise'].flatMap(p => Object.keys(parsedFullData[p] || {}))
+      
+      if (allFeatures.length > 0) {
+        setIsEditMode(true)
+        setIsEditing(false)
         setHasChanges(false)
-      } catch (err) {
-        console.error('Error fetching permissions', err)
-        setPermissionsData({})
-        setOriginalPermissions({})
-        setPermissionsId('')
-        setIsEditMode(false)
-        setIsEditing(true)
-        setHasChanges(false)
-      } finally {
-        setLoading(false)
+        setActivePermissionTab(allFeatures[0])
+        return
       }
     }
+
+    setFullPermissionsData({ Basic: {}, Pro: {}, Elite: {}, Enterprise: {} })
+    setOriginalPermissions({})
+    setIsEditMode(false)
+    setIsEditing(true)
+    setHasChanges(false)
+    setActivePermissionTab('')
+
+  }
+
+  const fetchPermissions = async () => {
+    setLoading(true)
+    try {
+      const listRes = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
+      loadData(listRes.data)
+    } catch (err) {
+      console.error('Error fetching permissions', err)
+      setFullPermissionsData({ Basic: {}, Pro: {}, Elite: {}, Enterprise: {} })
+      setOriginalPermissions({})
+      setPermissionsId('')
+      setIsEditMode(false)
+      setIsEditing(true)
+      setHasChanges(false)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch permissions on mount
+  useEffect(() => {
     fetchPermissions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const ensureEditing = () => {
@@ -117,21 +156,26 @@ const FeatureManagement = () => {
     }
   }
 
+  const allExistingFeatures = ['Basic', 'Pro', 'Elite', 'Enterprise'].flatMap(plan => {
+    return Object.keys(fullPermissionsData[plan] || {})
+  })
+  const currentFeatures = Array.from(new Set([
+    ...allExistingFeatures,
+    ...customFeatures
+  ]))
+
   const handleAddFeature = () => {
     ensureEditing()
 
     const feature = newFeatureName.trim()
     if (!feature) return
 
-    if (permissionsData[feature]) {
-      toast.warning('Feature already exists!')
+    if (currentFeatures.includes(feature)) {
+      toast.warning('Feature already exists in the list!')
       return
     }
 
-    setPermissionsData(prev => ({
-      ...prev,
-      [feature]: []
-    }))
+    setCustomFeatures(prev => Array.from(new Set([...prev, feature])))
     setActivePermissionTab(feature)
     setNewFeatureName('')
     setHasChanges(true)
@@ -149,14 +193,20 @@ const FeatureManagement = () => {
     if (!featureToDelete) return
     setDeleting(true)
 
-    const updatedPermissions = { ...permissionsData }
-    delete updatedPermissions[featureToDelete]
+    const updatedFullData = JSON.parse(JSON.stringify(fullPermissionsData))
+    ['Basic', 'Pro', 'Elite', 'Enterprise'].forEach(plan => {
+      if (updatedFullData[plan] && updatedFullData[plan][featureToDelete] !== undefined) {
+        delete updatedFullData[plan][featureToDelete]
+      }
+    })
 
     const afterDelete = () => {
-      setPermissionsData(updatedPermissions)
+      setFullPermissionsData(updatedFullData)
       if (activePermissionTab === featureToDelete) {
         setActivePermissionTab('')
       }
+      setCustomFeatures(prev => prev.filter(f => f !== featureToDelete))
+      
       setHasChanges(true)
       toast.success(`'${featureToDelete}' removed from permissions.`)
       setDeleting(false)
@@ -166,17 +216,12 @@ const FeatureManagement = () => {
 
     if (isEditMode && permissionsId) {
       try {
-        const res = await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
-          permissions: updatedPermissions
+        await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
+          permissions: updatedFullData
         })
-        const savedPerms = extractPermissions(res?.data)
-        if (savedPerms && Object.keys(savedPerms).length > 0) {
-          setPermissionsData(savedPerms)
-          setOriginalPermissions(savedPerms)
-        } else {
-          setPermissionsData(updatedPermissions)
-        }
+        
         setHasChanges(false)
+        fetchPermissions() // Re-fetch to sync
         toast.success(`'${featureToDelete}' deleted successfully.`)
       } catch (err) {
         console.error('Failed to delete feature from API', err)
@@ -194,31 +239,90 @@ const FeatureManagement = () => {
     }
   }
 
+  const getPlansWithFeature = (feature) => {
+    return ['Basic', 'Pro', 'Elite', 'Enterprise'].filter(plan => 
+      fullPermissionsData[plan] && fullPermissionsData[plan][feature] !== undefined
+    )
+  }
+
+  const getAssignedActions = (feature) => {
+    const plansWithFeature = getPlansWithFeature(feature)
+    const currentPermissions = new Set()
+    plansWithFeature.forEach(plan => {
+      const perms = fullPermissionsData[plan][feature] || []
+      perms.forEach(p => currentPermissions.add(p))
+    })
+    return Array.from(currentPermissions)
+  }
+
+  const togglePlanForFeature = (plan, feature) => {
+    if (isEditMode && !isEditing) return
+    const assignedActions = getAssignedActions(feature)
+    
+    setFullPermissionsData(prev => {
+      const next = JSON.parse(JSON.stringify(prev))
+      if (!next[plan]) next[plan] = {}
+      
+      if (next[plan][feature] !== undefined) {
+        delete next[plan][feature]
+      } else {
+        next[plan][feature] = [...assignedActions]
+      }
+      return next
+    })
+    setHasChanges(true)
+  }
+
   const togglePermission = (feature, action) => {
     if (isEditMode && !isEditing) return
-    setPermissionsData(prev => {
-      const perms = { ...prev }
-      if (!perms[feature]) perms[feature] = []
-      if (perms[feature].includes(action)) {
-        perms[feature] = perms[feature].filter(a => a !== action)
-      } else {
-        perms[feature] = [...perms[feature], action]
-      }
-      return perms
+    const plansWithFeature = getPlansWithFeature(feature)
+    if (plansWithFeature.length === 0) {
+      toast.warning('Please select at least one plan before configuring permissions.')
+      return
+    }
+
+    const assignedActions = getAssignedActions(feature)
+    const isAdding = !assignedActions.includes(action)
+
+    setFullPermissionsData(prev => {
+      const next = JSON.parse(JSON.stringify(prev))
+      plansWithFeature.forEach(plan => {
+        if (!next[plan]) next[plan] = {}
+        if (!next[plan][feature]) next[plan][feature] = []
+        
+        if (!isAdding) {
+          next[plan][feature] = next[plan][feature].filter(a => a !== action)
+        } else {
+          next[plan][feature] = Array.from(new Set([...next[plan][feature], action]))
+        }
+      })
+      return next
     })
     setHasChanges(true)
   }
 
   const toggleAllActions = (feature) => {
     if (isEditMode && !isEditing) return
-    setPermissionsData(prev => {
-      const perms = { ...prev }
-      if (perms[feature] && perms[feature].length === availableActions.length) {
-        perms[feature] = []
-      } else {
-        perms[feature] = [...availableActions]
-      }
-      return perms
+    const plansWithFeature = getPlansWithFeature(feature)
+    if (plansWithFeature.length === 0) {
+      toast.warning('Please select at least one plan before configuring permissions.')
+      return
+    }
+
+    const assignedActions = getAssignedActions(feature)
+    const allSelected = assignedActions.length === availableActions.length
+
+    setFullPermissionsData(prev => {
+      const next = JSON.parse(JSON.stringify(prev))
+      plansWithFeature.forEach(plan => {
+        if (!next[plan]) next[plan] = {}
+        if (allSelected) {
+          next[plan][feature] = []
+        } else {
+          next[plan][feature] = [...availableActions]
+        }
+      })
+      return next
     })
     setHasChanges(true)
   }
@@ -226,32 +330,19 @@ const FeatureManagement = () => {
   const handleSave = async () => {
     setLoading(true)
     try {
-      let res
-      if (isEditMode && permissionsId) {
-        res = await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
-          permissions: permissionsData
+      if (permissionsId) {
+        await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
+          permissions: fullPermissionsData
         })
-        toast.success('Permissions updated successfully!')
+        toast.success(`Permissions updated successfully!`)
       } else {
-        res = await axios.post(`${MainAdmin_URL}/createPermissions`, {
-          permissions: permissionsData
+        await axios.post(`${MainAdmin_URL}/createPermissions`, {
+          permissions: fullPermissionsData
         })
-        toast.success('Permissions created successfully!')
-        setIsEditMode(true)
+        toast.success(`Permissions created successfully!`)
       }
 
-      const savedPerms = extractPermissions(res?.data)
-      if (savedPerms && Object.keys(savedPerms).length > 0) {
-        setPermissionsData(savedPerms)
-        setOriginalPermissions(savedPerms)
-      }
-
-      const responseData = getResponseData(res?.data)
-      const responseId = getPermissionsId(responseData)
-      if (responseId) {
-        setPermissionsId(responseId)
-      }
-      setHasChanges(false)
+      await fetchPermissions()
       setIsEditing(false)
     } catch (err) {
       console.error('Failed to save permissions', err)
@@ -266,7 +357,7 @@ const FeatureManagement = () => {
   }
 
   const handleCancel = () => {
-    setPermissionsData(originalPermissions)
+    setFullPermissionsData(originalPermissions) // originalPermissions is now the full payload
     setIsEditing(false)
     setHasChanges(false)
   }
@@ -282,13 +373,14 @@ const FeatureManagement = () => {
     radius: '8px'
   }
 
-  const currentFeatures = Object.keys(permissionsData)
+  // We don't need currentFeatures here since it's defined above
+
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: t.radius, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
       <ToastContainer position="top-right" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <h4 style={{ color: t.primary, margin: 0, fontWeight: '700' }}>Features & Permissions Management</h4>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -353,7 +445,8 @@ const FeatureManagement = () => {
             ) : (
               currentFeatures.map(feature => {
                 const isSelected = activePermissionTab === feature
-                const isConfigured = permissionsData[feature]?.length > 0
+                const plans = getPlansWithFeature(feature)
+                const isConfigured = plans.length > 0
                 return (
                   <div
                     key={feature}
@@ -399,11 +492,30 @@ const FeatureManagement = () => {
               </div>
 
               {(() => {
-                const assignedActions = permissionsData[activePermissionTab] || []
+                const plansWithFeature = getPlansWithFeature(activePermissionTab)
+                const assignedActions = getAssignedActions(activePermissionTab)
                 const allSelected = assignedActions.length === availableActions.length
 
                 return (
                   <div>
+                    {/* Multi-select for Plans */}
+                    <div style={{ marginBottom: '32px' }}>
+                      <h6 style={{ fontWeight: '600', color: t.textMuted, marginBottom: '16px' }}>Apply feature to Plans</h6>
+                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                        {['Basic', 'Pro', 'Elite', 'Enterprise'].map(plan => (
+                          <label key={plan} style={{ fontSize: '15px', color: t.text, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, padding: '8px 16px', backgroundColor: t.surface, borderRadius: '20px', border: `1px solid ${plansWithFeature.includes(plan) ? t.primary : t.border}` }}>
+                            <input 
+                              type="checkbox" 
+                              checked={plansWithFeature.includes(plan)} 
+                              onChange={() => togglePlanForFeature(plan, activePermissionTab)} 
+                              style={{ accentColor: t.primary, width: '16px', height: '16px' }} 
+                            />
+                            <span style={{ fontWeight: plansWithFeature.includes(plan) ? '600' : '500', color: plansWithFeature.includes(plan) ? t.primary : t.text }}>{plan}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: '30px', marginBottom: '24px', padding: '16px', backgroundColor: t.surface, borderRadius: t.radius, border: `1px solid ${t.border}` }}>
                       <label style={{ fontSize: '14px', color: t.text, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: '600' }}>
                         <input type="checkbox" checked={allSelected} onChange={() => toggleAllActions(activePermissionTab)} style={{ accentColor: t.primary, width: '16px', height: '16px' }} />
