@@ -13,12 +13,10 @@ import 'react-toastify/dist/ReactToastify.css'
 import { attachInterceptors } from './Utils/Interceptors'
 import './views/Style/toastify.css'
 
-function Root() {
-  useEffect(() => {
-    const detach = attachInterceptors()
-    return () => detach()
-  }, [])
+// Attach interceptors immediately before React renders so it catches initial API calls
+attachInterceptors()
 
+function Root() {
   return (
     <Provider store={store}>
       <HospitalProvider> {/* ✅ wrap the app inside HospitalProvider */}

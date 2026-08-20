@@ -32,9 +32,15 @@ export function attachInterceptors(getAuthToken) {
   const resHandler = (response) => response
   const errHandler = (error) => {
     const status = error.response?.status
+    // Only trigger maintenance screen on explicit 502 or 503
     if (status === 502 || status === 503) {
       window.dispatchEvent(new Event('maintenance-mode'))
       return new Promise(() => {}) // pending promise so app stops executing
+    }
+
+    if (!navigator.onLine || error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+      toast.error('No internet connection or server is unreachable.')
+      return Promise.reject(error)
     }
 
     if (status === 401) {

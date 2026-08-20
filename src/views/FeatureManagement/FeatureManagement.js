@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { toast, ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { BASE_URL, MainAdmin_URL } from '../../baseUrl'
+import { MainAdmin_URL } from '../../baseUrl'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
+import { ChevronRight, Trash2 } from 'lucide-react'
 
 const FeatureManagement = () => {
   const [loading, setLoading] = useState(false)
@@ -12,31 +13,28 @@ const FeatureManagement = () => {
   const [hasChanges, setHasChanges] = useState(false)
   const [originalPermissions, setOriginalPermissions] = useState({})
   const [permissionsId, setPermissionsId] = useState('')
-  const [selectedPlan, setSelectedPlan] = useState('Basic')
-  
-  // New state to hold permissions for ALL plans
+
   const [fullPermissionsData, setFullPermissionsData] = useState({
     Basic: {},
     Pro: {},
     Elite: {},
-    Enterprise: {}
+    Enterprise: {},
   })
 
-  const [activePermissionTab, setActivePermissionTab] = useState('')
+  const [activePlanTab, setActivePlanTab] = useState('Basic')
   const [newFeatureName, setNewFeatureName] = useState('')
-  const [customFeatures, setCustomFeatures] = useState([]) // newly added features in this session
+  const [fetchedPlans, setFetchedPlans] = useState([])
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [featureToDelete, setFeatureToDelete] = useState('')
   const [deleting, setDeleting] = useState(false)
 
   const availableActions = ['create', 'read', 'update', 'delete']
+  const plans = ['Basic', 'Pro', 'Elite', 'Enterprise']
 
   // Helper: pull the permissions object out of the API response
-  // regardless of which shape the backend actually sends back.
   const extractPermissions = (body) => {
     if (!body) return null
-
     if (body.data && typeof body.data === 'object' && body.data.permissions) {
       return body.data.permissions
     }
@@ -51,7 +49,9 @@ const FeatureManagement = () => {
     ) {
       return body.data
     }
-    const looksLikePermissionsMap = Object.values(body).every(v => Array.isArray(v))
+    const looksLikePermissionsMap = Object.values(body).every(
+      (v) => Array.isArray(v) || typeof v === 'object',
+    )
     if (looksLikePermissionsMap && Object.keys(body).length > 0) {
       return body
     }
@@ -76,77 +76,48 @@ const FeatureManagement = () => {
     return record._id || record.id || record.permissionsId || record.permissionId || ''
   }
 
-  const loadData = (body, plan) => {
-    const items = getPermissionsItems(body)
-    const record = items.length > 0 ? items[0] : null
-    
-    if (record) {
-      setPermissionsId(getPermissionsId(record))
-      const perms = extractPermissions(record) || {}
-      
-      // Determine if this is the new structured format or the old flat format
-      const hasPlanKeys = Object.keys(perms).some(key => ['Basic', 'Pro', 'Elite', 'Enterprise'].includes(key))
-      
-      let parsedFullData = {
-        Basic: {},
-        Pro: {},
-        Elite: {},
-        Enterprise: {}
-      }
-
-      if (hasPlanKeys) {
-        parsedFullData = { ...parsedFullData, ...perms }
-      } else if (Object.keys(perms).length > 0) {
-        // It's the old flat format, map everything to Basic
-        parsedFullData.Basic = perms
-      }
-      
-      setFullPermissionsData(parsedFullData)
-      
-      // Set Original Permissions to the full parsed data
-      setOriginalPermissions(parsedFullData)
-      
-      const allFeatures = ['Basic', 'Pro', 'Elite', 'Enterprise'].flatMap(p => Object.keys(parsedFullData[p] || {}))
-      
-      if (allFeatures.length > 0) {
-        setIsEditMode(true)
-        setIsEditing(false)
-        setHasChanges(false)
-        setActivePermissionTab(allFeatures[0])
-        return
-      }
-    }
-
-    setFullPermissionsData({ Basic: {}, Pro: {}, Elite: {}, Enterprise: {} })
-    setOriginalPermissions({})
-    setIsEditMode(false)
-    setIsEditing(true)
-    setHasChanges(false)
-    setActivePermissionTab('')
-
+  const planMap = {
+    Basic: 1,
+    Pro: 2,
+    Elite: 3,
+    Enterprise: 4,
   }
 
-  const fetchPermissions = async () => {
+  const fetchAllPermissions = async (force = false) => {
     setLoading(true)
     try {
+      // User requested to strictly use this exact endpoint
       const listRes = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
-      loadData(listRes.data)
+
+      const items = getPermissionsItems(listRes.data)
+      const record = items.length > 0 ? items[0] : null
+
+      if (record) {
+        setPermissionsId(getPermissionsId(record))
+        const perms = extractPermissions(record) || {}
+
+        setFullPermissionsData(perms)
+        setOriginalPermissions(perms)
+
+        if (!isEditMode) {
+          setIsEditMode(true)
+          setIsEditing(false)
+        }
+      } else {
+        if (!isEditMode) {
+          setIsEditMode(false)
+          setIsEditing(true)
+        }
+      }
     } catch (err) {
-      console.error('Error fetching permissions', err)
-      setFullPermissionsData({ Basic: {}, Pro: {}, Elite: {}, Enterprise: {} })
-      setOriginalPermissions({})
-      setPermissionsId('')
-      setIsEditMode(false)
-      setIsEditing(true)
-      setHasChanges(false)
+      console.error(`Error fetching all permissions`, err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Fetch permissions on mount
   useEffect(() => {
-    fetchPermissions()
+    fetchAllPermissions()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -156,13 +127,8 @@ const FeatureManagement = () => {
     }
   }
 
-  const allExistingFeatures = ['Basic', 'Pro', 'Elite', 'Enterprise'].flatMap(plan => {
-    return Object.keys(fullPermissionsData[plan] || {})
-  })
-  const currentFeatures = Array.from(new Set([
-    ...allExistingFeatures,
-    ...customFeatures
-  ]))
+  // Get only the features that belong to the current active plan
+  const currentFeatures = Object.keys(fullPermissionsData[activePlanTab] || {})
 
   const handleAddFeature = () => {
     ensureEditing()
@@ -171,157 +137,87 @@ const FeatureManagement = () => {
     if (!feature) return
 
     if (currentFeatures.includes(feature)) {
-      toast.warning('Feature already exists in the list!')
+      toast.warning('Feature already exists in this plan!')
       return
     }
 
-    setCustomFeatures(prev => Array.from(new Set([...prev, feature])))
-    setActivePermissionTab(feature)
+    // Explicitly add the new feature to fullPermissionsData for the active plan
+    setFullPermissionsData((prev) => {
+      const next = JSON.parse(JSON.stringify(prev))
+      if (!next[activePlanTab]) next[activePlanTab] = {}
+      if (!next[activePlanTab][feature]) next[activePlanTab][feature] = []
+      return next
+    })
+
     setNewFeatureName('')
     setHasChanges(true)
   }
 
-  // Open the confirmation popup instead of deleting immediately
   const handleDeleteFeature = (feature) => {
     ensureEditing()
     setFeatureToDelete(feature)
     setDeleteModalVisible(true)
   }
 
-  // Called when the user confirms deletion in the popup
   const confirmDeleteFeature = async () => {
     if (!featureToDelete) return
     setDeleting(true)
 
     const updatedFullData = JSON.parse(JSON.stringify(fullPermissionsData))
-    ['Basic', 'Pro', 'Elite', 'Enterprise'].forEach(plan => {
-      if (updatedFullData[plan] && updatedFullData[plan][featureToDelete] !== undefined) {
-        delete updatedFullData[plan][featureToDelete]
-      }
-    })
+    if (
+      updatedFullData[activePlanTab] &&
+      updatedFullData[activePlanTab][featureToDelete] !== undefined
+    ) {
+      delete updatedFullData[activePlanTab][featureToDelete]
+    }
 
     const afterDelete = () => {
       setFullPermissionsData(updatedFullData)
-      if (activePermissionTab === featureToDelete) {
-        setActivePermissionTab('')
-      }
-      setCustomFeatures(prev => prev.filter(f => f !== featureToDelete))
-      
+
       setHasChanges(true)
-      toast.success(`'${featureToDelete}' removed from permissions.`)
+      toast.success(`'${featureToDelete}' removed from ${activePlanTab} plan.`)
       setDeleting(false)
       setDeleteModalVisible(false)
       setFeatureToDelete('')
     }
 
-    if (isEditMode && permissionsId) {
-      try {
-        await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
-          permissions: updatedFullData
-        })
-        
-        setHasChanges(false)
-        fetchPermissions() // Re-fetch to sync
-        toast.success(`'${featureToDelete}' deleted successfully.`)
-      } catch (err) {
-        console.error('Failed to delete feature from API', err)
-        toast.error('Failed to delete feature. Please try again.')
-      } finally {
-        setDeleting(false)
-        setDeleteModalVisible(false)
-        setFeatureToDelete('')
-        if (activePermissionTab === featureToDelete) {
-          setActivePermissionTab('')
-        }
-      }
-    } else {
-      afterDelete()
-    }
+    afterDelete()
   }
 
-  const getPlansWithFeature = (feature) => {
-    return ['Basic', 'Pro', 'Elite', 'Enterprise'].filter(plan => 
-      fullPermissionsData[plan] && fullPermissionsData[plan][feature] !== undefined
-    )
-  }
-
-  const getAssignedActions = (feature) => {
-    const plansWithFeature = getPlansWithFeature(feature)
-    const currentPermissions = new Set()
-    plansWithFeature.forEach(plan => {
-      const perms = fullPermissionsData[plan][feature] || []
-      perms.forEach(p => currentPermissions.add(p))
-    })
-    return Array.from(currentPermissions)
-  }
-
-  const togglePlanForFeature = (plan, feature) => {
+  const togglePermission = (plan, feature, action) => {
     if (isEditMode && !isEditing) return
-    const assignedActions = getAssignedActions(feature)
-    
-    setFullPermissionsData(prev => {
+
+    setFullPermissionsData((prev) => {
       const next = JSON.parse(JSON.stringify(prev))
       if (!next[plan]) next[plan] = {}
-      
-      if (next[plan][feature] !== undefined) {
-        delete next[plan][feature]
+      if (!next[plan][feature]) next[plan][feature] = []
+
+      const hasAction = next[plan][feature].includes(action)
+      if (hasAction) {
+        next[plan][feature] = next[plan][feature].filter((a) => a !== action)
       } else {
-        next[plan][feature] = [...assignedActions]
+        next[plan][feature] = [...next[plan][feature], action]
       }
       return next
     })
     setHasChanges(true)
   }
 
-  const togglePermission = (feature, action) => {
+  const toggleAllActionsForFeature = (plan, feature) => {
     if (isEditMode && !isEditing) return
-    const plansWithFeature = getPlansWithFeature(feature)
-    if (plansWithFeature.length === 0) {
-      toast.warning('Please select at least one plan before configuring permissions.')
-      return
-    }
 
-    const assignedActions = getAssignedActions(feature)
-    const isAdding = !assignedActions.includes(action)
-
-    setFullPermissionsData(prev => {
+    setFullPermissionsData((prev) => {
       const next = JSON.parse(JSON.stringify(prev))
-      plansWithFeature.forEach(plan => {
-        if (!next[plan]) next[plan] = {}
-        if (!next[plan][feature]) next[plan][feature] = []
-        
-        if (!isAdding) {
-          next[plan][feature] = next[plan][feature].filter(a => a !== action)
-        } else {
-          next[plan][feature] = Array.from(new Set([...next[plan][feature], action]))
-        }
-      })
-      return next
-    })
-    setHasChanges(true)
-  }
+      if (!next[plan]) next[plan] = {}
 
-  const toggleAllActions = (feature) => {
-    if (isEditMode && !isEditing) return
-    const plansWithFeature = getPlansWithFeature(feature)
-    if (plansWithFeature.length === 0) {
-      toast.warning('Please select at least one plan before configuring permissions.')
-      return
-    }
+      const currentActions = next[plan][feature] || []
+      const allSelected = currentActions.length === availableActions.length
 
-    const assignedActions = getAssignedActions(feature)
-    const allSelected = assignedActions.length === availableActions.length
-
-    setFullPermissionsData(prev => {
-      const next = JSON.parse(JSON.stringify(prev))
-      plansWithFeature.forEach(plan => {
-        if (!next[plan]) next[plan] = {}
-        if (allSelected) {
-          next[plan][feature] = []
-        } else {
-          next[plan][feature] = [...availableActions]
-        }
-      })
+      if (allSelected) {
+        next[plan][feature] = []
+      } else {
+        next[plan][feature] = [...availableActions]
+      }
       return next
     })
     setHasChanges(true)
@@ -330,20 +226,51 @@ const FeatureManagement = () => {
   const handleSave = async () => {
     setLoading(true)
     try {
-      if (permissionsId) {
-        await axios.put(`${MainAdmin_URL}/updatePermissions/${permissionsId}`, {
-          permissions: fullPermissionsData
+      // Clean up the data: only send features that have at least one selected action
+      const cleanedData = {}
+      plans.forEach((plan) => {
+        cleanedData[plan] = {}
+        const features = fullPermissionsData[plan] || {}
+        Object.keys(features).forEach((feature) => {
+          if (features[feature] && features[feature].length > 0) {
+            cleanedData[plan][feature] = features[feature]
+          }
         })
+      })
+
+      const payload = { permissions: cleanedData }
+
+      // Check if there's at least one feature across ALL plans
+      const hasAnyFeatures = Object.values(cleanedData).some(
+        (planFeatures) => Object.keys(planFeatures).length > 0,
+      )
+
+      // If there's an ID AND at least one feature exists anywhere, we UPDATE.
+      // Otherwise (if completely empty like {"Basic": {}, "Pro": {}}), we CREATE.
+      if (permissionsId && hasAnyFeatures) {
+        // Use the new update endpoint provided (only updates the active plan tab's data based on what you said)
+        const planId = planMap[activePlanTab] || 1
+
+        // ONLY send the currently active plan's data for the update API
+        const updatePayload = {
+          permissions: {
+            [activePlanTab]: cleanedData[activePlanTab] || {},
+          },
+        }
+
+        await axios.put(
+          `${MainAdmin_URL}/updatePermissionsByIdAndPlaneId/${permissionsId}/${planId}`,
+          updatePayload,
+        )
         toast.success(`Permissions updated successfully!`)
       } else {
-        await axios.post(`${MainAdmin_URL}/createPermissions`, {
-          permissions: fullPermissionsData
-        })
+        await axios.post(`${MainAdmin_URL}/createPermissions`, payload)
         toast.success(`Permissions created successfully!`)
       }
 
-      await fetchPermissions()
+      await fetchAllPermissions(true)
       setIsEditing(false)
+      setHasChanges(false)
     } catch (err) {
       console.error('Failed to save permissions', err)
       toast.error('Failed to save permissions. Please try again.')
@@ -357,51 +284,126 @@ const FeatureManagement = () => {
   }
 
   const handleCancel = () => {
-    setFullPermissionsData(originalPermissions) // originalPermissions is now the full payload
+    setFullPermissionsData(originalPermissions)
     setIsEditing(false)
     setHasChanges(false)
   }
 
   const t = {
-    primary: '#0c447c',
-    surface: '#f9fafb',
-    border: '#e5e7eb',
-    text: '#1f2937',
-    textMuted: '#6b7280',
+    primary: '#1e3a8a',
+    primaryHover: '#1e40af',
+    surface: '#ffffff',
+    background: '#f8fafc',
+    border: '#e2e8f0',
+    text: '#0f172a',
+    textMuted: '#64748b',
     success: '#10b981',
     danger: '#ef4444',
-    radius: '8px'
+    dangerHover: '#dc2626',
+    radius: '12px',
+    shadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+    shadowHover: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
   }
 
-  // We don't need currentFeatures here since it's defined above
-
-
   return (
-    <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: t.radius, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+    <>
+    <style>{`
+      .premium-btn {
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
+      }
+      .premium-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(30, 58, 138, 0.3);
+      }
+      .feature-card {
+        transition: all 0.3s ease;
+      }
+      .feature-card:hover {
+        transform: translateY(-2px);
+        box-shadow: ${t.shadowHover};
+        border-color: #cbd5e1 !important;
+      }
+      .plan-tab {
+        transition: all 0.2s ease;
+      }
+      .plan-tab:hover:not(.active-tab) {
+        background-color: #f1f5f9 !important;
+      }
+      .custom-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: inherit;
+        accent-color: ${t.primary};
+        transition: transform 0.1s;
+      }
+      .custom-checkbox:active:not(:disabled) {
+        transform: scale(0.9);
+      }
+      .delete-btn {
+        transition: all 0.2s ease;
+      }
+      .delete-btn:hover:not(:disabled) {
+        color: ${t.dangerHover} !important;
+        transform: scale(1.05);
+      }
+      .smooth-input {
+        transition: all 0.2s ease;
+      }
+      .smooth-input:focus {
+        border-color: ${t.primary} !important;
+        box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1) !important;
+        outline: none;
+      }
+    `}</style>
+    <div
+      style={{
+        padding: '28px',
+        backgroundColor: t.background,
+        borderRadius: t.radius,
+        boxShadow: t.shadow,
+        fontFamily: "'Inter', sans-serif"
+      }}
+    >
       <ToastContainer position="top-right" />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <h4 style={{ color: t.primary, margin: 0, fontWeight: '700' }}>Features & Permissions Management</h4>
+          <h4 style={{ color: t.primary, margin: 0, fontWeight: '700' }}>
+            Plan Permissions Management
+          </h4>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          {(!isEditMode || hasChanges || isEditing) ? (
+          {!isEditMode || hasChanges || isEditing ? (
             <>
               {isEditMode && (hasChanges || isEditing) && (
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="btn btn-light"
-                  style={{ color: t.text, borderColor: t.border, background: '#fff' }}
-                  disabled={loading}
+                  className="btn btn-outline-secondary premium-btn"
+                  style={{ borderRadius: '8px', fontWeight: '500' }}
                 >
                   Cancel
                 </button>
               )}
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={loading}
-                className="btn btn-primary"
-                style={{ backgroundColor: t.primary, borderColor: t.primary }}
+                className="btn btn-primary premium-btn"
+                style={{ 
+                  backgroundColor: t.success, 
+                  borderColor: t.success, 
+                  borderRadius: '8px', 
+                  fontWeight: '600',
+                  padding: '8px 20px'
+                }}
               >
                 {loading ? 'Saving...' : 'Save Permissions'}
               </button>
@@ -410,8 +412,14 @@ const FeatureManagement = () => {
             <button
               type="button"
               onClick={handleEdit}
-              className="btn btn-primary"
-              style={{ backgroundColor: t.primary, borderColor: t.primary }}
+              className="btn btn-primary premium-btn"
+              style={{ 
+                backgroundColor: t.primary, 
+                borderColor: t.primary, 
+                borderRadius: '8px', 
+                fontWeight: '600',
+                padding: '8px 20px'
+              }}
             >
               Edit Permissions
             </button>
@@ -419,137 +427,257 @@ const FeatureManagement = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '20px', border: `1px solid ${t.border}`, borderRadius: t.radius, overflow: 'hidden' }}>
-        {/* Sidebar List of Features */}
-        <div style={{ width: '320px', backgroundColor: t.surface, borderRight: `1px solid ${t.border}`, height: '600px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '16px', backgroundColor: '#f3f4f6', borderBottom: `1px solid ${t.border}` }}>
-            <div style={{ fontWeight: '700', color: t.textMuted, marginBottom: '12px' }}>Add New Feature</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Feature Name (e.g. Billing)"
-                value={newFeatureName}
-                onChange={(e) => setNewFeatureName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddFeature()}
-              />
-              <button className="btn btn-primary btn-sm" onClick={handleAddFeature}>Add</button>
+      <div
+        style={{
+          display: 'flex',
+          gap: '24px',
+          border: `1px solid ${t.border}`,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          backgroundColor: t.surface,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+        }}
+      >
+        {/* Sidebar List of Plans */}
+        <div
+          style={{
+            width: '280px',
+            backgroundColor: '#f8fafc',
+            borderRight: `1px solid ${t.border}`,
+            height: '700px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              padding: '24px 20px',
+              backgroundColor: '#f1f5f9',
+              borderBottom: `1px solid ${t.border}`,
+            }}
+          >
+            <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '18px', letterSpacing: '-0.5px' }}>
+              Subscription Plans
+            </div>
+            <div style={{ color: t.textMuted, fontSize: '13px', marginTop: '6px', fontWeight: '500' }}>
+              Select a plan to configure permissions
             </div>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {currentFeatures.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: t.textMuted, fontSize: '14px' }}>
-                No features added yet. Type a name above to add one.
-              </div>
-            ) : (
-              currentFeatures.map(feature => {
-                const isSelected = activePermissionTab === feature
-                const plans = getPlansWithFeature(feature)
-                const isConfigured = plans.length > 0
-                return (
-                  <div
-                    key={feature}
-                    onClick={() => setActivePermissionTab(feature)}
+            {plans.map((plan) => {
+              const isSelected = activePlanTab === plan
+              return (
+                <div
+                  key={plan}
+                  className={`plan-tab ${isSelected ? 'active-tab' : ''}`}
+                  onClick={() => setActivePlanTab(plan)}
+                  style={{
+                    padding: '18px 24px',
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? t.surface : 'transparent',
+                    borderLeft: `4px solid ${isSelected ? t.primary : 'transparent'}`,
+                    borderBottom: `1px solid ${t.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span
                     style={{
-                      padding: '14px 16px',
-                      cursor: 'pointer',
-                      backgroundColor: isSelected ? '#fff' : 'transparent',
-                      borderLeft: isSelected ? `4px solid ${t.primary}` : '4px solid transparent',
-                      borderBottom: `1px solid ${t.border}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.2s'
+                      fontSize: '15px',
+                      fontWeight: isSelected ? '700' : '600',
+                      color: isSelected ? t.primary : t.textMuted,
                     }}
                   >
-                    <span style={{ fontSize: '14px', fontWeight: isSelected ? '700' : '500', color: isSelected ? t.primary : t.text }}>{feature}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {isConfigured && <span style={{ color: t.success, fontSize: '16px' }} title="Configured">✓</span>}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteFeature(feature); }}
-                        style={{ border: 'none', background: 'transparent', color: t.danger, cursor: 'pointer', fontSize: '18px', padding: '0 4px' }}
-                        title="Delete Feature"
-                      >×</button>
-                    </div>
-                  </div>
-                )
-              })
-            )}
+                    {plan} Plan
+                  </span>
+                  <ChevronRight size={18} color={isSelected ? t.primary : '#cbd5e1'} style={{ transform: isSelected ? 'translateX(2px)' : 'none', transition: 'all 0.2s' }} />
+                </div>
+              )
+            })}
           </div>
         </div>
 
         {/* Main Permission Area */}
-        <div style={{ flex: 1, padding: '32px', backgroundColor: '#fff', height: '600px', overflowY: 'auto' }}>
-          {!activePermissionTab ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: t.textMuted, fontStyle: 'italic' }}>
-              Select a feature from the left sidebar to configure its permissions.
+        <div
+          style={{
+            flex: 1,
+            padding: '32px 40px',
+            backgroundColor: t.surface,
+            height: '700px',
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '32px',
+              borderBottom: `2px solid #f1f5f9`,
+              paddingBottom: '20px',
+            }}
+          >
+            <div style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>
+              {activePlanTab} Permissions
             </div>
-          ) : (
-            <>
-              <div style={{ fontSize: '18px', fontWeight: '700', color: t.primary, marginBottom: '24px', borderBottom: `1px solid ${t.border}`, paddingBottom: '12px' }}>
-                Configure Access: <span style={{ color: t.text }}>{activePermissionTab}</span>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <input
+                type="text"
+                placeholder="New Feature (e.g. Settings)"
+                value={newFeatureName}
+                onChange={(e) => setNewFeatureName(e.target.value)}
+                className="form-control smooth-input"
+                style={{ width: '240px', borderRadius: '8px', border: `1px solid ${t.border}`, padding: '10px 16px' }}
+                disabled={!isEditing && isEditMode}
+              />
+              <button
+                className="btn btn-primary premium-btn"
+                onClick={handleAddFeature}
+                disabled={!isEditing && isEditMode}
+                style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6', borderRadius: '8px', fontWeight: '600', padding: '0 20px' }}
+              >
+                + Add
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {currentFeatures.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: t.textMuted }}>
+                No features defined yet. Add a new feature above.
               </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                {currentFeatures.map((feature) => {
+                  const planPermissions = fullPermissionsData[activePlanTab]?.[feature] || []
+                  const allSelected = planPermissions.length === availableActions.length
 
-              {(() => {
-                const plansWithFeature = getPlansWithFeature(activePermissionTab)
-                const assignedActions = getAssignedActions(activePermissionTab)
-                const allSelected = assignedActions.length === availableActions.length
+                  return (
+                    <div
+                      key={feature}
+                      className="feature-card"
+                      style={{
+                        padding: '16px',
+                        border: `1px solid ${t.border}`,
+                        borderRadius: '12px',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '16px',
+                          paddingBottom: '12px',
+                          borderBottom: '1px solid #f1f5f9'
+                        }}
+                      >
+                        <div style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }} title={feature}>
+                          {feature}
+                        </div>
 
-                return (
-                  <div>
-                    {/* Multi-select for Plans */}
-                    <div style={{ marginBottom: '32px' }}>
-                      <h6 style={{ fontWeight: '600', color: t.textMuted, marginBottom: '16px' }}>Apply feature to Plans</h6>
-                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                        {['Basic', 'Pro', 'Elite', 'Enterprise'].map(plan => (
-                          <label key={plan} style={{ fontSize: '15px', color: t.text, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, padding: '8px 16px', backgroundColor: t.surface, borderRadius: '20px', border: `1px solid ${plansWithFeature.includes(plan) ? t.primary : t.border}` }}>
-                            <input 
-                              type="checkbox" 
-                              checked={plansWithFeature.includes(plan)} 
-                              onChange={() => togglePlanForFeature(plan, activePermissionTab)} 
-                              style={{ accentColor: t.primary, width: '16px', height: '16px' }} 
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <label
+                            style={{
+                              fontSize: '12px',
+                              color: t.textMuted,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: isEditing || !isEditMode ? 'pointer' : 'not-allowed',
+                              margin: 0,
+                              fontWeight: '500'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              onChange={() => toggleAllActionsForFeature(activePlanTab, feature)}
+                              disabled={!isEditing && isEditMode}
+                              className="custom-checkbox"
                             />
-                            <span style={{ fontWeight: plansWithFeature.includes(plan) ? '600' : '500', color: plansWithFeature.includes(plan) ? t.primary : t.text }}>{plan}</span>
+                            All
                           </label>
-                        ))}
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDeleteFeature(feature)}
+                            disabled={!isEditing && isEditMode}
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              color: !isEditing && isEditMode ? '#fca5a5' : t.dangerHover,
+                              cursor: !isEditing && isEditMode ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '4px'
+                            }}
+                            title="Delete Feature from all plans"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                        {availableActions.map((action) => {
+                          const isChecked = planPermissions.includes(action)
+                          return (
+                            <label
+                              key={action}
+                              style={{
+                                fontSize: '13px',
+                                color: isChecked ? '#0f172a' : t.textMuted,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: isEditing || !isEditMode ? 'pointer' : 'not-allowed',
+                                margin: 0,
+                                fontWeight: isChecked ? '600' : '500',
+                                transition: 'color 0.2s'
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => togglePermission(activePlanTab, feature, action)}
+                                disabled={!isEditing && isEditMode}
+                                className="custom-checkbox"
+                                style={{ width: '16px', height: '16px' }}
+                              />
+                              <span style={{ textTransform: 'capitalize' }}>{action}</span>
+                            </label>
+                          )
+                        })}
                       </div>
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '30px', marginBottom: '24px', padding: '16px', backgroundColor: t.surface, borderRadius: t.radius, border: `1px solid ${t.border}` }}>
-                      <label style={{ fontSize: '14px', color: t.text, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: '600' }}>
-                        <input type="checkbox" checked={allSelected} onChange={() => toggleAllActions(activePermissionTab)} style={{ accentColor: t.primary, width: '16px', height: '16px' }} />
-                        Select All Permissions
-                      </label>
-                    </div>
-
-                    <div>
-                      <h6 style={{ fontWeight: '600', color: t.textMuted, marginBottom: '16px' }}>Specific Actions for {activePermissionTab}</h6>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingLeft: '12px' }}>
-                        {availableActions.map(action => (
-                          <label key={action} style={{ fontSize: '15px', color: t.text, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', margin: 0 }}>
-                            <input type="checkbox" checked={assignedActions.includes(action)} onChange={() => togglePermission(activePermissionTab, action)} style={{ accentColor: t.primary, width: '18px', height: '18px' }} />
-                            <span style={{ textTransform: 'capitalize' }}>{action} Access</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
-            </>
-          )}
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <ConfirmationModal
         isVisible={deleteModalVisible}
-        message={`Delete the feature '${featureToDelete}'? This action cannot be undone.`}
+        message={`Are you sure you want to delete the feature '${featureToDelete}' from the ${activePlanTab} plan?`}
         onConfirm={confirmDeleteFeature}
-        onCancel={() => { setDeleteModalVisible(false); setFeatureToDelete('') }}
+        onCancel={() => {
+          setDeleteModalVisible(false)
+          setFeatureToDelete('')
+        }}
         confirmDisabled={deleting}
       />
     </div>
+    </>
   )
 }
 
