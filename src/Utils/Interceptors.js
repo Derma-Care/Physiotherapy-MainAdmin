@@ -32,14 +32,19 @@ export function attachInterceptors(getAuthToken) {
   const resHandler = (response) => response
   const errHandler = (error) => {
     const status = error.response?.status
-    // Only trigger maintenance screen on explicit 502 or 503
-    if (status === 502 || status === 503) {
+
+    // Distinguish between true offline vs server crash (CORS network error)
+    const isNetworkError = error.message === 'Network Error' || error.code === 'ERR_NETWORK'
+    const isServerCrash = isNetworkError && navigator.onLine
+
+    // Trigger maintenance screen on explicit 502/503 OR a server crash (hidden 502s)
+    if (status === 502 || status === 503 || isServerCrash) {
       window.dispatchEvent(new Event('maintenance-mode'))
       return new Promise(() => {}) // pending promise so app stops executing
     }
 
-    if (!navigator.onLine || error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
-      toast.error('No internet connection or server is unreachable.')
+    if (!navigator.onLine) {
+      toast.error('No internet connection.')
       return Promise.reject(error)
     }
 
