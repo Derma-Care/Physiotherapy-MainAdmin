@@ -1761,7 +1761,7 @@ const PersonalViewDetails = () => {
         </CModalFooter>
       </CModal>
 
-      <ToastContainer />
+      
       {Personal ? (
         <>
           <CCard>

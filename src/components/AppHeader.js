@@ -28,23 +28,21 @@ const AppHeader = () => {
       position="sticky"
       className="mb-4 p-0"
       ref={headerRef}
-      style={{ backgroundColor: '#1a3a6b' }}
+      style={{ backgroundColor: '#1a3a6b', minHeight: '56px', height: '56px' }}
     >
-      <CContainer className="border-bottom px-4" fluid>
+      <CContainer className="px-4" fluid style={{ height: '100%', display: 'flex', alignItems: 'center', flexWrap: 'nowrap' }}>
         <CHeaderToggler
           onClick={() => dispatch({ type: 'set', sidebarShow: !sidebarShow })}
-          style={{ marginInlineStart: '-14px', color: '#ffffff', fontWeight: 'bold' }}
+          style={{ marginInlineStart: '-14px', color: '#ffffff', fontWeight: 'bold', marginRight: '10px' }}
         >
           <CIcon icon={cilMenu} size="lg" />
         </CHeaderToggler>
 
-        <CHeaderNav>
-          <AppHeaderDropdown />
-        </CHeaderNav>
-      </CContainer>
-
-      <CContainer className="px-4" fluid>
         <AppBreadcrumb />
+
+        <CHeaderNav className="ms-auto" style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ color: '#fff', fontWeight: 'normal', fontSize: '14px', marginRight: '16px', whiteSpace: 'nowrap' }}>Super Admin</span>
+        </CHeaderNav>
       </CContainer>
     </CHeader>
   )

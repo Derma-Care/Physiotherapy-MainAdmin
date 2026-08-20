@@ -367,7 +367,7 @@ const AdminForm = ({ visible, onClose, onSave, initialData, viewMode, admins, fe
 
   return (
     <>
-      <ToastContainer />
+      
       <CModal
         visible={visible}
         onClose={onClose}

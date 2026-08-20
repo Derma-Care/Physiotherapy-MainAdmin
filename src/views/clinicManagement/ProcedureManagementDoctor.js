@@ -477,7 +477,7 @@ const ProcedureManagementDoctor = ({ clinicId }) => {
   /* ════ RENDER ════════════════════════════════════════════════════════ */
   return (
     <div style={{ color: t.text }}>
-      <ToastContainer />
+      
 
       {/* ── Toolbar ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>

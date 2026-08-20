@@ -421,7 +421,7 @@ const LabTechnicianForm = ({
 
   return (
     <>
-      <ToastContainer />
+      
       <CModal
         visible={visible}
         onClose={onClose}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import {
   CRow, CCol, CSpinner,
@@ -19,18 +19,18 @@ import {
   ArrowLeft, Stethoscope, MapPin, Phone, Mail, Globe,
   Navigation, Building2, UserPlus, ChevronLeft, ChevronRight,
   User, Clock, Languages, Star, Briefcase, BadgeDollarSign, FileText,
+  Edit2, Calendar, Users, ChevronDown, MoreHorizontal, Activity, Home, ChevronRight as ChevronRightSm
 } from 'lucide-react'
-
-const TABS = ['Branch Details', 'Doctors', 'Appointments', 'Employee Management']
 
 const BranchDetails = () => {
   const { branchId, clinicId } = useParams()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
 
   const [formErrors, setFormErrors]         = useState({})
   const [activeTab, setActiveTab]           = useState(parseInt(searchParams.get('tab')) || 0)
-  const [branchData, setBranchData]         = useState(null)
+  const [branchData, setBranchData]         = useState(location.state?.branchData || null)
   const [loading, setLoading]               = useState(true)
   const [allDoctors, setAllDoctors]         = useState([])
   const [currentPage, setCurrentPage]       = useState(1)
@@ -68,12 +68,22 @@ const BranchDetails = () => {
     try {
       setLoading(true)
       const branch = await fetchBranchByBranchId(branchId)
-      setBranchData(branch.data)
-      if (branch.data?.clinicId) {
-        await fetchAllDoctors(branch.data.clinicId, branchId)
+      if (branch?.data) {
+        setBranchData(branch.data)
+        if (branch.data.clinicId) {
+          await fetchAllDoctors(branch.data.clinicId, branchId)
+        }
+      } else if (location.state?.branchData) {
+        setBranchData(location.state.branchData)
+        if (location.state.branchData.clinicId) {
+          await fetchAllDoctors(location.state.branchData.clinicId, branchId)
+        }
       }
     } catch (err) {
       console.error('Error fetching branch:', err)
+      if (location.state?.branchData) {
+        setBranchData(location.state.branchData)
+      }
     } finally {
       setLoading(false)
     }
@@ -185,206 +195,222 @@ const BranchDetails = () => {
     </div>
   )
 
+  const getTabs = () => ['Overview', `Users (${branchData?.totalReceptionists || '7'})`, `Doctors (${allDoctors.length || '4'})`, 'Appointments', 'Activity Log']
+  const tabsList = getTabs()
+
   return (
-    <div style={{ fontFamily: 'inherit' }}>
+    <div style={{ fontFamily: 'inherit', background: '#f8fafc', padding: '24px', minHeight: '100vh' }}>
       <ToastContainer />
 
       <style>{`
         .bd-tab {
-          padding: 9px 18px;
-          border: none;
-          background: transparent;
-          font-size: 13px;
-          font-weight: 500;
-          color: #6b7280;
-          cursor: pointer;
-          border-bottom: 2px solid transparent;
-          transition: all 0.18s;
-          white-space: nowrap;
+          padding: 0 0 12px 0; border: none; background: transparent;
+          font-size: 14px; font-weight: 500; color: #6b7280;
+          cursor: pointer; border-bottom: 2px solid transparent;
+          transition: all 0.2s; white-space: nowrap;
         }
         .bd-tab:hover { color: #185fa5; }
-        .bd-tab.active {
-          color: #185fa5;
-          font-weight: 700;
-          border-bottom: 2px solid #185fa5;
-        }
+        .bd-tab.active { color: #185fa5; font-weight: 600; border-bottom: 2px solid #185fa5; }
         .bd-page-btn {
           height: 32px; min-width: 32px; padding: 0 10px;
           border-radius: 8px; border: 1.5px solid #e5e7eb;
-          background: #fff; color: #374151;
-          font-size: 12px; font-weight: 600;
-          cursor: pointer; transition: all 0.2s;
-          display: inline-flex; align-items: center;
-          justify-content: center; gap: 4px; white-space: nowrap;
+          background: #fff; color: #374151; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
         }
-        .bd-page-btn:hover:not(:disabled):not(.active) {
-          border-color: #185fa5; color: #185fa5; background: #eef4fb;
-        }
+        .bd-page-btn:hover:not(:disabled):not(.active) { border-color: #185fa5; color: #185fa5; background: #eef4fb; }
         .bd-page-btn.active { background: #185fa5; color: #fff; border-color: #185fa5; }
         .bd-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .doctor-card-container { display: flex; flex-direction: column; gap: 16px; }
       `}</style>
 
       {/* ── Header ── */}
-      <div style={{
-        background: '#185fa5', borderRadius: '10px 10px 0 0',
-        padding: '16px 20px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '38px', height: '38px', borderRadius: '9px',
-            background: 'rgba(255,255,255,0.18)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Building2 size={18} color="#fff" />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '13px', marginBottom: '4px' }}>
+            <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => navigate('/')}><Home size={12} /> Home</span> <ChevronRightSm size={14} />
+            <span style={{ cursor: 'pointer' }} onClick={() => navigate('/branchManagement')}>Branch Management</span> <ChevronRightSm size={14} />
+            <span style={{ color: '#185fa5', fontWeight: '500' }}>Branch Details</span>
           </div>
-          <div>
-            <h5 style={{ margin: 0, color: '#fff', fontWeight: '700', fontSize: '16px' }}>
-              Branch Details
-            </h5>
-            {branchData?.branchName && (
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)' }}>
-                {branchData.branchName}
+          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#111827', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            Branch Details
+          </h2>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button style={{
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+            borderRadius: '8px', background: '#185fa5', color: '#fff', border: 'none',
+            fontWeight: '600', fontSize: '13px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(24,95,165,0.2)'
+          }}>
+            <Edit2 size={14} /> Edit Branch
+          </button>
+          <button style={{
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+            borderRadius: '8px', background: '#fff', color: '#374151', border: '1px solid #e5e7eb',
+            fontWeight: '600', fontSize: '13px', cursor: 'pointer'
+          }}>
+            More <ChevronDown size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Top Info Cards ── */}
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '24px' }}>
+        <div style={{
+          flex: '2', minWidth: '350px', background: '#fff',
+          borderRadius: '12px', padding: '20px', display: 'flex', gap: '20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb', flexWrap: 'wrap'
+        }}>
+          <div style={{ width: '180px', height: '180px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
+            <img src={branchData?.virtualClinicTour || "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=400"} alt="Clinic Interior" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, paddingTop: '4px', minWidth: '200px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h4 style={{ margin: 0, fontWeight: '700', color: '#1f2937', fontSize: '20px' }}>{branchData?.branchName || 'Branch Name'}</h4>
+              <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: branchData?.status === 'Inactive' ? '#fee2e2' : '#dcfce7', color: branchData?.status === 'Inactive' ? '#b91c1c' : '#166534', border: `1px solid ${branchData?.status === 'Inactive' ? '#fecaca' : '#bbf7d0'}` }}>
+                {branchData?.status || 'Active'}
               </span>
-            )}
+            </div>
+            <div style={{ color: '#6b7280', fontSize: '13px', fontWeight: '500' }}>
+              {branchData?.branchCode || 'BR001'}
+            </div>
+            <div style={{ color: '#185fa5', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
+              {branchData?.clinicName || 'Skin Care Center'} ({branchData?.clinicId || 'CLN001'})
+            </div>
+            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4b5563', fontSize: '13px' }}>
+                <Phone size={14} color="#6b7280" /> {branchData?.contactNumber || '+91 98765 43210'}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4b5563', fontSize: '13px' }}>
+                <Mail size={14} color="#6b7280" /> {branchData?.email || 'email@example.com'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: '#4b5563', fontSize: '13px', marginTop: '4px', lineHeight: '1.4' }}>
+              <MapPin size={16} color="#6b7280" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>{branchData?.address || 'Address'} {branchData?.city ? `, ${branchData.city}` : ''}</span>
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            background: 'rgba(255,255,255,0.15)', color: '#fff',
-            border: '1px solid rgba(255,255,255,0.30)', borderRadius: '7px',
-            padding: '6px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-            transition: 'background 0.15s',
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.28)')}
-          onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
+
+        <div style={{ flex: '1', minWidth: '300px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
+            <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '8px' }}>Server</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '36px', height: '36px', background: '#f3f4f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Navigation size={18} color="#185fa5" />
+              </div>
+              <div style={{ color: '#185fa5', fontSize: '15px', fontWeight: '700' }}>{branchData?.server || 'Server 1'}</div>
+            </div>
+          </div>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
+            <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '8px' }}>Branch Admin</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(branchData?.adminName || 'Admin User')}&background=random`} alt="Admin" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ color: '#1f2937', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{branchData?.adminName || 'Admin User'}</div>
+                <div style={{ color: '#6b7280', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{branchData?.contactNumber || 'Contact'}</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
+            <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '8px' }}>Total Doctors</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '36px', height: '36px', background: '#eef2ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Stethoscope size={18} color="#4f46e5" />
+              </div>
+              <div style={{ color: '#1f2937', fontSize: '20px', fontWeight: '700' }}>{allDoctors?.length || '4'}</div>
+            </div>
+          </div>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
+            <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '8px' }}>Total Receptionists</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '36px', height: '36px', background: '#dcfce7', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <User size={18} color="#16a34a" />
+              </div>
+              <div style={{ color: '#1f2937', fontSize: '20px', fontWeight: '700' }}>{branchData?.totalReceptionists || '3'}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Tab Bar ── */}
-      <div style={{
-        background: '#fff', borderLeft: '0.5px solid #d0dce9',
-        borderRight: '0.5px solid #d0dce9',
-        display: 'flex', gap: '4px', overflowX: 'auto',
-        borderBottom: '1px solid #e5e7eb', padding: '0 16px',
-      }}>
-        {TABS.map((label, idx) => (
-          <button
-            key={idx}
-            className={`bd-tab ${activeTab === idx ? 'active' : ''}`}
-            onClick={() => handleTabChange(idx)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* ── Content Container ── */}
+      <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
+        
+        {/* ── Tab Bar ── */}
+        <div style={{ display: 'flex', gap: '24px', overflowX: 'auto', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
+          {tabsList.map((label, idx) => (
+            <button key={idx} className={`bd-tab ${activeTab === idx ? 'active' : ''}`} onClick={() => handleTabChange(idx)}>
+              {label}
+            </button>
+          ))}
+        </div>
 
-      {/* ── Content ── */}
-      <div style={{
-        background: '#fff', border: '0.5px solid #d0dce9',
-        borderTop: 'none', borderRadius: '0 0 10px 10px',
-        padding: '20px 24px 24px',
-      }}>
-
-        {/* ══ TAB 0: Branch Details ══ */}
+        {/* ══ TAB 0: Overview ══ */}
         {activeTab === 0 && (
-          loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-              <CSpinner color="primary" />
-            </div>
-          ) : branchData ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-                <span style={{ width: '3px', height: '18px', background: '#185fa5', borderRadius: '2px', flexShrink: 0 }} />
-                <h6 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#0c447c' }}>
-                  Branch Information
-                </h6>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#e0f2fe', padding: '6px', borderRadius: '6px' }}><Users size={14} color="#0284c7" /></div>
+                Total Patients
               </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: '12px',
-              }}>
-                <BranchField icon={Building2}   label="Branch Name"     value={branchData.branchName} />
-                <BranchField icon={Briefcase}   label="Clinic ID"       value={branchData.clinicId} />
-                <BranchField icon={MapPin}      label="Address"         value={branchData.address} />
-                <BranchField icon={Navigation}  label="City"            value={branchData.city} />
-                <BranchField icon={Phone}       label="Contact Number"  value={branchData.contactNumber} />
-                <BranchField icon={Mail}        label="Email"           value={branchData.email} />
-                <BranchField icon={Globe}       label="Coordinates"     value={`${branchData.latitude || '—'}, ${branchData.longitude || '—'}`} />
-                <BranchField icon={Globe}       label="Virtual Tour"    value={branchData.virtualClinicTour || 'N/A'} isLink={!!branchData.virtualClinicTour} />
-                <BranchField icon={MapPin}      label="Clinic Location URL" value={branchData.location || 'N/A'} openLink={!!branchData.location} />
-              </div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>1,245</div>
             </div>
-          ) : (
-            <p style={{ color: '#9ca3af', textAlign: 'center', padding: '40px 0' }}>
-              No branch details available.
-            </p>
-          )
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#ffedd5', padding: '6px', borderRadius: '6px' }}><Calendar size={14} color="#ea580c" /></div>
+                Today's Appointments
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>15</div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '6px' }}><UserPlus size={14} color="#16a34a" /></div>
+                This Month Appointments
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>320</div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#ffedd5', padding: '6px', borderRadius: '6px' }}><Star size={14} color="#ea580c" /></div>
+                Monthly Revenue
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>₹98,750</div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ color: '#6b7280', fontSize: '12px', fontWeight: '500', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ background: '#ffedd5', padding: '6px', borderRadius: '6px' }}><Star size={14} color="#ea580c" /></div>
+                Reward Points Issued
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>4,250</div>
+            </div>
+          </div>
         )}
 
-        {/* ══ TAB 1: Doctors ══ */}
+        {/* ══ TAB 1: Users (Employee Management) ══ */}
         {activeTab === 1 && (
+          <EmployeeManagement branchId={branchId} clinicId={branchData?.clinicId} />
+        )}
+
+        {/* ══ TAB 2: Doctors ══ */}
+        {activeTab === 2 && (
           <div>
-            {/* Sub-header */}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px',
-            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h6 style={{ margin: 0, color: '#185fa5', fontWeight: '700', fontSize: '15px' }}>
-                  Doctor Details
-                </h6>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>
-                  {allDoctors.length} doctor{allDoctors.length !== 1 ? 's' : ''} in this branch
-                </p>
+                <h6 style={{ margin: 0, color: '#185fa5', fontWeight: '700', fontSize: '15px' }}>Doctor Details</h6>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6b7280' }}>{allDoctors.length} doctor{allDoctors.length !== 1 ? 's' : ''} in this branch</p>
               </div>
-              <button
-                onClick={() => { setFormErrors({}); setModalVisible(true) }}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '7px',
-                  padding: '8px 18px', borderRadius: '10px',
-                  background: '#185fa5', color: '#fff',
-                  border: 'none', fontWeight: '600', fontSize: '13px',
-                  cursor: 'pointer', boxShadow: '0 4px 12px rgba(24,95,165,0.28)',
-                  transition: 'background 0.15s',
-                }}
-                onMouseOver={(e) => (e.currentTarget.style.background = '#0c447c')}
-                onMouseOut={(e) => (e.currentTarget.style.background = '#185fa5')}
-              >
+              <button onClick={() => { setFormErrors({}); setModalVisible(true) }} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '8px 18px', borderRadius: '10px', background: '#185fa5', color: '#fff', border: 'none', fontWeight: '600', fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(24,95,165,0.28)', transition: 'background 0.15s' }}>
                 <UserPlus size={15} /> Add Doctor
               </button>
             </div>
 
-            {/* Add Doctor Modal */}
             {branchData?.clinicId && (
-              <AddDoctors
-                modalVisible={modalVisible}
-                setModalVisible={setModalVisible}
-                clinicId={branchData.clinicId}
-                branchId={branchData.branchId}
-                closeForm={() => setModalVisible(false)}
-                fetchAllDoctors={() => fetchAllDoctors(branchData.clinicId, branchId)}
-              />
+              <AddDoctors modalVisible={modalVisible} setModalVisible={setModalVisible} clinicId={branchData.clinicId} branchId={branchData.branchId} closeForm={() => setModalVisible(false)} fetchAllDoctors={() => fetchAllDoctors(branchData.clinicId, branchId)} />
             )}
 
-            {/* Doctor cards */}
             {currentItems.length > 0 ? (
               <div className="doctor-card-container">
                 {currentItems.map((doc) => (
-                  <DoctorCard
-                    key={doc.doctorId}
-                    doctor={doc}
-                    branchId={branchData?.branchId}
-                    onEdit={() => { setSelectedDoctor(doc) }}
-                    onDelete={() => { setSelectedDoctor(doc); setShowDeleteModal(true) }}
-                    onView={() => { setSelectedDoctor(doc); setShowDoctorModal(true) }}
-                  />
+                  <DoctorCard key={doc.doctorId} doctor={doc} branchId={branchData?.branchId} onEdit={() => { setSelectedDoctor(doc) }} onDelete={() => { setSelectedDoctor(doc); setShowDeleteModal(true) }} onView={() => { setSelectedDoctor(doc); setShowDoctorModal(true) }} />
                 ))}
               </div>
             ) : (
@@ -394,82 +420,36 @@ const BranchDetails = () => {
               </div>
             )}
 
-            {/* Pagination */}
             {allDoctors.length > 0 && (
-              <div style={{
-                display: 'flex', justifyContent: 'space-between',
-                alignItems: 'center', marginTop: '18px',
-                paddingTop: '14px', borderTop: '1px solid #f0f0f0',
-                flexWrap: 'wrap', gap: '10px',
-              }}>
-                {/* Rows per page */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '18px', paddingTop: '14px', borderTop: '1px solid #f0f0f0', flexWrap: 'wrap', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>
-                    Rows per page:
-                  </span>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }}
-                    style={{
-                      padding: '5px 8px', border: '1.5px solid #e5e7eb',
-                      borderRadius: '7px', fontSize: '12px', color: '#374151',
-                      cursor: 'pointer', outline: 'none', background: '#fff',
-                    }}
-                  >
+                  <span style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap' }}>Rows per page:</span>
+                  <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1) }} style={{ padding: '5px 8px', border: '1.5px solid #e5e7eb', borderRadius: '7px', fontSize: '12px', color: '#374151', cursor: 'pointer', outline: 'none', background: '#fff' }}>
                     {[5, 10, 25].map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
-
-                {/* Page controls */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    className="bd-page-btn"
-                    disabled={currentPage === 1}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                  >
-                    <ChevronLeft size={13} /> Prev
-                  </button>
-
-                  {getPaginationPages().map((p, i) =>
-                    p === '…' ? (
-                      <span key={`e${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 2px' }}>…</span>
-                    ) : (
-                      <button
-                        key={p}
-                        className={`bd-page-btn ${currentPage === p ? 'active' : ''}`}
-                        onClick={() => handlePageChange(p)}
-                      >
-                        {p}
-                      </button>
-                    )
-                  )}
-
-                  <button
-                    className="bd-page-btn"
-                    disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                  >
-                    Next <ChevronRight size={13} />
-                  </button>
-
-                  <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>
-                    Page <strong style={{ color: '#185fa5' }}>{currentPage}</strong> of{' '}
-                    <strong style={{ color: '#185fa5' }}>{totalPages}</strong>
-                  </span>
+                  <button className="bd-page-btn" disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)}><ChevronLeft size={13} /> Prev</button>
+                  {getPaginationPages().map((p, i) => p === '…' ? <span key={`e${i}`} style={{ fontSize: '12px', color: '#9ca3af', padding: '0 2px' }}>…</span> : <button key={p} className={`bd-page-btn ${currentPage === p ? 'active' : ''}`} onClick={() => handlePageChange(p)}>{p}</button>)}
+                  <button className="bd-page-btn" disabled={currentPage === totalPages} onClick={() => handlePageChange(currentPage + 1)}>Next <ChevronRight size={13} /></button>
+                  <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '6px', whiteSpace: 'nowrap' }}>Page <strong style={{ color: '#185fa5' }}>{currentPage}</strong> of <strong style={{ color: '#185fa5' }}>{totalPages}</strong></span>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ══ TAB 2: Appointments ══ */}
-        {activeTab === 2 && (
+        {/* ══ TAB 3: Appointments ══ */}
+        {activeTab === 3 && (
           <AppointmentManagement branchId={branchId} clinicId={branchData?.clinicId} />
         )}
 
-        {/* ══ TAB 3: Employee Management ══ */}
-        {activeTab === 3 && (
-          <EmployeeManagement branchId={branchId} clinicId={branchData?.clinicId} />
+        {/* ══ TAB 4: Activity Log ══ */}
+        {activeTab === 4 && (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
+            <Activity size={36} color="#b5d4f4" style={{ marginBottom: '10px' }} />
+            <p style={{ fontSize: '14px' }}>No recent activity to show.</p>
+          </div>
         )}
       </div>
 

@@ -18,8 +18,9 @@ import {
   CFormLabel,
   CFormSelect,
   CProgress,
+  CPopover,
 } from '@coreui/react'
-import { Search, Plus, Edit, Trash2, Server, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, Server, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
 
 const ServerManagement = () => {
@@ -344,10 +345,6 @@ const ServerManagement = () => {
                     'Location',
                     'Clinics',
                     'Status',
-                    'CPU Usage',
-                    'Memory Usage',
-                    'Disk Usage',
-                    'Last Backup',
                     'Actions',
                   ].map((h) => (
                     <CTableHeaderCell key={h} className={h === 'Actions' ? 'text-center' : ''}>
@@ -384,6 +381,7 @@ const ServerManagement = () => {
                     </CTableDataCell>
                     <CTableDataCell>{server.url || '—'}</CTableDataCell>
                     <CTableDataCell>{server.location || '—'}</CTableDataCell>
+
                     <CTableDataCell>
                       <span
                         style={{
@@ -406,41 +404,6 @@ const ServerManagement = () => {
                       >
                         {server.status}
                       </CBadge>
-                    </CTableDataCell>
-
-                    <CTableDataCell>
-                      <div style={{ minWidth: '80px' }}>
-                        <div className="small fw-bold text-dark mb-1">{server.cpu}%</div>
-                        <CProgress value={server.cpu} color="success" height={4} />
-                      </div>
-                    </CTableDataCell>
-
-                    <CTableDataCell>
-                      <div style={{ minWidth: '80px' }}>
-                        <div className="small fw-bold text-dark mb-1">{server.memory}%</div>
-                        <CProgress
-                          value={server.memory}
-                          color="primary"
-                          style={{ backgroundColor: '#E9D5FF' }}
-                          height={4}
-                        />
-                      </div>
-                    </CTableDataCell>
-
-                    <CTableDataCell>
-                      <div style={{ minWidth: '80px' }}>
-                        <div className="small fw-bold text-dark mb-1">{server.disk}%</div>
-                        <CProgress value={server.disk} color="info" height={4} />
-                      </div>
-                    </CTableDataCell>
-
-                    <CTableDataCell>
-                      <div className="text-dark small fw-semibold" style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>
-                        {server.lastBackup}
-                      </div>
-                      <div className="text-success fw-semibold mt-1" style={{ fontSize: '10px' }}>
-                        {server.backupStatus}
-                      </div>
                     </CTableDataCell>
 
                     <CTableDataCell className="text-center">

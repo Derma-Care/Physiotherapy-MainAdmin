@@ -198,7 +198,7 @@ const CustomerManagement = () => {
 
   return (
     <>
-      <ToastContainer />
+      
       <style>{`
         .cust-table thead th {
           background: #1a3a6b !important;

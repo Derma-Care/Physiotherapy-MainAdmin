@@ -36,10 +36,14 @@ export const AppSidebarNav = ({ items }) => {
             )}
 
         <span
+          title={name}
           style={{
             color: isActive ? COLORS.bgcolor : COLORS.white,
             fontWeight: isActive ? '600' : '500',
             fontSize: '14px', // ✅ bigger text
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
           {name}
@@ -78,10 +82,10 @@ export const AppSidebarNav = ({ items }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '6px',
               margin: '4px 10px',
               borderRadius: '10px',
-              padding: '10px 14px',
+              padding: '10px 8px',
               backgroundColor: isActive ? COLORS.orange : 'transparent',
               transition: 'all 0.2s ease',
               textDecoration: 'none',

@@ -55,12 +55,12 @@ const _nav = [
     to: '/users-management',
     icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Appointment Management',
-    to: '/appointment-management',
-    icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Appointment Management',
+  //   to: '/appointment-management',
+  //   icon: <CIcon icon={cilCalendar} customClassName="nav-icon" />,
+  // },
   {
     component: CNavItem,
     name: 'Reports',
@@ -79,12 +79,7 @@ const _nav = [
     to: '/push-Notifications',
     icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Support Center',
-    to: '/support-center',
-    icon: <CIcon icon={cilLifeRing} customClassName="nav-icon" />,
-  },
+
   {
     component: CNavItem,
     name: 'Audit Logs',
@@ -102,6 +97,12 @@ const _nav = [
     name: 'Ads Management',
     to: '/ads-management',
     icon: <CIcon icon={cibGoogleAds} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Support Center',
+    to: '/support-center',
+    icon: <CIcon icon={cilLifeRing} customClassName="nav-icon" />,
   },
 ]
 

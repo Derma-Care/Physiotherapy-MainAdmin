@@ -219,7 +219,7 @@ const ServiceManagement = () => {
 
   return (
     <div className="sm-page">
-      <ToastContainer />
+      
 
       {/* ── Page header ── */}
       <div className="sm-page-header">

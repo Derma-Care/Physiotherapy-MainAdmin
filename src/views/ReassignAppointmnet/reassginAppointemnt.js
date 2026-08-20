@@ -211,7 +211,7 @@ const ReassignAppointment = () => {
           </CInputGroupText>
         </CInputGroup>
       </CForm>
-      <ToastContainer />
+      
 
       {viewService && (
         <CModal visible={!!viewService} onClose={() => setViewService(null)} size="lg"  className="custom-modal"

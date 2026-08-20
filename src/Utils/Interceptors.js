@@ -29,26 +29,34 @@ export function attachInterceptors(getAuthToken) {
   )
 
   // ✅ Response interceptor → handle errors
-  const resInterceptor = http.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response?.status === 401) {
-        toast.error('Session expired. Please login again.')
-        // optional: log out user
-        // localStorage.removeItem('token')
-        // window.location.href = '/login'
-      } else if (error.response?.data?.message) {
-        toast.error(error.response.data.message)
-      } else {
-        toast.error('Request failed.')
-      }
-      return Promise.reject(error)
-    },
-  )
+  const resHandler = (response) => response
+  const errHandler = (error) => {
+    const status = error.response?.status
+    if (status === 502 || status === 503) {
+      window.dispatchEvent(new Event('maintenance-mode'))
+      return new Promise(() => {}) // pending promise so app stops executing
+    }
+
+    if (status === 401) {
+      toast.error('Session expired. Please login again.')
+      // optional: log out user
+      // localStorage.removeItem('token')
+      // window.location.href = '/login'
+    } else if (error.response?.data?.message) {
+      toast.error(error.response.data.message)
+    } else {
+      toast.error('Request failed.')
+    }
+    return Promise.reject(error)
+  }
+
+  const resInterceptor = http.interceptors.response.use(resHandler, errHandler)
+  const globalAxiosInterceptor = axios.interceptors.response.use(resHandler, errHandler)
 
   // Return a function to eject interceptors if needed
   return () => {
     http.interceptors.request.eject(reqInterceptor)
     http.interceptors.response.eject(resInterceptor)
+    axios.interceptors.response.eject(globalAxiosInterceptor)
   }
 }

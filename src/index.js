@@ -24,15 +24,6 @@ function Root() {
       <HospitalProvider> {/* ✅ wrap the app inside HospitalProvider */}
         <GlobalSearchProvider>
           <App />
-          <ToastContainer
-            position="top-right"       // ✅ fixed typo (was top-rignt)
-            limit={3}
-            theme="dark"
-            toastStyle={{
-              backgroundColor: 'var(--color-black)',
-              color: 'white',
-            }}
-          />
         </GlobalSearchProvider>
       </HospitalProvider>
     </Provider>

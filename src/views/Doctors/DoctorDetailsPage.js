@@ -333,7 +333,7 @@ const DoctorDetailsPage = () => {
 
   return (
     <div style={{ padding: '1.25rem' }}>
-      <ToastContainer />
+      
 
       {/* ── Hero ──────────────────────────────── */}
       <div className="dp-hero">

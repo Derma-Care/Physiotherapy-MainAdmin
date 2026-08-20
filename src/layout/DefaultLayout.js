@@ -5,12 +5,14 @@ const DefaultLayout = () => {
   return (
     <div>
       <AppSidebar />
-      <div className="wrapper d-flex flex-column min-vh-100">
+      <div className="wrapper d-flex flex-column" style={{ height: '100vh', overflow: 'hidden' }}>
         <AppHeader />
-        <div className="body flex-grow-1">
+        <div className="body flex-grow-1" style={{ overflowY: 'auto' }}>
           <AppContent />
         </div>
-        <AppFooter />
+        <div style={{ flexShrink: 0 }}>
+          <AppFooter />
+        </div>
       </div>
     </div>
   )

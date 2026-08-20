@@ -323,7 +323,7 @@ const AddDoctors = ({ modalVisible, setModalVisible, clinicId, closeForm, branch
 
   return (
     <div>
-      <ToastContainer />
+      
 
       <CModal visible={modalVisible} onClose={() => setModalVisible(false)} size="lg" backdrop="static">
         <CModalHeader style={{ borderBottom: '0.5px solid #d0dce9', padding: '16px 20px' }}>

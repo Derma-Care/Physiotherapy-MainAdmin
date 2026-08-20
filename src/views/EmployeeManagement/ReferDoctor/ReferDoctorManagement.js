@@ -138,7 +138,7 @@ const ReferDoctorManagement = () => {
 
   return (
     <div>
-      <ToastContainer />
+      
       {can('Refer Doctor', 'create') && (
         <div
           className="mb-3 w-100"

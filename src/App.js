@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { CSpinner, useColorModes } from '@coreui/react'
@@ -7,6 +7,8 @@ import './scss/style.scss'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import ProtectedRoute from './components/ProtectedRoute'
+import Logo from './assets/images/DermaCareNoBG.png'
+import MaintenanceScreen from './components/MaintenanceScreen'
 
 // ✅ Import HospitalProvider
 // import { HospitalProvider } from './Usecontext/HospitalContext'
@@ -23,7 +25,15 @@ import { injectTheme } from './Constant/Themes'
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
   const storedTheme = useSelector((state) => state.theme)
- useEffect(() => {
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false)
+
+  useEffect(() => {
+    const handleMaintenance = () => setIsMaintenanceMode(true)
+    window.addEventListener('maintenance-mode', handleMaintenance)
+    return () => window.removeEventListener('maintenance-mode', handleMaintenance)
+  }, [])
+
+  useEffect(() => {
     injectTheme()
   }, [])
   useEffect(() => {
@@ -37,40 +47,71 @@ const App = () => {
     }
   }, [storedTheme, isColorModeSet, setColorMode])
 
-  return (
+  if (isMaintenanceMode) {
+    return <MaintenanceScreen />
+  }
 
-      <BrowserRouter>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
-        <Suspense fallback={<CSpinner color="primary" variant="grow" />}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/Dashboard" />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/404" element={<Page404 />} />
-            <Route path="/500" element={<Page500 />} />
-            <Route
-              path="*"
-              element={
-                <ProtectedRoute>
-                  <DefaultLayout />
-                </ProtectedRoute>
-              }
+  return (
+    <BrowserRouter>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+      <Suspense
+        fallback={
+          <div
+            className="pt-3 text-center"
+            style={{
+              height: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#f8fafc',
+            }}
+          >
+            <img
+              src={Logo}
+              alt="Logo"
+              style={{ width: '120px', animation: 'pulseLogo 2s infinite' }}
             />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-   
+            <style>
+              {`
+                @keyframes pulseLogo {
+                  0% { transform: scale(0.95); opacity: 0.8; }
+                  50% { transform: scale(1.05); opacity: 1; }
+                  100% { transform: scale(0.95); opacity: 0.8; }
+                }
+              `}
+            </style>
+          </div>
+        }
+      >
+        <Routes>
+          <Route path="/" element={<Navigate to="/Dashboard" />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/404" element={<Page404 />} />
+          <Route path="/500" element={<Page500 />} />
+          <Route
+            path="*"
+            element={
+              <ProtectedRoute>
+                <DefaultLayout />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   )
 }
 

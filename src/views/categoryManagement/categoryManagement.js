@@ -217,7 +217,7 @@ const CategoryManagement = () => {
 
   return (
     <div className="cm-page">
-      <ToastContainer />
+      
 
       {/* ── Page header ── */}
       <div className="cm-page-header">

@@ -5,42 +5,9 @@ import { CBreadcrumb, CBreadcrumbItem, CButton } from '@coreui/react'
 import { ArrowLeft } from 'lucide-react'
 import { COLORS } from '../Constant/Themes'
 
-
 const AppBreadcrumb = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const [dateTime, setDateTime] = useState('')
-
-  // ✅ Date & Time
-  useEffect(() => {
-    const updateDateTime = () => {
-      const now = new Date()
-      const day = now.getDate()
-      const suffix =
-        day % 10 === 1 && day !== 11
-          ? 'st'
-          : day % 10 === 2 && day !== 12
-          ? 'nd'
-          : day % 10 === 3 && day !== 13
-          ? 'rd'
-          : 'th'
-
-      const month = now.toLocaleString('en-US', { month: 'short' })
-      const year = now.getFullYear().toString().slice(-2)
-      const weekday = now.toLocaleString('en-US', { weekday: 'short' })
-      const time = now.toLocaleString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      })
-
-      setDateTime(`${day}${suffix} ${month}, ${year} (${weekday}), ${time}`)
-    }
-
-    updateDateTime()
-    const timer = setInterval(updateDateTime, 60000)
-    return () => clearInterval(timer)
-  }, [])
 
   // ✅ Route Name
   const getRouteName = (pathname, routes) => {
@@ -86,9 +53,6 @@ const AppBreadcrumb = () => {
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        padding: '6px 12px',
         flexWrap: 'nowrap',
       }}
     >
@@ -104,7 +68,7 @@ const AppBreadcrumb = () => {
           className="my-0"
           style={{
             marginBottom: 0,
-            whiteSpace: 'nowrap',
+
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             '--cui-breadcrumb-divider-color': COLORS.white,
@@ -114,7 +78,8 @@ const AppBreadcrumb = () => {
             style={{
               cursor: 'pointer',
               color: COLORS.white,
-              fontWeight: 'bold',
+
+              textDecoration: 'none',
             }}
             onClick={() => navigate('/dashboard')}
           >
@@ -127,11 +92,10 @@ const AppBreadcrumb = () => {
               style={{
                 color: COLORS.white,
                 cursor: b.active ? 'default' : 'pointer',
-                fontWeight: b.active ? 600 : 500,
+
+                textDecoration: 'none',
               }}
-              {...(b.active
-                ? { active: true }
-                : { onClick: () => navigate(b.pathname) })}
+              {...(b.active ? { active: true } : { onClick: () => navigate(b.pathname) })}
             >
               {b.name}
             </CBreadcrumbItem>
@@ -139,7 +103,7 @@ const AppBreadcrumb = () => {
         </CBreadcrumb>
       </div>
 
-      {/* 🔹 RIGHT - Date + Back */}
+      {/* 🔹 RIGHT - Back */}
       <div
         style={{
           display: 'flex',
@@ -148,18 +112,6 @@ const AppBreadcrumb = () => {
           flexShrink: 0,
         }}
       >
-        {/* Date */}
-        <small
-          style={{
-            fontWeight: 600,
-            color: COLORS.white,
-            fontSize: '0.85rem',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {dateTime}
-        </small>
-
         {/* Back Button */}
         {showBackButton && (
           <CButton

@@ -573,7 +573,7 @@ const ServiceManagement = () => {
 
   return (
     <div style={{ overflow: 'hidden' }}>
-      <ToastContainer />
+      
 
       <div>
         <CForm className="d-flex justify-content-between mb-3">

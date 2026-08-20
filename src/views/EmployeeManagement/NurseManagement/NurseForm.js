@@ -440,7 +440,7 @@ const NurseForm = ({ visible, onClose, onSave, initialData, viewMode, nurses, fe
 
   return (
     <>
-      <ToastContainer />
+      
       <CModal
         visible={visible}
         onClose={() => {

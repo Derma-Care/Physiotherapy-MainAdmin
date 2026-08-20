@@ -287,7 +287,7 @@ const ProcedureManagement = () => {
   /* ─── Render ─────────────────────────────────────────────────────────────── */
   return (
     <div style={S.wrap}>
-      <ToastContainer />
+      
       <div style={S.card}>
 
         {/* ── Header ── */}

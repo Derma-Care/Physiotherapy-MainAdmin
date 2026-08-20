@@ -1,13 +1,8 @@
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import Logo from './header/Kinetix.jpg.jpeg'
+import Logo from '../assets/images/DermaLogo.png'
 
-import {
-  CSidebar,
-  CSidebarFooter,
-  CSidebarHeader,
-  CSidebarToggler,
-} from '@coreui/react'
+import { CSidebar, CSidebarFooter, CSidebarHeader, CSidebarToggler } from '@coreui/react'
 
 import { AppSidebarNav } from './AppSidebarNav'
 import './sidebar.css'
@@ -75,7 +70,7 @@ const AppSidebar = () => {
           <div style={{ textAlign: 'center' }}>
             <h1
               style={{
-                fontSize: '20px',
+                fontSize: '40px',
                 color: '#ffffff',
                 fontWeight: '700',
                 margin: 0,
@@ -83,9 +78,8 @@ const AppSidebar = () => {
                 lineHeight: '1.3',
               }}
             >
-              Kinetix Wellness Care
+              PhysioElite
             </h1>
-           
           </div>
 
           {/* Decorative divider */}
