@@ -1,4 +1,3 @@
-
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { BASE_URL } from '../baseUrl'
@@ -33,12 +32,12 @@ export function attachInterceptors(getAuthToken) {
   const errHandler = (error) => {
     const status = error.response?.status
 
-    // Distinguish between true offline vs server crash (CORS network error)
-    const isNetworkError = error.message === 'Network Error' || error.code === 'ERR_NETWORK'
-    const isServerCrash = isNetworkError && navigator.onLine
-
-    // Trigger maintenance screen on explicit 502/503 OR a server crash (hidden 502s)
-    if (status === 502 || status === 503 || isServerCrash) {
+    // Trigger maintenance screen ONLY on an explicit 502 or 503 response.
+    // Network errors (CORS issues, timeouts, DNS blips, offline, etc.) are
+    // NOT treated as maintenance — they're handled below instead, so a
+    // flaky connection or a 404/401/other status never puts the app into
+    // maintenance mode.
+    if (status === 502 || status === 503) {
       window.dispatchEvent(new Event('maintenance-mode'))
       return new Promise(() => {}) // pending promise so app stops executing
     }

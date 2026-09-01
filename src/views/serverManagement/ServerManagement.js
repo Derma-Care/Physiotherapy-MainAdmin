@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 import {
   CTable,
   CTableHead,
@@ -17,11 +18,13 @@ import {
   CForm,
   CFormLabel,
   CFormSelect,
-  CProgress,
-  CPopover,
 } from '@coreui/react'
 import { Search, Plus, Edit, Trash2, Server, X, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { ConfirmationModal } from '../../Utils/ConfirmationDelete'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import { BASE_URL } from '../../baseUrl'
+
 
 const ServerManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false)
@@ -29,94 +32,64 @@ const ServerManagement = () => {
 
   const [modalMode, setModalMode] = useState('add')
   const [serverToEdit, setServerToEdit] = useState(null)
-  
+
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false)
   const [serverToDelete, setServerToDelete] = useState(null)
+
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [viewServer, setViewServer] = useState(null)
+  const [loadingView, setLoadingView] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
     url: '',
     location: '',
-    role: 'secondary'
   })
+  const [formErrors, setFormErrors] = useState({})
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const [servers, setServers] = useState([
-    {
-      id: 1,
-      name: 'Server 1',
-      isPrimary: true,
-      url: 'https://server1.surecare.com',
-      location: 'Mumbai, India',
-      clinics: 12,
-      status: 'Online',
-      cpu: 29,
-      memory: 45,
-      disk: 40,
-      lastBackup: '28 May 2025 02:30 AM',
-      backupStatus: 'Success',
-    },
-    {
-      id: 2,
-      name: 'Server 2',
-      isPrimary: false,
-      url: 'https://server2.surecare.com',
-      location: 'Delhi, India',
-      clinics: 10,
-      status: 'Online',
-      cpu: 35,
-      memory: 52,
-      disk: 48,
-      lastBackup: '28 May 2025 03:15 AM',
-      backupStatus: 'Success',
-    },
-    {
-      id: 3,
-      name: 'Server 3',
-      isPrimary: false,
-      url: 'https://server3.surecare.com',
-      location: 'Bangalore, India',
-      clinics: 9,
-      status: 'Online',
-      cpu: 22,
-      memory: 40,
-      disk: 36,
-      lastBackup: '28 May 2025 02:10 AM',
-      backupStatus: 'Success',
-    },
-    {
-      id: 4,
-      name: 'Server 4',
-      isPrimary: false,
-      url: 'https://server4.surecare.com',
-      location: 'Hyderabad, India',
-      clinics: 8,
-      status: 'Online',
-      cpu: 30,
-      memory: 47,
-      disk: 42,
-      lastBackup: '28 May 2025 02:00 AM',
-      backupStatus: 'Success',
-    },
-    {
-      id: 5,
-      name: 'Server 5',
-      isPrimary: false,
-      url: 'https://server5.surecare.com',
-      location: 'Chennai, India',
-      clinics: 9,
-      status: 'Online',
-      cpu: 18,
-      memory: 38,
-      disk: 30,
-      lastBackup: '28 May 2025 01:56 AM',
-      backupStatus: 'Success',
-    },
-  ])
+  const [servers, setServers] = useState([])
+  const [loadingServers, setLoadingServers] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
 
-  const filteredServers = servers.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  /* ── Map raw API server object -> table row shape ── */
+  const mapServer = (s) => ({
+    id: s.serverId,
+    name: s.serverName,
+    url: s.serverUrl,
+    location: s.location,
+    clinics: s.clinics ?? 0,
+    status: s.status || 'OFFLINE',
+  })
+
+  /* ── Fetch all servers ── */
+  const fetchServers = async () => {
+    setLoadingServers(true)
+    try {
+      const response = await axios.get(`${BASE_URL}/api/SuperAdmin/getAllServers`)
+      const list = response.data?.data
+      const normalized = Array.isArray(list) ? list : list ? [list] : []
+      setServers(normalized.map(mapServer))
+    } catch (err) {
+      console.error('Failed to fetch servers', err)
+      toast.error(err.response?.data?.message || 'Failed to fetch servers', { position: 'top-right' })
+    } finally {
+      setLoadingServers(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchServers()
+  }, [])
+
+  const filteredServers = servers.filter(
+    (s) =>
+      s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.url?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   useEffect(() => {
     setCurrentPage(1)
@@ -125,7 +98,7 @@ const ServerManagement = () => {
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredServers.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(filteredServers.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredServers.length / itemsPerPage) || 1
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page)
@@ -147,16 +120,48 @@ const ServerManagement = () => {
     return pages
   }
 
+  const validateForm = () => {
+    const errs = {}
+    if (!formData.name?.trim()) errs.name = 'Server name is required'
+    if (!formData.url?.trim()) errs.url = 'Server URL is required'
+    else {
+      try {
+        new URL(formData.url.trim())
+      } catch {
+        errs.url = 'Enter a valid URL (e.g. https://server6.example.com)'
+      }
+    }
+    if (!formData.location?.trim()) errs.location = 'Location is required'
+    return errs
+  }
+
   const handleEdit = (row) => {
     setModalMode('edit')
     setServerToEdit(row.id)
     setFormData({
-      name: row.name,
-      url: row.url,
-      location: row.location,
-      role: row.isPrimary ? 'primary' : 'secondary'
+      name: row.name || '',
+      url: row.url || '',
+      location: row.location || '',
     })
+    setFormErrors({})
     setShowAddModal(true)
+  }
+
+  const handleView = async (row) => {
+    setShowViewModal(true)
+    setLoadingView(true)
+    setViewServer(null)
+    try {
+      const response = await axios.get(`${BASE_URL}/api/SuperAdmin/getServerById/${row.id}`)
+      const data = response.data?.data || response.data
+      setViewServer(mapServer(data))
+    } catch (err) {
+      console.error('Failed to fetch server details', err)
+      toast.error(err.response?.data?.message || 'Failed to fetch server details', { position: 'top-right' })
+      setShowViewModal(false)
+    } finally {
+      setLoadingView(false)
+    }
   }
 
   const handleDeleteClick = (row) => {
@@ -164,47 +169,98 @@ const ServerManagement = () => {
     setIsDeleteModalVisible(true)
   }
 
-  const handleConfirmDelete = () => {
-    setServers(servers.filter(s => s.id !== serverToDelete))
-    setIsDeleteModalVisible(false)
-    setServerToDelete(null)
+  const handleConfirmDelete = async () => {
+    if (!serverToDelete) return
+    setIsDeleting(true)
+    try {
+      const response = await axios.delete(`${BASE_URL}/api/SuperAdmin/deleteServer/${serverToDelete}`)
+      if (response.data?.status !== false) {
+        setServers((prev) => prev.filter((s) => s.id !== serverToDelete))
+        toast.success(response.data?.message || 'Server deleted successfully', { position: 'top-right' })
+      } else {
+        toast.error(response.data?.message || 'Failed to delete server', { position: 'top-right' })
+      }
+    } catch (err) {
+      console.error('Failed to delete server', err)
+      toast.error(err.response?.data?.message || 'Failed to delete server', { position: 'top-right' })
+    } finally {
+      setIsDeleting(false)
+      setIsDeleteModalVisible(false)
+      setServerToDelete(null)
+    }
   }
 
   const openAddModal = () => {
     setModalMode('add')
-    setFormData({ name: '', url: '', location: '', role: 'secondary' })
+    setServerToEdit(null)
+    setFormData({ name: '', url: '', location: '' })
+    setFormErrors({})
     setShowAddModal(true)
   }
 
-  const handleSave = () => {
-    if (modalMode === 'add') {
-      const newServer = {
-        id: servers.length > 0 ? Math.max(...servers.map(s => s.id)) + 1 : 1,
-        name: formData.name,
-        isPrimary: formData.role === 'primary',
-        url: formData.url,
-        location: formData.location,
-        clinics: 0,
-        status: 'Online',
-        cpu: 0,
-        memory: 0,
-        disk: 0,
-        lastBackup: 'Pending',
-        backupStatus: 'Pending',
-      }
-      setServers([...servers, newServer])
-    } else {
-      setServers(servers.map(s => 
-        s.id === serverToEdit 
-          ? { ...s, name: formData.name, url: formData.url, location: formData.location, isPrimary: formData.role === 'primary' }
-          : s
-      ))
+  const closeAddModal = () => {
+    if (isSaving) return
+    setShowAddModal(false)
+  }
+
+  const handleSave = async () => {
+    const errs = validateForm()
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs)
+      return
     }
-    setShowAddModal(true)
+    setFormErrors({})
+    setIsSaving(true)
+
+    const payload = {
+      serverName: formData.name.trim(),
+      serverUrl: formData.url.trim(),
+      location: formData.location.trim(),
+    }
+
+    try {
+      if (modalMode === 'add') {
+        const response = await axios.post(`${BASE_URL}/api/SuperAdmin/createserver`, payload)
+        if (response.data?.status !== false) {
+          const created = response.data?.data
+          if (created) setServers((prev) => [...prev, mapServer(created)])
+          else await fetchServers()
+          toast.success(response.data?.message || 'Server created successfully', { position: 'top-right' })
+          setShowAddModal(false)
+        } else {
+          toast.error(response.data?.message || 'Failed to create server', { position: 'top-right' })
+        }
+      } else {
+        const response = await axios.put(`${BASE_URL}/api/SuperAdmin/updateServer/${serverToEdit}`, payload)
+        if (response.data?.status !== false) {
+          const updated = response.data?.data
+          setServers((prev) =>
+            prev.map((s) =>
+              s.id === serverToEdit
+                ? updated
+                  ? mapServer(updated)
+                  : { ...s, name: payload.serverName, url: payload.serverUrl, location: payload.location }
+                : s,
+            ),
+          )
+          toast.success(response.data?.message || 'Server updated successfully', { position: 'top-right' })
+          setShowAddModal(false)
+        } else {
+          toast.error(response.data?.message || 'Failed to update server', { position: 'top-right' })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to save server', err)
+      toast.error(err.response?.data?.message || 'Something went wrong', { position: 'top-right' })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
     <div>
+      <ToastContainer />
+
       {/* ── Page Header ── */}
       <div
         style={{
@@ -221,7 +277,7 @@ const ServerManagement = () => {
             Server Management
           </h5>
           <span style={{ fontSize: '13px', color: '#6b7280' }}>
-            {servers.length} servers found
+            {loadingServers ? 'Loading servers…' : `${servers.length} servers found`}
           </span>
         </div>
         <button
@@ -310,6 +366,23 @@ const ServerManagement = () => {
             </button>
           )}
         </div>
+        <button
+          onClick={fetchServers}
+          disabled={loadingServers}
+          style={{
+            padding: '8px 14px',
+            borderRadius: '9px',
+            border: '1.5px solid #e5e7eb',
+            background: '#fff',
+            color: '#374151',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: loadingServers ? 'not-allowed' : 'pointer',
+            opacity: loadingServers ? 0.6 : 1,
+          }}
+        >
+          {loadingServers ? 'Refreshing…' : 'Refresh'}
+        </button>
       </div>
 
       {/* Main Table Card */}
@@ -322,7 +395,21 @@ const ServerManagement = () => {
           border: '1px solid #e8eef5',
         }}
       >
-        {filteredServers.length === 0 ? (
+        {loadingServers ? (
+          <div
+            style={{
+              padding: '60px 20px',
+              textAlign: 'center',
+              color: '#9ca3af',
+              fontSize: '14px',
+            }}
+          >
+            <div className="spinner-border text-primary" role="status" style={{ width: '2rem', height: '2rem' }}>
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <div style={{ marginTop: '10px' }}>Loading servers…</div>
+          </div>
+        ) : filteredServers.length === 0 ? (
           <div
             style={{
               padding: '60px 20px',
@@ -371,11 +458,9 @@ const ServerManagement = () => {
                         </div>
                         <div>
                           <div className="fw-bold text-dark small">{server.name}</div>
-                          {server.isPrimary && (
-                            <div className="text-success small fw-semibold" style={{ fontSize: '10px' }}>
-                              Primary
-                            </div>
-                          )}
+                          <div className="text-muted small" style={{ fontSize: '10px' }}>
+                            {server.id}
+                          </div>
                         </div>
                       </div>
                     </CTableDataCell>
@@ -399,8 +484,12 @@ const ServerManagement = () => {
 
                     <CTableDataCell>
                       <CBadge
-                        color="success"
-                        className="text-success bg-success bg-opacity-10 rounded-pill px-3 py-2 fw-semibold"
+                        color={server.status?.toUpperCase() === 'ONLINE' ? 'success' : 'secondary'}
+                        className={
+                          server.status?.toUpperCase() === 'ONLINE'
+                            ? 'text-success bg-success bg-opacity-10 rounded-pill px-3 py-2 fw-semibold'
+                            : 'text-secondary bg-secondary bg-opacity-10 rounded-pill px-3 py-2 fw-semibold'
+                        }
                       >
                         {server.status}
                       </CBadge>
@@ -408,6 +497,13 @@ const ServerManagement = () => {
 
                     <CTableDataCell className="text-center">
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
+                        <button
+                          className="cm-action-btn view"
+                          title="View"
+                          onClick={() => handleView(server)}
+                        >
+                          <Eye size={14} />
+                        </button>
                         <button
                           className="cm-action-btn view"
                           title="Edit"
@@ -431,9 +527,9 @@ const ServerManagement = () => {
             </CTable>
           </div>
         )}
-        
+
         {/* Pagination Wrapper */}
-        {filteredServers.length > 0 && (
+        {!loadingServers && filteredServers.length > 0 && (
           <div
             style={{
               display: 'flex',
@@ -524,53 +620,80 @@ const ServerManagement = () => {
       </div>
 
       {/* Add / Edit Server Modal */}
-      <CModal visible={showAddModal} onClose={() => setShowAddModal(false)} alignment="center">
+      <CModal visible={showAddModal} onClose={closeAddModal} alignment="center">
         <CModalHeader closeButton className="border-bottom-0 pb-0">
-          <CModalTitle className="fw-bold">{modalMode === 'edit' ? 'Edit Server' : 'Add New Server'}</CModalTitle>
+          <CModalTitle className="fw-bold">
+            {modalMode === 'edit' ? 'Edit Server' : 'Add New Server'}
+          </CModalTitle>
         </CModalHeader>
         <CModalBody className="pt-2">
           <p className="text-muted small mb-4">
-            {modalMode === 'edit' ? 'Modify the configuration details of this server instance.' : 'Enter the configuration details to provision a new clinic server instance.'}
+            {modalMode === 'edit'
+              ? 'Modify the configuration details of this server instance.'
+              : 'Enter the configuration details to provision a new clinic server instance.'}
           </p>
-          <CForm>
+          <CForm
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSave()
+            }}
+          >
             <div className="mb-3">
-              <CFormLabel className="small fw-semibold text-dark">Server Name</CFormLabel>
-              <CFormInput 
-                placeholder="e.g. Server 6" 
-                className="bg-light border-0 py-2" 
+              <CFormLabel className="small fw-semibold text-dark">
+                Server Name<span style={{ color: '#dc2626', marginLeft: '3px' }}>*</span>
+              </CFormLabel>
+              <CFormInput
+                placeholder="e.g. Server 6"
+                className="bg-light border-0 py-2"
                 value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
+                invalid={!!formErrors.name}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value })
+                  setFormErrors((p) => ({ ...p, name: '' }))
+                }}
               />
+              {formErrors.name && (
+                <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '3px' }}>{formErrors.name}</div>
+              )}
             </div>
             <div className="mb-3">
-              <CFormLabel className="small fw-semibold text-dark">Server URL / IP</CFormLabel>
+              <CFormLabel className="small fw-semibold text-dark">
+                Server URL / IP<span style={{ color: '#dc2626', marginLeft: '3px' }}>*</span>
+              </CFormLabel>
               <CFormInput
                 placeholder="e.g. https://server6.physioelite.com"
                 className="bg-light border-0 py-2"
                 value={formData.url}
-                onChange={e => setFormData({...formData, url: e.target.value})}
+                invalid={!!formErrors.url}
+                onChange={(e) => {
+                  setFormData({ ...formData, url: e.target.value })
+                  setFormErrors((p) => ({ ...p, url: '' }))
+                }}
               />
+              {formErrors.url && (
+                <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '3px' }}>{formErrors.url}</div>
+              )}
             </div>
             <div className="row">
-              <div className="col-md-6 mb-3">
-                <CFormLabel className="small fw-semibold text-dark">Location</CFormLabel>
-                <CFormInput 
-                  placeholder="e.g. Pune, India" 
-                  className="bg-light border-0 py-2" 
-                  value={formData.location}
-                  onChange={e => setFormData({...formData, location: e.target.value})}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <CFormLabel className="small fw-semibold text-dark">Role</CFormLabel>
-                <CFormSelect 
+              <div className="col-md-12 mb-3">
+                <CFormLabel className="small fw-semibold text-dark">
+                  Location<span style={{ color: '#dc2626', marginLeft: '3px' }}>*</span>
+                </CFormLabel>
+                <CFormInput
+                  placeholder="e.g. Pune, India"
                   className="bg-light border-0 py-2"
-                  value={formData.role}
-                  onChange={e => setFormData({...formData, role: e.target.value})}
-                >
-                  <option value="secondary">Secondary / Regional</option>
-                  <option value="primary">Primary / Global</option>
-                </CFormSelect>
+                  value={formData.location}
+                  invalid={!!formErrors.location}
+                  onChange={(e) => {
+                    setFormData({ ...formData, location: e.target.value })
+                    setFormErrors((p) => ({ ...p, location: '' }))
+                  }}
+                />
+                {formErrors.location && (
+                  <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '3px' }}>
+                    {formErrors.location}
+                  </div>
+                )}
               </div>
             </div>
           </CForm>
@@ -579,7 +702,8 @@ const ServerManagement = () => {
           <CButton
             color="light"
             className="text-dark fw-medium px-4"
-            onClick={() => setShowAddModal(false)}
+            onClick={closeAddModal}
+            disabled={isSaving}
           >
             Cancel
           </CButton>
@@ -587,8 +711,47 @@ const ServerManagement = () => {
             color="primary"
             className="text-white fw-medium px-4"
             onClick={handleSave}
+            disabled={isSaving}
           >
-            {modalMode === 'edit' ? 'Save Changes' : 'Provision Server'}
+            {isSaving ? (
+              <span className="spinner-border spinner-border-sm" style={{ width: '13px', height: '13px' }} />
+            ) : modalMode === 'edit' ? (
+              'Save Changes'
+            ) : (
+              'Provision Server'
+            )}
+          </CButton>
+        </CModalFooter>
+      </CModal>
+
+      {/* View Server Modal */}
+      <CModal visible={showViewModal} onClose={() => setShowViewModal(false)} alignment="center">
+        <CModalHeader closeButton className="border-bottom-0 pb-0">
+          <CModalTitle className="fw-bold">Server Details</CModalTitle>
+        </CModalHeader>
+        <CModalBody className="pt-2">
+          {loadingView ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : viewServer ? (
+            <div style={{ fontSize: '13px', color: '#374151', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div><strong>Server ID:</strong> {viewServer.id}</div>
+              <div><strong>Name:</strong> {viewServer.name}</div>
+              <div><strong>URL:</strong> {viewServer.url}</div>
+              <div><strong>Location:</strong> {viewServer.location}</div>
+              <div><strong>Clinics:</strong> {viewServer.clinics}</div>
+              <div><strong>Status:</strong> {viewServer.status}</div>
+            </div>
+          ) : (
+            <div className="text-muted small">No details available.</div>
+          )}
+        </CModalBody>
+        <CModalFooter className="border-top-0 pt-0">
+          <CButton color="light" className="text-dark fw-medium px-4" onClick={() => setShowViewModal(false)}>
+            Close
           </CButton>
         </CModalFooter>
       </CModal>
@@ -598,12 +761,12 @@ const ServerManagement = () => {
         isVisible={isDeleteModalVisible}
         title="Delete Server"
         message="Are you sure you want to delete this server? This action cannot be undone."
-        confirmText="Yes, Delete"
+        confirmText={isDeleting ? 'Deleting…' : 'Yes, Delete'}
         cancelText="Cancel"
         confirmColor="danger"
         cancelColor="secondary"
         onConfirm={handleConfirmDelete}
-        onCancel={() => setIsDeleteModalVisible(false)}
+        onCancel={() => !isDeleting && setIsDeleteModalVisible(false)}
       />
     </div>
   )

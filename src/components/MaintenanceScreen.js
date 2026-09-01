@@ -7,21 +7,26 @@ const MaintenanceScreen = () => {
   const [isMonitoring, setIsMonitoring] = useState(true)
 
   useEffect(() => {
-    // Poll the backend to check if it's back up
+    // Poll the backend to check if it's back up.
+    // Stay on the maintenance screen ONLY while the server responds with
+    // 502 (Bad Gateway) or 503 (Service Unavailable). Any other outcome —
+    // a successful response, 404, any other status code, or a network
+    // error — means the server isn't in maintenance, so reload immediately.
     const interval = setInterval(async () => {
       try {
-        // Try to hit an endpoint, like a simple GET or health check.
-        // Even if we don't have a /health endpoint, hitting BASE_URL might return 404 instead of 502/503 if it's up.
-        const res = await axios.get(BASE_URL, { timeout: 5000 })
-        // If it doesn't throw a 502/503, we assume it's back up.
+        await axios.get(BASE_URL, { timeout: 5000 })
+        // Request succeeded — server is up.
         window.location.reload()
       } catch (error) {
         const status = error.response?.status
-        if (status !== 502 && status !== 503 && error.code !== 'ERR_NETWORK') {
-          // If the server returns something else (like 404), it's probably back up.
+        const isUnderMaintenance = status === 502 || status === 503
+
+        if (!isUnderMaintenance) {
+          // Not a maintenance-related status (e.g. 404, 401, 500, or a
+          // network error) — treat the server as reachable/back up.
           window.location.reload()
         }
-        // Still down, do nothing
+        // Still down (502/503) — keep monitoring, do nothing.
       }
     }, 10000) // check every 10 seconds
 

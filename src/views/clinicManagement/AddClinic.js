@@ -13,6 +13,7 @@ import {
 } from '@coreui/react'
 import {
   BASE_URL,
+  MainAdmin_URL,
   ClinicAllData,
   getAllQuestions,
   postAllQuestionsAndAnswers,
@@ -182,6 +183,13 @@ const TABS = [
   { id: 6, label: 'Permissions', icon: '🔒' },
 ]
 
+// NEW — the two onboarding servers the clinic can be pointed at from Basic Info.
+// Selecting one opens that server's application in a new tab.
+const ONBOARD_SERVERS = [
+  'https://api.ccmstestserver.online',
+  'https://api.ashokfruit.shop',
+]
+
 /* ─── Per-tab validation ─── */
 const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/
 const normalizeWebsite = (url) => !/^https?:\/\//i.test(url) ? 'https://' + url : url
@@ -282,9 +290,10 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
     if (!formData.closingTime) errs.closingTime = 'Closing time is required'
   }
   if (tabId === 2) {
-    if (!formData.consultationExpiration) errs.consultationExpiration = 'Consultation days are required'
-    if (!formData.freeFollowUps && formData.freeFollowUps !== 0) errs.freeFollowUps = 'Free follow ups is required'
-  }
+  if (!formData.subscription?.trim()) errs.subscription = 'Subscription is required'
+  if (!formData.consultationExpiration) errs.consultationExpiration = 'Consultation days are required'
+  if (!formData.freeFollowUps && formData.freeFollowUps !== 0) errs.freeFollowUps = 'Free follow ups is required'
+}
   if (tabId === 3) {
     if (!formData.latitude) errs.latitude = 'Latitude is required'
     else { const lat = parseFloat(formData.latitude); if (isNaN(lat) || lat < -90 || lat > 90) errs.latitude = 'Must be between -90 and 90' }
@@ -356,6 +365,9 @@ subscriptionEndDate: '',
 instagramHandle: '',
 twitterHandle: '',
 facebookHandle: '',
+    // NEW — which onboarding server (application) this clinic is tied to.
+    // Selecting a value in Basic Info opens that server's application in a new tab.
+    server: '',
     latitude: '', longitude: '', walkthrough: '', location: '', branch: '', loyaltyPoints: '', nabhScore: null,
     permissions: {},
   })
@@ -363,50 +375,41 @@ facebookHandle: '',
 
 
   const [existingDoctors, setExistingDoctors] = useState([])
+
+  // masterPermissions: the feature/action template for whichever plan is
+  // currently relevant (the selected Subscription in add mode, or the clinic's
+  // saved subscription in edit mode). This is what the Permissions tab renders
+  // against — NOT a flat merge of every plan's features together.
   const [masterPermissions, setMasterPermissions] = useState({})
+
+  // planPermissionsData: the full plan-keyed table loaded once from
+  // getAllPermisssions, e.g. { Basic: { Appointments: ['read'], ... }, Pro: {...},
+  // Elite: {...}, Enterprise: {...} } — the exact same shape FeatureManagement.jsx
+  // saves. Everything else derives from this.
+  const [planPermissionsData, setPlanPermissionsData] = useState({
+    Basic: {}, Pro: {}, Elite: {}, Enterprise: {},
+  })
 
   const getResponseData = (body) => body?.data?.data ?? body?.data ?? body
 
-  const looksLikePermissionsMap = (obj) => {
-    return obj && typeof obj === 'object' && !Array.isArray(obj) && Object.values(obj).every(value => Array.isArray(value))
+  // FIX: getAllPermisssions returns permissions keyed BY PLAN — the old version
+  // of this helper (extractPermissions) required every top-level value to be an
+  // array to be treated as "a permissions map." Plan buckets (Basic, Pro, etc.)
+  // are objects, not arrays, so that check always failed and silently returned
+  // {} — meaning no plan's permissions ever actually loaded, regardless of what
+  // Subscription was selected. This just extracts the plan-keyed object as-is.
+  const extractPlanPermissions = (response) => {
+    const body = getResponseData(response)
+    if (!body) return {}
+    const record = Array.isArray(body) ? body[0] : body
+    if (!record || typeof record !== 'object') return {}
+    if (record.permissions && typeof record.permissions === 'object') return record.permissions
+    return record
   }
 
-  const extractPermissions = (response) => {
-    if (!response) return {}
-    const payload = getResponseData(response)
-    if (!payload) return {}
-
-    if (Array.isArray(payload)) {
-      if (payload.length === 0) return {}
-      const first = payload[0]
-      if (first && typeof first === 'object') {
-        if (first.permissions || first.data) return extractPermissions(first.permissions ?? first.data)
-        if (looksLikePermissionsMap(first)) return first
-        const mapped = payload.reduce((acc, item) => {
-          if (item && typeof item === 'object') {
-            if (item.module && Array.isArray(item.actions)) {
-              acc[item.module] = item.actions
-            }
-            if (item.permissions && looksLikePermissionsMap(item.permissions)) {
-              Object.assign(acc, item.permissions)
-            }
-          }
-          return acc
-        }, {})
-        return Object.keys(mapped).length > 0 ? mapped : {}
-      }
-      return {}
-    }
-
-    if (typeof payload === 'object') {
-      if (payload.data || payload.permissions) return extractPermissions(payload.permissions ?? payload.data)
-      if (looksLikePermissionsMap(payload)) return payload
-      if (payload.module && Array.isArray(payload.actions)) return { [payload.module]: payload.actions }
-    }
-
-    return {}
-  }
-
+  // Merges a plan's feature template with whatever's already been chosen —
+  // every feature in the template appears, keeping the clinic's own selected
+  // actions where present, otherwise starting unchecked ([]).
   const mergePermissionTemplates = (masterPermissions = {}, clinicPermissions = {}) => {
     const merged = {}
     const allFeatures = new Set([...Object.keys(masterPermissions), ...Object.keys(clinicPermissions)])
@@ -423,38 +426,78 @@ facebookHandle: '',
   // FIX: strips out features with no actions checked. This is used ONLY when
   // building what actually gets written to the backend (create/update payload) —
   // never for what's rendered in the picker, so the picker still shows every
-  // available master feature to choose from, but the saved record only reflects
-  // the permissions you actually gave, exactly like the Permissions tab.
+  // available feature in the plan's template to choose from, but the saved record
+  // only reflects the permissions you actually gave, exactly like the Permissions tab.
   const sanitizePermissions = (perms) =>
     Object.fromEntries(
       Object.entries(perms || {}).filter(([, actions]) => Array.isArray(actions) && actions.length > 0),
     )
 
-  // Load master feature template (add mode only)
+  // Load the full plan-keyed permissions table once (used in both add and edit
+  // mode — we just pick a different bucket out of it depending on the mode).
+  //
+  // FIX: this was previously calling `${BASE_URL}/admin/getAllPermisssions` —
+  // a different endpoint than the one FeatureManagement.jsx actually reads/writes
+  // plan permissions through (`${MainAdmin_URL}/getAllPermisssions`). Whatever
+  // features/actions were configured per-plan in Feature Management could
+  // silently fail to load here. Now this calls the SAME endpoint, so picking
+  // "Basic" while adding a clinic always shows exactly what's configured for
+  // Basic in Feature Management.
   useEffect(() => {
-    if (mode === 'edit') return
-
-    const loadTemplatePermissions = async () => {
+    const loadPlanPermissions = async () => {
       try {
         setLoadingPermissions(true)
-        const res = await axios.get(`${BASE_URL}/admin/getAllPermisssions`)
-        const permissionsSource = extractPermissions(res)
-
-        if (Object.keys(permissionsSource).length > 0) {
-          setMasterPermissions(permissionsSource)
-          setFormData(prev => ({
-            ...prev,
-            permissions: mergePermissionTemplates(permissionsSource, prev.permissions || {})
-          }))
-        }
+        const res = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
+        const allPlans = extractPlanPermissions(res)
+        setPlanPermissionsData({
+          Basic: allPlans.Basic || {},
+          Pro: allPlans.Pro || {},
+          Elite: allPlans.Elite || {},
+          Enterprise: allPlans.Enterprise || {},
+        })
       } catch (err) {
-        console.error("Failed to load master template permissions", err)
+        console.error('Failed to load plan permission templates', err)
       } finally {
         setLoadingPermissions(false)
       }
     }
-    loadTemplatePermissions()
-  }, [mode])
+    loadPlanPermissions()
+  }, [])
+
+  // FIX: this is the actual link between "Subscription" (Configuration tab) and
+  // "Permissions" (last tab) in ADD mode. Whenever the selected plan changes —
+  // including the very first time it's set — pull that plan's feature/action
+  // defaults out of planPermissionsData and load them in as this clinic's
+  // starting permissions. Re-selecting a different plan resets the picker to
+  // that plan's defaults, since a fresh clinic has no permissions of its own yet.
+  useEffect(() => {
+    if (mode === 'edit') return
+    if (!formData.subscription) return
+    const planTemplate = planPermissionsData[formData.subscription] || {}
+    setMasterPermissions(planTemplate)
+    setFormData(prev => ({
+      ...prev,
+      permissions: JSON.parse(JSON.stringify(planTemplate)),
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.subscription, planPermissionsData, mode])
+
+  // Same idea for EDIT mode: scope the template to the clinic's OWN saved
+  // subscription plan, then merge in whatever permissions the clinic already
+  // has saved (from initialData.permissions, already spread into formData below)
+  // so nothing the clinic already has assigned gets lost.
+  useEffect(() => {
+    if (mode !== 'edit' || !initialData) return
+    const plan = initialData.subscription || formData.subscription || ''
+    const planTemplate = planPermissionsData[plan] || {}
+    const clinicPermissions = initialData.permissions && typeof initialData.permissions === 'object'
+      ? initialData.permissions
+      : {}
+    const merged = mergePermissionTemplates(planTemplate, clinicPermissions)
+    setMasterPermissions(planTemplate)
+    setFormData(prev => ({ ...prev, permissions: merged }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, initialData, planPermissionsData])
 
   // Load NABH state from localStorage on mount (only relevant for add mode's in-progress flow)
   useEffect(() => {
@@ -487,50 +530,8 @@ facebookHandle: '',
         setNabhSubmitted(true)
       }
 
-      // Fetch permissions if edit mode
-      if (initialData.clinicId && initialData.branchId) {
-        const loadClinicPermissions = async () => {
-          setLoadingPermissions(true)
-          try {
-            const [masterRes, clinicRes] = await Promise.all([
-              axios.get(`${BASE_URL}/admin/getAllPermisssions`),
-              // axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/${initialData.clinicId}/${initialData.branchId}`),
-            ])
-
-            const masterPermissions = extractPermissions(masterRes)
-            const clinicPermissions = extractPermissions(clinicRes)
-            const mergedPermissions = mergePermissionTemplates(masterPermissions, clinicPermissions)
-
-            setMasterPermissions(masterPermissions)
-            setFormData(prev => ({ ...prev, permissions: mergedPermissions }))
-          } catch (err) {
-            console.error('Error fetching permissions', err)
-            try {
-              const clinicRes = await axios.get(`${BASE_URL}/admin/getPermissionsByClinicIdAndBranchId/${initialData.clinicId}/${initialData.branchId}`)
-              const clinicPermissions = extractPermissions(clinicRes)
-              const masterRes = await axios.get(`${BASE_URL}/admin/getAllPermisssions`)
-              const masterPermissions = extractPermissions(masterRes)
-              const mergedPermissions = mergePermissionTemplates(masterPermissions, clinicPermissions)
-
-              setMasterPermissions(masterPermissions)
-              setFormData(prev => ({ ...prev, permissions: mergedPermissions }))
-            } catch (secondErr) {
-              console.error('Fallback clinic permissions fetch failed', secondErr)
-              try {
-                const masterRes = await axios.get(`${BASE_URL}/admin/getAllPermisssions`)
-                const masterPermissions = extractPermissions(masterRes)
-                setMasterPermissions(masterPermissions)
-                setFormData(prev => ({ ...prev, permissions: masterPermissions }))
-              } catch (thirdErr) {
-                console.error('Fallback master permissions fetch failed', thirdErr)
-              }
-            }
-          } finally {
-            setLoadingPermissions(false)
-          }
-        }
-        loadClinicPermissions()
-      }
+      // NOTE: permissions for edit mode are handled by the dedicated
+      // plan-scoped effect above (keyed on initialData.subscription), not here.
     }
   }, [initialData, mode])
 
@@ -764,10 +765,11 @@ facebookHandle: '',
         }))
       }
 
-      // FIX: formData.permissions holds every master feature (many as empty
-      // placeholder arrays) so the picker UI has something to show/check. Only the
-      // features that actually have actions checked should be written to the
-      // backend — same rule the Permissions tab uses on save.
+      // FIX: formData.permissions holds every feature from the SELECTED PLAN'S
+      // template (many as empty placeholder arrays) so the picker UI has
+      // something to show/check. Only the features that actually have actions
+      // checked should be written to the backend — same rule the Permissions
+      // tab uses on save.
       const finalPermissions = sanitizePermissions(formData.permissions || {})
 
       const clinicData = {
@@ -802,16 +804,19 @@ subscriptionDates: formData.subscriptionDates,
 subscriptionStartDate: formData.subscriptionStartDate,
 subscriptionEndDate: formData.subscriptionEndDate,
 
+        // NEW — the onboarding server selected on Basic Info.
+        server: formData.server,
+
 latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
         walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
-        // FIX: only the permissions actually given, not every master placeholder.
+        // FIX: only the permissions actually given, not every template placeholder.
         permissions: finalPermissions,
       }
 
       const isEdit = mode === 'edit' && !!currentId
       const response = isEdit
-        ? await axios.put(`${BASE_URL}/admin/UpdateClinic/${currentId}`, clinicData)
-        : await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
+        ? await axios.put(`${formData.server}/admin/UpdateClinic/${currentId}`, clinicData)
+        : await axios.post(`${formData.server}/admin/CreateClinic`, clinicData)
 
       if (response.data.success) {
         // Clear NABH localStorage after successful save
@@ -919,6 +924,54 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
           <Input type="text" placeholder="e.g. Hyderabad Main" value={formData.branch || ''} error={errors.branch}
             onChange={e => { setFormData(p => ({ ...p, branch: e.target.value })); setErrors(p => ({ ...p, branch: '' })) }} />
         </Field>
+        {/* NEW — Onboard Server picker. Pick a server, then use "Open" to launch
+            that server's application in a new tab. Opening is done from a real
+            button click (not the select's onChange) because most browsers'
+            popup blockers treat window.open() called from a <select> change
+            event as not "user-initiated enough" and silently block it. */}
+        <Field label="Onboard Server" error={errors.server}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+            <div style={{ flex: 1 }}>
+              <StyledSelect
+                name="server"
+                value={formData.server || ''}
+                error={errors.server}
+                onChange={(e) => {
+                  const url = e.target.value
+                  setFormData(p => ({ ...p, server: url }))
+                  setErrors(p => ({ ...p, server: '' }))
+                }}
+              >
+                <option value="">Select Server</option>
+                {ONBOARD_SERVERS.map((url) => (
+                  <option key={url} value={url}>{url}</option>
+                ))}
+              </StyledSelect>
+            </div>
+            <button
+              type="button"
+              disabled={!formData.server}
+              onClick={() => {
+                if (formData.server) {
+                  window.open(formData.server, '_blank', 'noopener,noreferrer')
+                }
+              }}
+              style={{
+                padding: '0 16px',
+                borderRadius: t.radiusSm,
+                border: `1px solid ${t.border}`,
+                backgroundColor: formData.server ? t.primary : '#f1f5f9',
+                color: formData.server ? '#fff' : t.textMuted,
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: formData.server ? 'pointer' : 'not-allowed',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Open ↗
+            </button>
+          </div>
+        </Field>
         <Field label="Recommendation Status">
           <StyledSelect name="recommended" value={formData.recommended}
             onChange={e => setFormData(p => ({ ...p, recommended: e.target.value === 'true' }))}>
@@ -989,15 +1042,20 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
             <option value="No">No</option>
           </StyledSelect>
         </Field>
-        <Field label="Subscription" error={errors.subscription}>
-          <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
-            <option value="">Select Subscription</option>
-            <option value="Basic">Basic</option>
-            <option value="Pro">Pro</option>
-            <option value="Elite">Elite</option>
-            <option value="Enterprise">Enterprise</option>
-          </StyledSelect>
-        </Field>
+        <Field label="Subscription" required error={errors.subscription}>
+  <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
+    <option value="">Select Subscription</option>
+    <option value="Basic">Basic</option>
+    <option value="Pro">Pro</option>
+    <option value="Elite">Elite</option>
+    <option value="Enterprise">Enterprise</option>
+  </StyledSelect>
+  {formData.subscription && (
+    <div style={{ fontSize: '11px', color: t.textMuted, marginTop: '5px' }}>
+      The Permissions tab will load {formData.subscription}'s default features.
+    </div>
+  )}
+</Field>
         <Field label="Subscription Mode" error={errors.subscriptionDates}>
   <StyledSelect
     name="subscriptionDates"
@@ -1254,10 +1312,16 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
     const mergedPermissions = mergePermissionTemplates(masterPermissions, formData.permissions || {})
     const backendFeatures = Object.keys(mergedPermissions)
     const hasPermissions = backendFeatures.length > 0
+    const planLabel = mode === 'edit' ? (initialData?.subscription || formData.subscription) : formData.subscription
 
     return (
       <>
-        <SectionHeading title="Clinic Permissions" subtitle="Manage permissions for this clinic" />
+        <SectionHeading
+          title="Clinic Permissions"
+          subtitle={planLabel
+            ? `Defaults loaded from the ${planLabel} plan — customize as needed`
+            : 'Select a Subscription plan in Configuration to load its default permissions'}
+        />
 
         {loadingPermissions ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 0' }}>
@@ -1268,12 +1332,25 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
           </div>
         ) : (
           <div>
-            
+            {/* <div style={{ display: 'flex', gap: '10px', marginBottom: '4px' }}>
+              <Input
+                type="text"
+                placeholder="New Feature (e.g. Settings)"
+                value={formData.newFeatureInput || ''}
+                onChange={(e) => setFormData(p => ({ ...p, newFeatureInput: e.target.value }))}
+                style={{ maxWidth: '260px' }}
+              />
+              <Btn variant="secondary" onClick={handleAddNewFeature}>+ Add</Btn>
+            </div> */}
 
             {!hasPermissions ? (
               <div style={{ padding: '30px', textAlign: 'center', backgroundColor: t.surface, borderRadius: t.radiusSm, border: `1px dashed ${t.border}`, marginTop: '16px' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: t.textMuted }}>No permissions added yet</div>
-                <div style={{ fontSize: '12px', color: t.textLight, marginTop: '4px' }}>Type a feature name above to add it to this clinic's permissions.</div>
+                <div style={{ fontSize: '12px', color: t.textLight, marginTop: '4px' }}>
+                  {planLabel
+                    ? `The ${planLabel} plan has no default features configured — type a feature name above to add one.`
+                    : 'Select a Subscription plan above, or type a feature name to add it to this clinic\'s permissions.'}
+                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '16px' }}>

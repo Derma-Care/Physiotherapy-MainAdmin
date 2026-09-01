@@ -29,6 +29,10 @@ const FeatureManagement = () => {
   const [featureToDelete, setFeatureToDelete] = useState('')
   const [deleting, setDeleting] = useState(false)
 
+  // NEW: tracks in-flight auto-save calls per plan so a burst of rapid
+  // checkbox clicks doesn't fire an overlapping request for the same plan.
+  const [autoSaving, setAutoSaving] = useState(false)
+
   const availableActions = ['create', 'read', 'update', 'delete']
   const plans = ['Basic', 'Pro', 'Elite', 'Enterprise']
 
@@ -82,6 +86,15 @@ const FeatureManagement = () => {
     Elite: 3,
     Enterprise: 4,
   }
+
+  // Only features with at least one action checked get persisted — same rule
+  // used everywhere else in this flow (handleSave, ClinicPermissionsTab, AddClinic).
+  const sanitizePlanPermissions = (planFeatures) =>
+    Object.fromEntries(
+      Object.entries(planFeatures || {}).filter(
+        ([, actions]) => Array.isArray(actions) && actions.length > 0,
+      ),
+    )
 
   const fetchAllPermissions = async (force = false) => {
     setLoading(true)
@@ -151,6 +164,9 @@ const FeatureManagement = () => {
 
     setNewFeatureName('')
     setHasChanges(true)
+    // Not auto-saved here on purpose — a brand-new feature has no actions
+    // checked yet, so sanitizePlanPermissions would strip it out of the
+    // payload anyway. It gets persisted once an action is actually toggled on.
   }
 
   const handleDeleteFeature = (feature) => {
@@ -159,33 +175,131 @@ const FeatureManagement = () => {
     setDeleteModalVisible(true)
   }
 
+  // Persists the deletion via the update endpoint (PUT) instead of a
+  // dedicated delete endpoint. We send the active plan's feature map with
+  // `featureToDelete` removed — the backend overwrites the plan with
+  // whatever we send, so omitting the feature deletes it. This reuses the
+  // exact same `updatePermissionsByIdAndPlaneId` endpoint that toggles and
+  // "Save Permissions" already use.
   const confirmDeleteFeature = async () => {
     if (!featureToDelete) return
     setDeleting(true)
 
-    const updatedFullData = JSON.parse(JSON.stringify(fullPermissionsData))
-    if (
-      updatedFullData[activePlanTab] &&
-      updatedFullData[activePlanTab][featureToDelete] !== undefined
-    ) {
-      delete updatedFullData[activePlanTab][featureToDelete]
-    }
+    try {
+      if (permissionsId) {
+        const planId = planMap[activePlanTab] || 1
 
-    const afterDelete = () => {
-      setFullPermissionsData(updatedFullData)
+        // Build the plan's feature map with the deleted feature removed
+        const updatedPlanFeatures = { ...(fullPermissionsData[activePlanTab] || {}) }
+        delete updatedPlanFeatures[featureToDelete]
 
-      setHasChanges(true)
-      toast.success(`'${featureToDelete}' removed from ${activePlanTab} plan.`)
+        const updatePayload = {
+          permissions: {
+            [activePlanTab]: updatedPlanFeatures,
+          },
+        }
+
+        await axios.put(
+          `${MainAdmin_URL}/updatePermissionsByIdAndPlaneId/${permissionsId}/${planId}`,
+          updatePayload,
+        )
+
+        setFullPermissionsData((prev) => ({
+          ...prev,
+          [activePlanTab]: updatedPlanFeatures,
+        }))
+        setOriginalPermissions((prev) => ({
+          ...prev,
+          [activePlanTab]: updatedPlanFeatures,
+        }))
+
+        toast.success(`'${featureToDelete}' removed from ${activePlanTab} plan.`)
+      } else {
+        // No saved permissions record exists yet on the backend — nothing to
+        // call the update endpoint on. Just drop it locally; it simply won't
+        // be included the next time "Save Permissions" creates the record.
+        setFullPermissionsData((prev) => {
+          const next = JSON.parse(JSON.stringify(prev))
+          if (next[activePlanTab]) delete next[activePlanTab][featureToDelete]
+          return next
+        })
+        setHasChanges(true)
+        toast.success(`'${featureToDelete}' removed from ${activePlanTab} plan.`)
+      }
+    } catch (err) {
+      console.error('Failed to delete feature', err)
+      toast.error('Failed to delete feature. Please try again.')
+    } finally {
       setDeleting(false)
       setDeleteModalVisible(false)
       setFeatureToDelete('')
     }
-
-    afterDelete()
   }
 
+  // Persists the CURRENT state of the active plan's permissions via the
+  // update endpoint immediately after a checkbox toggle, instead of only on
+  // the big "Save Permissions" button. `updatedPlanFeatures` is the freshly
+  // computed feature map for `plan` — the caller must pass the POST-toggle
+  // value (never read fullPermissionsData here, since setState is async).
+  //
+  // FIX: this used to run updatedPlanFeatures through sanitizePlanPermissions,
+  // which drops any feature whose actions array is empty. That meant
+  // unchecking every action (Create/Read/Update/Delete) on a feature made it
+  // disappear from the PUT payload entirely instead of being sent as `[]` —
+  // so the backend was never told to clear it, and the old checked value
+  // stayed saved even though the UI showed it unchecked. A feature that is
+  // actively being toggled already exists on the plan, so its current state
+  // (including empty) must always be sent as-is.
+  const persistPlanPermissions = async (plan, updatedPlanFeatures) => {
+    if (!permissionsId) {
+      // No saved record yet — nothing to PUT against. The toggle is still
+      // reflected locally; it gets created the first time "Save Permissions"
+      // (POST createPermissions) runs.
+      return
+    }
+
+    const planId = planMap[plan] || 1
+
+    const updatePayload = {
+      permissions: {
+        [plan]: updatedPlanFeatures,
+      },
+    }
+
+    setAutoSaving(true)
+    try {
+      await axios.put(
+        `${MainAdmin_URL}/updatePermissionsByIdAndPlaneId/${permissionsId}/${planId}`,
+        updatePayload,
+      )
+      // Keep the "last saved" snapshot in sync so Cancel reverts to this,
+      // not to a now-stale earlier state.
+      setOriginalPermissions((prev) => ({
+        ...prev,
+        [plan]: updatedPlanFeatures,
+      }))
+    } catch (err) {
+      console.error('Failed to auto-save permission change', err)
+      toast.error('Failed to save permission change. Please try again.')
+    } finally {
+      setAutoSaving(false)
+    }
+  }
+
+  // FIX: persistPlanPermissions is now called AFTER setFullPermissionsData,
+  // not from inside its updater callback. State updater functions must stay
+  // pure — React can (and in React 18 StrictMode dev builds, DOES) invoke an
+  // updater more than once per click to help surface exactly this kind of
+  // bug. With the PUT call living inside the updater, a single checkbox
+  // click could fire two overlapping requests; whichever response landed
+  // last "won," which is what made toggles look like they weren't saving /
+  // silently reverted. Capturing the computed value in `updatedPlanFeatures`
+  // and persisting it once, outside the updater, guarantees exactly one
+  // network call per toggle with the correct final value.
   const togglePermission = (plan, feature, action) => {
     if (isEditMode && !isEditing) return
+
+    let updatedPlanFeatures = null
 
     setFullPermissionsData((prev) => {
       const next = JSON.parse(JSON.stringify(prev))
@@ -198,13 +312,24 @@ const FeatureManagement = () => {
       } else {
         next[plan][feature] = [...next[plan][feature], action]
       }
+
+      updatedPlanFeatures = next[plan]
       return next
     })
+
     setHasChanges(true)
+
+    if (updatedPlanFeatures) {
+      persistPlanPermissions(plan, updatedPlanFeatures)
+    }
   }
 
+  // FIX: same treatment as togglePermission — compute inside the updater,
+  // persist outside it, exactly once.
   const toggleAllActionsForFeature = (plan, feature) => {
     if (isEditMode && !isEditing) return
+
+    let updatedPlanFeatures = null
 
     setFullPermissionsData((prev) => {
       const next = JSON.parse(JSON.stringify(prev))
@@ -218,9 +343,16 @@ const FeatureManagement = () => {
       } else {
         next[plan][feature] = [...availableActions]
       }
+
+      updatedPlanFeatures = next[plan]
       return next
     })
+
     setHasChanges(true)
+
+    if (updatedPlanFeatures) {
+      persistPlanPermissions(plan, updatedPlanFeatures)
+    }
   }
 
   const handleSave = async () => {
@@ -248,7 +380,7 @@ const FeatureManagement = () => {
       // If there's an ID AND at least one feature exists anywhere, we UPDATE.
       // Otherwise (if completely empty like {"Basic": {}, "Pro": {}}), we CREATE.
       if (permissionsId && hasAnyFeatures) {
-        // Use the new update endpoint provided (only updates the active plan tab's data based on what you said)
+        // Use the update endpoint (only updates the active plan tab's data)
         const planId = planMap[activePlanTab] || 1
 
         // ONLY send the currently active plan's data for the update API
@@ -378,6 +510,11 @@ const FeatureManagement = () => {
           <h4 style={{ color: t.primary, margin: 0, fontWeight: '700' }}>
             Plan Permissions Management
           </h4>
+          {autoSaving && (
+            <span style={{ fontSize: '12px', color: t.textMuted, fontWeight: '600' }}>
+              Saving…
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           {!isEditMode || hasChanges || isEditing ? (

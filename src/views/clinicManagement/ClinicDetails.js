@@ -964,7 +964,7 @@ const ClinicDetails = () => {
                           }}
                         >
                           <option value="">Select subscription</option>
-                          {['Basic', 'Expensive', 'Pro', 'Elite'].map((s) => (
+                          {['Basic', 'Enterprise', 'Pro', 'Elite'].map((s) => (
                             <option key={s} value={s}>
                               {s}
                             </option>
@@ -1313,11 +1313,15 @@ const ClinicDetails = () => {
             {activeTab === 2 && <AddBranchForm clinicId={hospitalId} />}
 
             {activeTab === 3 && (
-              <ClinicPermissionsTab
-                clinicData={clinicData}
-                fetchClinicDetails={fetchClinicDetails}
-              />
-            )}
+  <ClinicPermissionsTab
+    clinicData={clinicData}
+    // Live, unsaved subscription selection from the Additional Details tab.
+    // Lets the Permissions tab preview the new plan's feature template
+    // immediately, without waiting for Save.
+    selectedPlan={editableClinicData.subscription}
+    fetchClinicDetails={fetchClinicDetails}
+  />
+)}
           </>
         )}
       </div>
