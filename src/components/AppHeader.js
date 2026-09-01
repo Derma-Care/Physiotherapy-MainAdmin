@@ -7,7 +7,7 @@ import {
   CHeaderToggler,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
-import { cilMenu } from '@coreui/icons'
+import { cilMenu, cilAccountLogout } from '@coreui/icons'
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
 
@@ -42,6 +42,29 @@ const AppHeader = () => {
 
         <CHeaderNav className="ms-auto" style={{ display: 'flex', alignItems: 'center' }}>
           <span style={{ color: '#fff', fontWeight: 'normal', fontSize: '14px', marginRight: '16px', whiteSpace: 'nowrap' }}>Super Admin</span>
+          <span 
+            onClick={() => {
+              localStorage.clear();
+              window.location.href = '/login';
+            }}
+            style={{ 
+              color: '#fff', 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              transition: 'background-color 0.2s ease'
+            }}
+            title="Logout"
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 77, 79, 0.8)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+          >
+            <CIcon icon={cilAccountLogout} size="lg" />
+          </span>
         </CHeaderNav>
       </CContainer>
     </CHeader>

@@ -4,17 +4,17 @@ import axios from "axios"
 
 // const ipUrl = 'localhost'
 // const ipUrl = 'physioelite-api.chiselon.online'
-const ipUrl = 'api.ashokfruit.shop'
+const ipUrl = 'https://api.ashokfruit.shop'
 
-export const BASE_URL = `https://${ipUrl}`
-export const CLINIC_ADMIN_URL = `http://${ipUrl}`
+export const BASE_URL = `${ipUrl}`
+export const CLINIC_ADMIN_URL = `${ipUrl}`
 export const MainAdmin_URL = `${BASE_URL}/admin`
-export const Procedure_URL=`http://${ipUrl}`
-export const ClinicBase_url=`${BASE_URL}/admin`
+export const Procedure_URL = `${ipUrl}`
+export const ClinicBase_url = `${BASE_URL}/admin`
 // export let wifiUrl = '192.168.1.7'
 
 // export const CUSTOMER_SERVICE_URL = `http://${ipUrl}:8083/api`
-export const Booking_service_Url = `http://${ipUrl}/api`
+export const Booking_service_Url = `${ipUrl}/api`
 
 // export const BOOKING_SERVICE_URL = `http://${ipUrl}:8087/api/v1`
 // export const BASE_URLS = `http://${ipUrl}:8080/api/v1`
@@ -22,7 +22,7 @@ export const Booking_service_Url = `http://${ipUrl}/api`
 export const SERVICE_URL = `admin/updateByServiceId`
 
 //sub-service
-export const subService_URL = `http://${ipUrl}/admin`
+export const subService_URL = `${ipUrl}/admin`
 export const ADD_SERVICE = 'addService'
 export const GET_ALL_SERVICES = 'getAllServices'
 export const DELETE_SERVICE_URL = `deleteService`
@@ -31,7 +31,7 @@ export const updateService = 'updateByServiceId'
 export const getService = 'getServiceById'
 // export const getServiceByServiceId='getServiceByServiceId'
 export const Category = 'category/getServices'
- 
+
 // login
 export const endPoint = 'admin/adminLogin'
 
@@ -53,9 +53,9 @@ export const UpdateClinic = 'admin/updateClinic'
 
 export const DeleteClinic = 'admin/deleteClinic'
 
-export const getAllQuestions='admin/clinicQuestions/getAll'
+export const getAllQuestions = 'admin/clinicQuestions/getAll'
 
-export const postAllQuestionsAndAnswers='admin/clinicQA/postQuestionsAndAnswer'
+export const postAllQuestionsAndAnswers = 'admin/clinicQA/postQuestionsAndAnswer'
 // Doctor Management
 export const DoctorAllData = '/clinic-admin/doctors/hospitalById'
 export const AddDoctor = 'clinic-admin/addDoctor'
@@ -65,7 +65,7 @@ export const UpdateDoctor = 'admin/updateDoctor'
 export const deleteDoctor = 'admin/deleteDoctor'
 export const GetBranches_ByClinicId = 'admin/getBranchByClinicId'
 
-export const getDoctorsByHospitalIdAndBranchId='admin/getDoctorsByHospitalIdAndBranchId'
+export const getDoctorsByHospitalIdAndBranchId = 'admin/getDoctorsByHospitalIdAndBranchId'
 
 // Customer Management
 export const CustomerAllData = 'admin/getAllCustomers'
@@ -176,7 +176,7 @@ export const getadminSubServicesbyserviceId = `admin/getSubServicesByServiceId`
 export const getSubServiceBySubServiceId = `admin/getSubServiceBySubServiceId`
 export const getservice = 'admin/getServiceById'
 
-export const addDoctorUrl=`admin/addDoctor`
+export const addDoctorUrl = `admin/addDoctor`
 
 export const AddSubService = 'admin/addSubService'
 
@@ -184,21 +184,21 @@ export const getService_ByClinicId = 'admin/getSubServiceByHospitalId'
 
 export const service = 'admin/getAllSubServices'
 
-export const deleteSubService='admin/deleteSubService'
+export const deleteSubService = 'admin/deleteSubService'
 
 //Branch CRUD
 
-export const createBranch='admin/createBranch'
+export const createBranch = 'admin/createBranch'
 
-export const deleteBranch='admin/deleteBranch'
+export const deleteBranch = 'admin/deleteBranch'
 
-export const getBranchByClinicId='admin/getBranchByClinicId'
+export const getBranchByClinicId = 'admin/getBranchByClinicId'
 
-export const getBranchById='admin/getBranchById'
+export const getBranchById = 'admin/getBranchById'
 
-export const getAllBranches='admin/getAllBranches'
+export const getAllBranches = 'admin/getAllBranches'
 
-export const updateBranches='admin/updateBranch'
+export const updateBranches = 'admin/updateBranch'
 
 // export const getBranchByClinicAndBranchId='admin/getBranchByClinicAndBranchId'
 
@@ -206,15 +206,15 @@ export const updateBranches='admin/updateBranch'
 
 //Procedure_URL
 
-export const addProcedureDetails='admin/addSubService'
+export const addProcedureDetails = 'admin/addSubService'
 
-export const deleteProcedureDetails='admin/deleteSubService'
+export const deleteProcedureDetails = 'admin/deleteSubService'
 
-export const updateProcedureDetails='admin/updateSubService'
+export const updateProcedureDetails = 'admin/updateSubService'
 
 
 
-export const getSubService='admin/getSubService'
+export const getSubService = 'admin/getSubService'
 
 
 // ─── Status API ───────────────────────────────────────────────────────────────

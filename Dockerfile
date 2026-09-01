@@ -1,37 +1,31 @@
-# Stage 1: Build React App
-FROM node:20 AS build
+# =====================================================
+# Stage 1: Build the React app
+# =====================================================
+FROM node:20.18-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json to install dependencies
-COPY package*.json ./
+# Copy lockfile + package.json first so this layer is cached
+# unless dependencies actually change
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
-
-# Copy the entire project
 COPY . .
-
-# Build the React app
 RUN npm run build
 
+# =====================================================
 # Stage 2: Serve with Nginx
-FROM nginx:alpine
+# nginx-unprivileged runs entirely as a non-root user (uid 101)
+# and listens on 8080 instead of 80, no root needed anywhere.
+# =====================================================
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
-# Set working directory (optional, for clarity)
-WORKDIR /usr/share/nginx/html
-
-# Copy build output from Stage 1 to Nginx's web root directory
-COPY --from=build /app/build .
-
-# Copy a custom Nginx configuration to use port 3000
+COPY --from=build /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 3000 for the Nginx server
-EXPOSE 4000
+EXPOSE 8080
 
-# Start Nginx in the foreground
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:8080/ >/dev/null 2>&1 || exit 1
+
 CMD ["nginx", "-g", "daemon off;"]
-
- 
