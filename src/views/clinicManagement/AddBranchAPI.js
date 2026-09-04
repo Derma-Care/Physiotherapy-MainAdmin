@@ -1,98 +1,270 @@
 import axios from 'axios'
-import { BASE_URL, createBranch, deleteBranch, getBranchByClinicId, getAllBranches, updateBranches,getBranchById } from '../../baseUrl'
+import {
+  BASE_URL,
+  createBranch,
+  deleteBranch,
+  getBranchByClinicId,
+  getBranchById,
+  getAllBranches,
+  updateBranches,
+} from '../../baseUrl'
 
 
-// Fetch all branches
-export const fetchAllBranches = async () => {
-  console.log('Fetching all branches...')
+// ============================================================
+// CREATE BRANCH
+// POST /api/SuperAdmin/branches/{serverId}/register
+// ============================================================
+export const createNewBranch = async (serverId, branchData) => {
+  console.log('Creating branch')
+  console.log('Server ID:', serverId)
+  console.log('Branch Data:', branchData)
+
+  const url = `${BASE_URL}/${createBranch}/${serverId}/register`
+
+  console.log('CREATE BRANCH URL:', url)
+
   try {
-    const response = await axios.get(`${BASE_URL}/${getAllBranches}`)
-    console.log('Branches response:', response.data)
-    return response.data
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.log('Branches response:', error.response.data)
-      return error.response.data
-    } else {
-      console.error('Unexpected error:', error.message || error)
-      throw error
-    }
-  }
-}
-export const fetchBranchByBranchId=async(branchId)=>{
-  console.log("fetchBranchByBranchId",branchId);
-  try{
-    const response=await axios.get(`${BASE_URL}/${getBranchById}/${branchId}`)
-    return response.data
-  }catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.log('Branches response:', error.response.data)
-      return error.response.data
-    } else {
-      console.error('Unexpected error:', error.message || error)
-      throw error
-    }
-  }
-}
+    const response = await axios.post(url, branchData)
 
-// Fetch branch by ID
-export const fetchBranchById = async (clinicId) => {
-  console.log('Fetching branch by ID:', clinicId)
-  try {
-    const response = await axios.get(`${BASE_URL}/${getBranchByClinicId}/${clinicId}`)
-    console.log('Branch response:', response.data)
-    return response.data
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      console.log('Branch response:', error.response.data)
-      return error.response.data
-    } else {
-      console.error('Unexpected error:', error.message || error)
-      throw error
-    }
-  }
-}
-
-// Create a new branch
-export const createNewBranch = async (branchData) => {
-  console.log('Creating branch:', branchData)
-  try {
-    const response = await axios.post(`${BASE_URL}/${createBranch}`, branchData)
     console.log('Create branch response:', response.data)
+
     return response.data
   } catch (error) {
-    console.error('Error creating branch:', error.message || error)
+    console.error(
+      'Error creating branch:',
+      error.response?.data || error.message
+    )
+
     throw error
   }
 }
 
-// Update a branch
-export const updateBranchData = async (branchId, branchData) => {
-  console.log('Updating branch:', branchId, branchData)
+
+// ============================================================
+// GET ALL BRANCHES
+// GET /api/SuperAdmin/branches/{serverId}
+// ============================================================
+export const fetchAllBranches = async (serverId) => {
+  console.log('Fetching all branches')
+  console.log('Server ID:', serverId)
+
+  const url = `${BASE_URL}/${getAllBranches}/${serverId}`
+
+  console.log('GET ALL BRANCHES URL:', url)
+
   try {
-    const response = await axios.put(`${BASE_URL}/${updateBranches}/${branchId}`, branchData)
-    console.log("Frontend URL:", `${BASE_URL}/${updateBranches}/${branchId}`);
+    const response = await axios.get(url)
 
-    console.log('Update branch response:', response.data)
+    console.log('Branches response:', response.data)
+
     return response.data
   } catch (error) {
-    console.error('Error updating branch:', error.message || error)
+    console.error(
+      'Error fetching branches:',
+      error.response?.data || error.message
+    )
+
     throw error
   }
 }
 
-// Delete a branch
-export const deleteBranchById = async (branchId) => {
-  console.log('Deleting branch:', branchId)
+
+// ============================================================
+// GET BRANCH BY BRANCH ID
+// GET /api/SuperAdmin/branches/{serverId}/{branchId}
+// ============================================================
+export const fetchBranchByBranchId = async (
+  serverId,
+  branchId
+) => {
+  console.log('Fetching branch by branch ID')
+  console.log('Server ID:', serverId)
+  console.log('Branch ID:', branchId)
+
+  const url =
+    `${BASE_URL}/${getBranchById}/${serverId}/${branchId}`
+
+  console.log('GET BRANCH BY ID URL:', url)
+
   try {
-    const response = await axios.delete(`${BASE_URL}/${deleteBranch}/${branchId}`)
-    console.log('Delete branch response:', response.data)
+    const response = await axios.get(url)
+
+    console.log('Branch response:', response.data)
+
     return response.data
   } catch (error) {
-    console.error('Error deleting branch:', error.message || error)
+    console.error(
+      'Error fetching branch:',
+      error.response?.data || error.message
+    )
+
     throw error
   }
 }
 
 
+// ============================================================
+// GET BRANCHES BY CLINIC
+// GET /api/SuperAdmin/branches/{serverId}/by-clinic/{clinicId}
+// ============================================================
+export const fetchBranchById = async (
+  serverId,
+  clinicId
+) => {
+  console.log('Fetching branches by clinic')
+  console.log('Server ID:', serverId)
+  console.log('Clinic ID:', clinicId)
 
+  const url =
+    `${BASE_URL}/SuperAdmin/branches/${serverId}/by-clinic/${clinicId}`
+
+  console.log(
+    'GET BRANCHES BY CLINIC URL:',
+    url
+  )
+
+  try {
+    const response = await axios.get(url)
+
+    console.log(
+      'Branches by clinic response:',
+      response.data
+    )
+
+    return response.data
+  } catch (error) {
+    console.error(
+      'Error fetching branches by clinic:',
+      error.response?.data || error.message
+    )
+
+    throw error
+  }
+}
+
+
+// ============================================================
+// UPDATE BRANCH
+// PUT /api/SuperAdmin/branches/{serverId}/{branchId}
+// ============================================================
+export const updateBranchData = async (
+  serverId,
+  branchId,
+  branchData
+) => {
+  console.log('Updating branch')
+  console.log('Server ID:', serverId)
+  console.log('Branch ID:', branchId)
+  console.log('Branch Data:', branchData)
+
+  const url =
+    `${BASE_URL}/${updateBranches}/${serverId}/${branchId}`
+
+  console.log('UPDATE BRANCH URL:', url)
+
+  try {
+    const response = await axios.put(
+      url,
+      branchData
+    )
+
+    console.log(
+      'Update branch response:',
+      response.data
+    )
+
+    return response.data
+  } catch (error) {
+    console.error(
+      'Error updating branch:',
+      error.response?.data || error.message
+    )
+
+    throw error
+  }
+}
+
+
+// ============================================================
+// DELETE BRANCH
+// DELETE /api/SuperAdmin/branches/{serverId}/{branchId}
+// ============================================================
+export const deleteBranchById = async (
+  serverId,
+  branchId
+) => {
+  console.log('Deleting branch')
+  console.log('Server ID:', serverId)
+  console.log('Branch ID:', branchId)
+
+  const url =
+    `${BASE_URL}/${deleteBranch}/${serverId}/${branchId}`
+
+  console.log('DELETE BRANCH URL:', url)
+
+  try {
+    const response = await axios.delete(url)
+
+    console.log(
+      'Delete branch response:',
+      response.data
+    )
+
+    return response.data
+  } catch (error) {
+    console.error(
+      'Error deleting branch:',
+      error.response?.data || error.message
+    )
+
+    throw error
+  }
+}
+
+
+// ============================================================
+// UPDATE BRANCH PERMISSIONS
+// PUT /api/SuperAdmin/branches/{serverId}/{clinicId}/{branchId}/permissions
+// ============================================================
+export const updateBranchPermissions = async (
+  serverId,
+  clinicId,
+  branchId,
+  permissionsData
+) => {
+  console.log('Updating branch permissions')
+
+  console.log('Server ID:', serverId)
+  console.log('Clinic ID:', clinicId)
+  console.log('Branch ID:', branchId)
+  console.log('Permissions:', permissionsData)
+
+  const url =
+    `${BASE_URL}/${updateBranches}/${serverId}/${clinicId}/${branchId}/permissions`
+
+  console.log(
+    'UPDATE PERMISSIONS URL:',
+    url
+  )
+
+  try {
+    const response = await axios.put(
+      url,
+      permissionsData
+    )
+
+    console.log(
+      'Update permissions response:',
+      response.data
+    )
+
+    return response.data
+  } catch (error) {
+    console.error(
+      'Error updating permissions:',
+      error.response?.data || error.message
+    )
+
+    throw error
+  }
+}

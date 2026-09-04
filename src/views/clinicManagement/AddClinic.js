@@ -183,13 +183,6 @@ const TABS = [
   { id: 6, label: 'Permissions', icon: '🔒' },
 ]
 
-// NEW — the two onboarding servers the clinic can be pointed at from Basic Info.
-// Selecting one opens that server's application in a new tab.
-const ONBOARD_SERVERS = [
-  'https://api.ccmstestserver.online',
-  'https://api.ashokfruit.shop',
-]
-
 /* ─── Per-tab validation ─── */
 const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/
 const normalizeWebsite = (url) => !/^https?:\/\//i.test(url) ? 'https://' + url : url
@@ -284,16 +277,17 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
       if (!websiteRegex.test(normalizedWebsite)) errs.website = 'Enter a valid URL (e.g. https://example.com)'
     }
     if (!formData.branch?.trim()) errs.branch = 'Branch name is required'
+    if (!formData.server) errs.server = 'Please select a server for this clinic'
   }
   if (tabId === 1) {
     if (!formData.openingTime) errs.openingTime = 'Opening time is required'
     if (!formData.closingTime) errs.closingTime = 'Closing time is required'
   }
   if (tabId === 2) {
-  if (!formData.subscription?.trim()) errs.subscription = 'Subscription is required'
-  if (!formData.consultationExpiration) errs.consultationExpiration = 'Consultation days are required'
-  if (!formData.freeFollowUps && formData.freeFollowUps !== 0) errs.freeFollowUps = 'Free follow ups is required'
-}
+    if (!formData.subscription?.trim()) errs.subscription = 'Subscription is required'
+    if (!formData.consultationExpiration) errs.consultationExpiration = 'Consultation days are required'
+    if (!formData.freeFollowUps && formData.freeFollowUps !== 0) errs.freeFollowUps = 'Free follow ups is required'
+  }
   if (tabId === 3) {
     if (!formData.latitude) errs.latitude = 'Latitude is required'
     else { const lat = parseFloat(formData.latitude); if (isNaN(lat) || lat < -90 || lat > 90) errs.latitude = 'Must be between -90 and 90' }
@@ -344,6 +338,13 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const [nabhSubmitted, setNabhSubmitted] = useState(false)
   const [loadingPermissions, setLoadingPermissions] = useState(false)
 
+  // Registered servers, loaded live from superadmin (see loadServers effect
+  // below). Each entry is { serverId, serverName, serverUrl, status }.
+  // formData.server stores the serverId (NOT the URL) - that's what
+  // superadmin's /SuperAdmin/clinics/{serverId}/... proxy routes need.
+  const [servers, setServers] = useState([])
+  const [loadingServers, setLoadingServers] = useState(false)
+
   // In edit mode, treat a completed NABH questionnaire on the record as already-submitted
   // so the button doesn't force the user to redo it (they can still reopen via clearing state elsewhere if needed).
 
@@ -359,14 +360,15 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     tradeLicense: null, fireSafetyCertificate: null, professionalIndemnityInsurance: null,
     gstRegistrationCertificate: null, newFeatureInput: '', others: [], consultationExpiration: '',
     subscription: '',
-subscriptionDates: '',
-subscriptionStartDate: '',
-subscriptionEndDate: '',
-instagramHandle: '',
-twitterHandle: '',
-facebookHandle: '',
-    // NEW — which onboarding server (application) this clinic is tied to.
-    // Selecting a value in Basic Info opens that server's application in a new tab.
+    subscriptionDates: '',
+    subscriptionStartDate: '',
+    subscriptionEndDate: '',
+    instagramHandle: '',
+    twitterHandle: '',
+    facebookHandle: '',
+    // Which registered superadmin server (by serverId) this clinic belongs to.
+    // Selecting one in Basic Info enables "Open" to launch that server's
+    // application in a new tab, and is what create/update actually route through.
     server: '',
     latitude: '', longitude: '', walkthrough: '', location: '', branch: '', loyaltyPoints: '', nabhScore: null,
     permissions: {},
@@ -447,7 +449,7 @@ facebookHandle: '',
     const loadPlanPermissions = async () => {
       try {
         setLoadingPermissions(true)
-        const res = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
+        const res = await axios.get(`${MainAdmin_URL}/SuperAdmin/getAllPermisssions`)
         const allPlans = extractPlanPermissions(res)
         setPlanPermissionsData({
           Basic: allPlans.Basic || {},
@@ -462,6 +464,28 @@ facebookHandle: '',
       }
     }
     loadPlanPermissions()
+  }, [])
+
+  // Loads the real list of registered servers from superadmin, so the
+  // "Onboard Server" dropdown always reflects whatever's actually in the
+  // database — not a hardcoded URL list that has to be kept in sync by hand.
+  // formData.server is set to the server's serverId (see the <select> below),
+  // which is exactly what /SuperAdmin/clinics/{serverId}/... expects.
+  useEffect(() => {
+    const loadServers = async () => {
+      try {
+        setLoadingServers(true)
+        const res = await axios.get(`${MainAdmin_URL}/SuperAdmin/getAllServers`)
+        const list = res.data?.data || []
+        setServers(list)
+      } catch (err) {
+        console.error('Failed to load server list', err)
+        toast.error('Failed to load servers - clinic registration may not work until this is fixed', { position: 'top-right' })
+      } finally {
+        setLoadingServers(false)
+      }
+    }
+    loadServers()
   }, [])
 
   // FIX: this is the actual link between "Subscription" (Configuration tab) and
@@ -748,6 +772,17 @@ facebookHandle: '',
       return
     }
 
+    // formData.server is a serverId (see the Onboard Server <select> below) —
+    // this is a final safety net in case submit is somehow reached without it
+    // (e.g. edit mode loading an old record saved before this field existed).
+    if (!formData.server) {
+      toast.error('Please select an Onboard Server on the Basic Info tab', { position: 'top-right' })
+      setActiveTab(0)
+      setErrors(prev => ({ ...prev, server: 'Please select a server for this clinic' }))
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       // Only re-encode a value if it's a fresh Blob/File picked this session.
       // If it's already a base64 string (existing record or freshly-picked & converted), pass it through as-is.
@@ -800,23 +835,26 @@ facebookHandle: '',
           ? (String(formData.consultationExpiration).includes('day') ? formData.consultationExpiration : `${formData.consultationExpiration} days`)
           : '',
         subscription: formData.subscription,
-subscriptionDates: formData.subscriptionDates,
-subscriptionStartDate: formData.subscriptionStartDate,
-subscriptionEndDate: formData.subscriptionEndDate,
+        subscriptionDates: formData.subscriptionDates,
+        subscriptionStartDate: formData.subscriptionStartDate,
+        subscriptionEndDate: formData.subscriptionEndDate,
 
-        // NEW — the onboarding server selected on Basic Info.
-        server: formData.server,
-
-latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
+        latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
         walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
         // FIX: only the permissions actually given, not every template placeholder.
         permissions: finalPermissions,
       }
 
       const isEdit = mode === 'edit' && !!currentId
+      const serverId = formData.server
+
+      // Routed through superadmin's proxy - it resolves serverId to the real
+      // deployed server's URL and forwards this request to adminservice's
+      // own /admin/CreateClinic or /admin/updateClinic there. We never call
+      // the deployed clinic server directly from the browser.
       const response = isEdit
-        ? await axios.put(`${formData.server}/admin/UpdateClinic/${currentId}`, clinicData)
-        : await axios.post(`${formData.server}/admin/CreateClinic`, clinicData)
+        ? await axios.put(`${MainAdmin_URL}/SuperAdmin/clinics/${serverId}/${currentId}`, clinicData)
+        : await axios.post(`${MainAdmin_URL}/SuperAdmin/clinics/${serverId}/register`, clinicData)
 
       if (response.data.success) {
         // Clear NABH localStorage after successful save
@@ -837,20 +875,35 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
         }
 
         // NEW — explicitly push location/virtualClinicTour onto the auto-created branch record.
-  // CreateClinic on the backend creates a branch alongside the clinic, but does not
-  // appear to copy location/walkthrough into it — so we push it explicitly here.
-  if (!isEdit && response.data.data?.branchId) {
-    try {
-      await updateBranchData(response.data.data.branchId, {
-        location: clinicData.location,
-        virtualClinicTour: clinicData.walkthrough,
-      })
-    } catch (err) {
-      console.error('Failed to sync location to auto-created branch', err)
-    }
-    try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
-  }
+        // CreateClinic on the backend creates a branch alongside the clinic, but does not
+        // appear to copy location/walkthrough into it — so we push it explicitly here.
+        if (!isEdit && response.data.data?.branchId) {
+          try {
+            const branchId = response.data.data.branchId
 
+            await updateBranchData(
+              serverId,
+              branchId,
+              {
+                location: clinicData.location,
+                virtualClinicTour: clinicData.walkthrough,
+              }
+            )
+          } catch (err) {
+            console.error(
+              'Failed to sync location to auto-created branch',
+              err
+            )
+          }
+
+          try {
+            window.dispatchEvent(
+              new Event('clinic:branches:refresh')
+            )
+          } catch (e) {
+            /* ignore */
+          }
+        }
         toast.success(response.data.message || (isEdit ? 'Clinic Updated Successfully' : 'Clinic Added Successfully'), { position: 'top-right' })
 
         if (isEdit) {
@@ -878,110 +931,130 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
   }
 
   /* ── Tab content renderers ── */
-  const renderTab0 = () => (
-    <>
-      <SectionHeading title="Basic Information" subtitle="Core clinic identity and contact details" />
-      <FieldGrid>
-        <Field label="Clinic Name" required error={errors.name}>
-          <Input type="text" name="name" value={formData.name || ''} error={errors.name}
-            style={{ textTransform: 'capitalize' }}
-            onChange={(e) => {
-              const v = e.target.value
-              setFormData(p => ({ ...p, name: v }))
-              let err = ''
-              if (!v.trim()) err = 'Clinic name is required'
-              else if (/\d/.test(v)) err = 'Numbers not allowed'
-              else if (!/^[A-Za-z\s.&-]+$/.test(v)) err = "Only letters, spaces, '.', '-', '&'"
-              setErrors(p => ({ ...p, name: err || undefined }))
-            }}
-            onKeyDown={e => { if (/\d/.test(e.key)) e.preventDefault() }} />
-        </Field>
-        <Field label="Email Address" required error={errors.emailAddress}>
-          <Input type="email" name="emailAddress" value={formData.emailAddress} error={errors.emailAddress}
-            onChange={e => { setFormData(p => ({ ...p, emailAddress: e.target.value })); setErrors(p => ({ ...p, emailAddress: '' })) }} />
-        </Field>
-        <Field label="Contact Number" required error={errors.contactNumber}>
-          <Input type="tel" name="contactNumber" value={formData.contactNumber} error={errors.contactNumber}
-            maxLength={10}
-            onChange={e => {
-              const v = e.target.value.replace(/\D/g, '')
-              setFormData(p => ({ ...p, contactNumber: v }))
-              setErrors(p => ({ ...p, contactNumber: '' }))
-            }} />
-        </Field>
-        <Field label="Website" error={errors.website}>
-          <Input type="text" name="website" value={formData.website} error={errors.website}
-            onChange={e => { const v = e.target.value; setFormData(p => ({ ...p, website: v })); setErrors(p => ({ ...p, website: '' })) }} />
-        </Field>
-        <Field label="Address" required error={errors.address}>
-          <Input type="text" name="address" value={formData.address} error={errors.address} onChange={handleInputChange} />
-        </Field>
-        <Field label="City" required error={errors.city}>
-          <Input type="text" name="city" value={formData.city} error={errors.city} onChange={handleInputChange}
-            onKeyDown={e => { if (/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete') e.preventDefault() }} />
-        </Field>
-        <Field label="Branch" required error={errors.branch}>
-          <Input type="text" placeholder="e.g. Hyderabad Main" value={formData.branch || ''} error={errors.branch}
-            onChange={e => { setFormData(p => ({ ...p, branch: e.target.value })); setErrors(p => ({ ...p, branch: '' })) }} />
-        </Field>
-        {/* NEW — Onboard Server picker. Pick a server, then use "Open" to launch
-            that server's application in a new tab. Opening is done from a real
-            button click (not the select's onChange) because most browsers'
-            popup blockers treat window.open() called from a <select> change
-            event as not "user-initiated enough" and silently block it. */}
-        <Field label="Onboard Server" error={errors.server}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-            <div style={{ flex: 1 }}>
-              <StyledSelect
-                name="server"
-                value={formData.server || ''}
-                error={errors.server}
-                onChange={(e) => {
-                  const url = e.target.value
-                  setFormData(p => ({ ...p, server: url }))
-                  setErrors(p => ({ ...p, server: '' }))
+  const renderTab0 = () => {
+    // The server currently selected, so "Open ↗" can resolve its real URL -
+    // formData.server holds the serverId, not the URL.
+    const selectedServer = servers.find(s => s.serverId === formData.server)
+
+    return (
+      <>
+        <SectionHeading title="Basic Information" subtitle="Core clinic identity and contact details" />
+        <FieldGrid>
+          <Field label="Clinic Name" required error={errors.name}>
+            <Input type="text" name="name" value={formData.name || ''} error={errors.name}
+              style={{ textTransform: 'capitalize' }}
+              onChange={(e) => {
+                const v = e.target.value
+                setFormData(p => ({ ...p, name: v }))
+                let err = ''
+                if (!v.trim()) err = 'Clinic name is required'
+                else if (/\d/.test(v)) err = 'Numbers not allowed'
+                else if (!/^[A-Za-z\s.&-]+$/.test(v)) err = "Only letters, spaces, '.', '-', '&'"
+                setErrors(p => ({ ...p, name: err || undefined }))
+              }}
+              onKeyDown={e => { if (/\d/.test(e.key)) e.preventDefault() }} />
+          </Field>
+          <Field label="Email Address" required error={errors.emailAddress}>
+            <Input type="email" name="emailAddress" value={formData.emailAddress} error={errors.emailAddress}
+              onChange={e => { setFormData(p => ({ ...p, emailAddress: e.target.value })); setErrors(p => ({ ...p, emailAddress: '' })) }} />
+          </Field>
+          <Field label="Contact Number" required error={errors.contactNumber}>
+            <Input type="tel" name="contactNumber" value={formData.contactNumber} error={errors.contactNumber}
+              maxLength={10}
+              onChange={e => {
+                const v = e.target.value.replace(/\D/g, '')
+                setFormData(p => ({ ...p, contactNumber: v }))
+                setErrors(p => ({ ...p, contactNumber: '' }))
+              }} />
+          </Field>
+          <Field label="Website" error={errors.website}>
+            <Input type="text" name="website" value={formData.website} error={errors.website}
+              onChange={e => { const v = e.target.value; setFormData(p => ({ ...p, website: v })); setErrors(p => ({ ...p, website: '' })) }} />
+          </Field>
+          <Field label="Address" required error={errors.address}>
+            <Input type="text" name="address" value={formData.address} error={errors.address} onChange={handleInputChange} />
+          </Field>
+          <Field label="City" required error={errors.city}>
+            <Input type="text" name="city" value={formData.city} error={errors.city} onChange={handleInputChange}
+              onKeyDown={e => { if (/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete') e.preventDefault() }} />
+          </Field>
+          <Field label="Branch" required error={errors.branch}>
+            <Input type="text" placeholder="e.g. Hyderabad Main" value={formData.branch || ''} error={errors.branch}
+              onChange={e => { setFormData(p => ({ ...p, branch: e.target.value })); setErrors(p => ({ ...p, branch: '' })) }} />
+          </Field>
+          {/* Onboard Server — populated live from superadmin's own registered
+            server list (GET /SuperAdmin/getAllServers), not a hardcoded URL
+            array. The <select> value is the server's serverId, which is what
+            create/update actually route through below. "Open" resolves the
+            selected server's real URL to launch its application in a new tab -
+            done from a real button click (not the select's onChange) because
+            most browsers' popup blockers treat window.open() called from a
+            <select> change event as not "user-initiated enough" and silently
+            block it. */}
+          <Field label="Onboard Server" required error={errors.server}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+              <div style={{ flex: 1 }}>
+                <StyledSelect
+                  name="server"
+                  value={formData.server || ''}
+                  error={errors.server}
+                  disabled={loadingServers}
+                  onChange={(e) => {
+                    const serverId = e.target.value
+                    setFormData(p => ({ ...p, server: serverId }))
+                    setErrors(p => ({ ...p, server: '' }))
+                  }}
+                >
+                  <option value="">
+                    {loadingServers ? 'Loading servers…' : 'Select Server'}
+                  </option>
+                  {servers.map((s) => (
+                    <option key={s.serverId} value={s.serverId}>
+                      {s.serverName} — {s.serverUrl}
+                    </option>
+                  ))}
+                </StyledSelect>
+                {!loadingServers && servers.length === 0 && (
+                  <div style={{ fontSize: '11px', color: t.danger, marginTop: '5px' }}>
+                    No servers registered yet — add one in Server Management first.
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                disabled={!selectedServer}
+                onClick={() => {
+                  if (selectedServer?.serverUrl) {
+                    window.open(selectedServer.serverUrl, '_blank', 'noopener,noreferrer')
+                  }
+                }}
+                style={{
+                  padding: '0 16px',
+                  borderRadius: t.radiusSm,
+                  border: `1px solid ${t.border}`,
+                  backgroundColor: selectedServer ? t.primary : '#f1f5f9',
+                  color: selectedServer ? '#fff' : t.textMuted,
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: selectedServer ? 'pointer' : 'not-allowed',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <option value="">Select Server</option>
-                {ONBOARD_SERVERS.map((url) => (
-                  <option key={url} value={url}>{url}</option>
-                ))}
-              </StyledSelect>
+                Open ↗
+              </button>
             </div>
-            <button
-              type="button"
-              disabled={!formData.server}
-              onClick={() => {
-                if (formData.server) {
-                  window.open(formData.server, '_blank', 'noopener,noreferrer')
-                }
-              }}
-              style={{
-                padding: '0 16px',
-                borderRadius: t.radiusSm,
-                border: `1px solid ${t.border}`,
-                backgroundColor: formData.server ? t.primary : '#f1f5f9',
-                color: formData.server ? '#fff' : t.textMuted,
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: formData.server ? 'pointer' : 'not-allowed',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Open ↗
-            </button>
-          </div>
-        </Field>
-        <Field label="Recommendation Status">
-          <StyledSelect name="recommended" value={formData.recommended}
-            onChange={e => setFormData(p => ({ ...p, recommended: e.target.value === 'true' }))}>
-            <option value="true">Yes, Recommend</option>
-            <option value="false">No, Don't Recommend</option>
-          </StyledSelect>
-        </Field>
-      </FieldGrid>
-    </>
-  )
+          </Field>
+          <Field label="Recommendation Status">
+            <StyledSelect name="recommended" value={formData.recommended}
+              onChange={e => setFormData(p => ({ ...p, recommended: e.target.value === 'true' }))}>
+              <option value="true">Yes, Recommend</option>
+              <option value="false">No, Don't Recommend</option>
+            </StyledSelect>
+          </Field>
+        </FieldGrid>
+      </>
+    )
+  }
 
   const renderTab1 = () => (
     <>
@@ -1043,75 +1116,75 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
           </StyledSelect>
         </Field>
         <Field label="Subscription" required error={errors.subscription}>
-  <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
-    <option value="">Select Subscription</option>
-    <option value="Basic">Basic</option>
-    <option value="Pro">Pro</option>
-    <option value="Elite">Elite</option>
-    <option value="Enterprise">Enterprise</option>
-  </StyledSelect>
-  {formData.subscription && (
-    <div style={{ fontSize: '11px', color: t.textMuted, marginTop: '5px' }}>
-      The Permissions tab will load {formData.subscription}'s default features.
-    </div>
-  )}
-</Field>
+          <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
+            <option value="">Select Subscription</option>
+            <option value="Basic">Basic</option>
+            <option value="Pro">Pro</option>
+            <option value="Elite">Elite</option>
+            <option value="Enterprise">Enterprise</option>
+          </StyledSelect>
+          {formData.subscription && (
+            <div style={{ fontSize: '11px', color: t.textMuted, marginTop: '5px' }}>
+              The Permissions tab will load {formData.subscription}'s default features.
+            </div>
+          )}
+        </Field>
         <Field label="Subscription Mode" error={errors.subscriptionDates}>
-  <StyledSelect
-    name="subscriptionDates"
-    value={formData.subscriptionDates || ''}
-    error={errors.subscriptionDates}
-    onChange={(e) => {
-      const subscriptionType = e.target.value
+          <StyledSelect
+            name="subscriptionDates"
+            value={formData.subscriptionDates || ''}
+            error={errors.subscriptionDates}
+            onChange={(e) => {
+              const subscriptionType = e.target.value
 
-      const { startDate, endDate } =
-        calculateSubscriptionDates(subscriptionType)
+              const { startDate, endDate } =
+                calculateSubscriptionDates(subscriptionType)
 
-      setFormData(prev => ({
-        ...prev,
-        subscriptionDates: subscriptionType,
-        subscriptionStartDate: startDate,
-        subscriptionEndDate: endDate,
-      }))
+              setFormData(prev => ({
+                ...prev,
+                subscriptionDates: subscriptionType,
+                subscriptionStartDate: startDate,
+                subscriptionEndDate: endDate,
+              }))
 
-      setErrors(prev => ({
-        ...prev,
-        subscriptionDates: '',
-      }))
-    }}
-  >
-    <option value="">Select Subscription Period</option>
-    <option value="Monthly">Monthly</option>
-    <option value="Quarterly">Quarterly</option>
-    <option value="Half Yearly">Half Yearly</option>
-    <option value="Yearly">Yearly</option>
-    <option value="First Year">First Year</option>
-    <option value="Second Year">Second Year</option>
-    <option value="Third Year">Third Year</option>
-    <option value="Fourth Year">Fourth Year</option>
-    <option value="Fifth Year">Fifth Year</option>
-  </StyledSelect>
+              setErrors(prev => ({
+                ...prev,
+                subscriptionDates: '',
+              }))
+            }}
+          >
+            <option value="">Select Subscription Period</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Quarterly">Quarterly</option>
+            <option value="Half Yearly">Half Yearly</option>
+            <option value="Yearly">Yearly</option>
+            <option value="First Year">First Year</option>
+            <option value="Second Year">Second Year</option>
+            <option value="Third Year">Third Year</option>
+            <option value="Fourth Year">Fourth Year</option>
+            <option value="Fifth Year">Fifth Year</option>
+          </StyledSelect>
 
-  {formData.subscriptionStartDate &&
-    formData.subscriptionEndDate && (
-      <div
-        style={{
-          marginTop: '8px',
-          padding: '8px 10px',
-          borderRadius: t.radiusSm,
-          backgroundColor: '#f0f4ff',
-          border: `1px solid ${t.border}`,
-          fontSize: '12px',
-          color: t.primary,
-          fontWeight: '600',
-        }}
-      >
-        📅 Start Date: {formData.subscriptionStartDate}
-        <br />
-        📅 End Date: {formData.subscriptionEndDate}
-      </div>
-    )}
-</Field>
+          {formData.subscriptionStartDate &&
+            formData.subscriptionEndDate && (
+              <div
+                style={{
+                  marginTop: '8px',
+                  padding: '8px 10px',
+                  borderRadius: t.radiusSm,
+                  backgroundColor: '#f0f4ff',
+                  border: `1px solid ${t.border}`,
+                  fontSize: '12px',
+                  color: t.primary,
+                  fontWeight: '600',
+                }}
+              >
+                📅 Start Date: {formData.subscriptionStartDate}
+                <br />
+                📅 End Date: {formData.subscriptionEndDate}
+              </div>
+            )}
+        </Field>
 
         <Field label="Consultation Expiration (days)" required error={errors.consultationExpiration}>
           <Input type="text" name="consultationExpiration" value={formData.consultationExpiration}

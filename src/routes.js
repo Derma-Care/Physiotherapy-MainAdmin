@@ -79,11 +79,11 @@ const routes = [
   { path: '/patients-management', name: 'Patient Management', element: PatientManagement },
   { path: '/appointment-management', name: 'Appointment Management', element: AppointmentManagement },
   { path: '/appointmentDetails/:id', name: 'Appointment Details', element: AppointmentDetails },
-  { path: '/clinic-Management/:hospitalId', name: 'Clinic Details', element: ClinicManagementDetails },
+  { path: '/clinic-Management/:serverId/:hospitalId', name: 'Clinic Details', element: ClinicManagementDetails },
   {
-    path: '/branch-details/:branchId',
-    name: 'Branch Details',
-    element: React.lazy(() => import('./views/clinicManagement/BranchDetails')),
+  path: '/branch-details/:serverId/:branchId',
+  name: 'Branch Details',
+  element: React.lazy(() => import('./views/clinicManagement/BranchDetails')),
   },
   { path: '/reassign-Appointment', name: 'Reassign Appointment', element: ReassignAppointment },
   { path: '/ads-management', name: 'Ads Management', element: AdsManagement },
@@ -103,7 +103,7 @@ const routes = [
   { path: '/employee-management', name: 'Employee Management', element: EmployeeManagement },
   // { path: '/employee-management/doctor', name: 'Doctor Management', element: DoctorManagement },
   { path: '/employee-management/nurse', name: 'Nurse Management', element: NurseManagement },
-  
+
   {
     path: '/employee-management/pharmacist',
     name: 'Pharmacist Management',

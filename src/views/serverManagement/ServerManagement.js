@@ -38,6 +38,7 @@ const ServerManagement = () => {
 
   const [showViewModal, setShowViewModal] = useState(false)
   const [viewServer, setViewServer] = useState(null)
+  const [viewClinics, setViewClinics] = useState([])
   const [loadingView, setLoadingView] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -69,7 +70,7 @@ const ServerManagement = () => {
   const fetchServers = async () => {
     setLoadingServers(true)
     try {
-      const response = await axios.get(`${BASE_URL}/api/SuperAdmin/getAllServers`)
+      const response = await axios.get(`${BASE_URL}/SuperAdmin/getAllServers`)
       const list = response.data?.data
       const normalized = Array.isArray(list) ? list : list ? [list] : []
       setServers(normalized.map(mapServer))
@@ -150,15 +151,15 @@ const ServerManagement = () => {
   const handleView = async (row) => {
     setShowViewModal(true)
     setLoadingView(true)
-    setViewServer(null)
+    setViewServer(row)
+    setViewClinics([])
     try {
-      const response = await axios.get(`${BASE_URL}/api/SuperAdmin/getServerById/${row.id}`)
-      const data = response.data?.data || response.data
-      setViewServer(mapServer(data))
+      const response = await axios.get(`${BASE_URL}/SuperAdmin/getServerClinics/${row.id}`)
+      const list = response.data?.data
+      setViewClinics(Array.isArray(list) ? list : list ? [list] : [])
     } catch (err) {
-      console.error('Failed to fetch server details', err)
-      toast.error(err.response?.data?.message || 'Failed to fetch server details', { position: 'top-right' })
-      setShowViewModal(false)
+      console.error('Failed to fetch server clinics', err)
+      toast.error(err.response?.data?.message || 'Failed to fetch server clinics', { position: 'top-right' })
     } finally {
       setLoadingView(false)
     }
@@ -220,7 +221,7 @@ const ServerManagement = () => {
 
     try {
       if (modalMode === 'add') {
-        const response = await axios.post(`${BASE_URL}/api/SuperAdmin/createserver`, payload)
+        const response = await axios.post(`${BASE_URL}/SuperAdmin/createserver`, payload)
         if (response.data?.status !== false) {
           const created = response.data?.data
           if (created) setServers((prev) => [...prev, mapServer(created)])
@@ -231,7 +232,7 @@ const ServerManagement = () => {
           toast.error(response.data?.message || 'Failed to create server', { position: 'top-right' })
         }
       } else {
-        const response = await axios.put(`${BASE_URL}/api/SuperAdmin/updateServer/${serverToEdit}`, payload)
+        const response = await axios.put(`${BASE_URL}/SuperAdmin/updateServer/${serverToEdit}`, payload)
         if (response.data?.status !== false) {
           const updated = response.data?.data
           setServers((prev) =>
@@ -725,28 +726,121 @@ const ServerManagement = () => {
       </CModal>
 
       {/* View Server Modal */}
-      <CModal visible={showViewModal} onClose={() => setShowViewModal(false)} alignment="center">
+      {/* View Server Modal */}
+      <CModal visible={showViewModal} onClose={() => setShowViewModal(false)} alignment="center" size="lg">
         <CModalHeader closeButton className="border-bottom-0 pb-0">
-          <CModalTitle className="fw-bold">Server Details</CModalTitle>
+          <CModalTitle className="fw-bold">
+            {viewServer?.name || 'Server'} — Clinics
+          </CModalTitle>
         </CModalHeader>
         <CModalBody className="pt-2">
+          {viewServer && (
+            <div
+              style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                marginBottom: '14px',
+                display: 'flex',
+                gap: '16px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span><strong>Server ID:</strong> {viewServer.id}</span>
+              <span><strong>URL:</strong> {viewServer.url}</span>
+              <span><strong>Location:</strong> {viewServer.location}</span>
+              <CBadge
+                color={viewServer.status?.toUpperCase() === 'ONLINE' ? 'success' : 'secondary'}
+                className={
+                  viewServer.status?.toUpperCase() === 'ONLINE'
+                    ? 'text-success bg-success bg-opacity-10 rounded-pill px-2 py-1'
+                    : 'text-secondary bg-secondary bg-opacity-10 rounded-pill px-2 py-1'
+                }
+              >
+                {viewServer.status}
+              </CBadge>
+            </div>
+          )}
+
           {loadingView ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ textAlign: 'center', padding: '30px 0' }}>
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
             </div>
-          ) : viewServer ? (
-            <div style={{ fontSize: '13px', color: '#374151', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div><strong>Server ID:</strong> {viewServer.id}</div>
-              <div><strong>Name:</strong> {viewServer.name}</div>
-              <div><strong>URL:</strong> {viewServer.url}</div>
-              <div><strong>Location:</strong> {viewServer.location}</div>
-              <div><strong>Clinics:</strong> {viewServer.clinics}</div>
-              <div><strong>Status:</strong> {viewServer.status}</div>
+          ) : viewClinics.length === 0 ? (
+            <div className="text-muted small text-center" style={{ padding: '20px 0' }}>
+              No clinics found for this server.
             </div>
           ) : (
-            <div className="text-muted small">No details available.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '420px', overflowY: 'auto' }}>
+              {viewClinics.map((clinic) => (
+                <div
+                  key={clinic.hospitalId}
+                  style={{
+                    border: '1px solid #e8eef5',
+                    borderRadius: '10px',
+                    padding: '12px 14px',
+                    background: '#fafbfc',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div className="fw-bold text-dark" style={{ fontSize: '13px' }}>
+                        {clinic.name}
+                      </div>
+                      <div className="text-muted" style={{ fontSize: '11px' }}>
+                        {clinic.address}, {clinic.city}
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        color: '#0c447c',
+                        background: '#e6f1fb',
+                        padding: '2px 8px',
+                        borderRadius: '20px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      ID: {clinic.hospitalId}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                    {clinic.contactNumber} · {clinic.emailAddress}
+                  </div>
+
+                  {clinic.branches?.length > 0 && (
+                    <div style={{ marginTop: '10px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: '700', color: '#9ca3af', marginBottom: '6px' }}>
+                        BRANCHES ({clinic.branches.length})
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {clinic.branches.map((branch) => (
+                          <div
+                            key={branch.id}
+                            style={{
+                              fontSize: '11px',
+                              color: '#374151',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              borderTop: '1px dashed #e5e7eb',
+                              paddingTop: '6px',
+                            }}
+                          >
+                            <span>
+                              <strong>{branch.branchName}</strong> — {branch.address}, {branch.city}
+                            </span>
+                            <span className="text-muted">{branch.contactNumber}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </CModalBody>
         <CModalFooter className="border-top-0 pt-0">

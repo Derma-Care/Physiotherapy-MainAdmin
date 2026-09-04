@@ -20,6 +20,7 @@ import {
   BASE_URL,
   UpdateClinic,
   DeleteClinic,
+  GetClinicById,
   DoctorAllData,
   CLINIC_ADMIN_URL,
 } from '../../baseUrl'
@@ -244,7 +245,7 @@ const Field = ({ label, required, error, children }) => (
 )
 
 const ClinicDetails = () => {
-  const { hospitalId } = useParams()
+  const { serverId, hospitalId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -269,13 +270,13 @@ const ClinicDetails = () => {
 
   const handleTabChange = (idx) => {
     setActiveTab(idx)
-    navigate(`/clinic-management/${hospitalId}?tab=${idx}`)
+    navigate(`/clinic-management/${serverId}/${hospitalId}?tab=${idx}`)
   }
 
   const fetchClinicDetails = async () => {
     setLoading(true)
     try {
-      const res = await axios.get(`${BASE_URL}/admin/getClinicById/${hospitalId}`)
+      const res = await axios.get(`${BASE_URL}/${GetClinicById}/${serverId}/${hospitalId}`)
       const data = res.data.data
       const local = localStorage.getItem(`clinic-${hospitalId}-consultation-expiration`)
       if (local) data.consultationExpiration = local
@@ -283,6 +284,7 @@ const ClinicDetails = () => {
       setEditableClinicData(data)
     } catch (err) {
       console.error(err)
+      toast.error(err.response?.data?.message || 'Failed to load clinic details')
     }
     setLoading(false)
   }
@@ -296,31 +298,77 @@ const ClinicDetails = () => {
 
   const syncBranchRecord = async (prevClinic, newClinic) => {
     try {
-      const res = await fetchBranchById(hospitalId)
-      const branches = Array.isArray(res?.data) ? res.data : []
+      // serverId = server where the clinic exists
+      // hospitalId = clinicId
+      const res = await fetchBranchById(
+        serverId,
+        hospitalId
+      )
+
+      const branches = Array.isArray(res?.data)
+        ? res.data
+        : []
+
       if (branches.length === 0) return
 
       const oldBranch = prevClinic?.branch?.trim()
+
       const match =
-        branches.find((b) => b.branchId === prevClinic?.branchId) ||
-        branches.find((b) => oldBranch && b.branchName?.trim() === oldBranch) ||
+        branches.find(
+          (b) => b.branchId === prevClinic?.branchId
+        ) ||
+        branches.find(
+          (b) =>
+            oldBranch &&
+            b.branchName?.trim() === oldBranch
+        ) ||
         branches[0]
 
+      if (!match?.branchId) {
+        console.error(
+          'No valid branchId found for branch update'
+        )
+        return
+      }
+
       console.log(
-        '[syncBranchRecord] branches:',
-        branches.map((b) => ({ id: b.branchId, name: b.branchName })),
+        '[syncBranchRecord] serverId:',
+        serverId
       )
-      console.log('[syncBranchRecord] matched branch:', match?.branchId, match?.branchName)
+
+      console.log(
+        '[syncBranchRecord] clinicId:',
+        hospitalId
+      )
+
+      console.log(
+        '[syncBranchRecord] matched branchId:',
+        match.branchId
+      )
 
       const payload = {
         ...match,
-        branchName: newClinic.branch ?? match.branchName,
-        address: newClinic.address ?? match.address,
-        city: newClinic.city ?? match.city,
-        contactNumber: newClinic.contactNumber ?? match.contactNumber,
-        email: newClinic.emailAddress ?? match.email,
-        latitude: newClinic.latitude ?? match.latitude,
-        longitude: newClinic.longitude ?? match.longitude,
+
+        branchName:
+          newClinic.branch ?? match.branchName,
+
+        address:
+          newClinic.address ?? match.address,
+
+        city:
+          newClinic.city ?? match.city,
+
+        contactNumber:
+          newClinic.contactNumber ?? match.contactNumber,
+
+        email:
+          newClinic.emailAddress ?? match.email,
+
+        latitude:
+          newClinic.latitude ?? match.latitude,
+
+        longitude:
+          newClinic.longitude ?? match.longitude,
 
         virtualClinicTour:
           newClinic.walkthrough !== undefined
@@ -337,19 +385,35 @@ const ClinicDetails = () => {
             : match.location,
       }
 
-      console.log('[syncBranchRecord] outgoing payload.location:', JSON.stringify(payload.location))
-      await updateBranchData(match.branchId, payload)
+      console.log(
+        '[syncBranchRecord] UPDATE URL:',
+        `${BASE_URL}/SuperAdmin/branches/${serverId}/${match.branchId}`
+      )
+
+      console.log(
+        '[syncBranchRecord] payload:',
+        payload
+      )
+
+      await updateBranchData(
+        serverId,
+        match.branchId,
+        payload
+      )
+
     } catch (e) {
-      console.error('Failed to sync branch record:', e)
+      console.error(
+        'Failed to sync branch record:',
+        e.response?.data || e.message || e
+      )
     }
   }
 
   useEffect(() => {
-    if (hospitalId) {
+    if (serverId && hospitalId) {
       fetchClinicDetails()
-      // fetchAllDoctors()
     }
-  }, [hospitalId])
+  }, [serverId, hospitalId])
 
   useEffect(() => {
     const fetchTimings = async () => {
@@ -455,7 +519,7 @@ const ClinicDetails = () => {
         clinicData || {},
       )
 
-      await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
+      await axios.put(`${BASE_URL}/${UpdateClinic}/${serverId}/${hospitalId}`, payload)
       const merged = { ...(clinicData || {}), ...(editableClinicData || {}), ...payload }
       setClinicData(merged)
       setEditableClinicData(merged)
@@ -469,6 +533,7 @@ const ClinicDetails = () => {
       setIsEditing(false)
     } catch (err) {
       console.error(err)
+      toast.error(err.response?.data?.message || 'Failed to save clinic details')
     }
   }
 
@@ -488,7 +553,7 @@ const ClinicDetails = () => {
         OPTIONAL_ADDITIONAL,
         clinicData || {},
       )
-      await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
+      await axios.put(`${BASE_URL}/${UpdateClinic}/${serverId}/${hospitalId}`, payload)
       const merged = { ...(clinicData || {}), ...(editableClinicData || {}), ...payload }
       setClinicData(merged)
       setEditableClinicData(merged)
@@ -502,19 +567,25 @@ const ClinicDetails = () => {
       setIsEditingAdditional(false)
     } catch (err) {
       console.error(err)
+      toast.error(err.response?.data?.message || 'Failed to save clinic details')
     }
   }
 
   const handleDeleteClinic = async () => {
     try {
-      const res = await axios.delete(`${BASE_URL}/${DeleteClinic}/${hospitalId}`)
+      if (!serverId) {
+        toast.error('Server ID not found')
+        return
+      }
+      const res = await axios.delete(`${BASE_URL}/${DeleteClinic}/${serverId}/${hospitalId}`)
       toast.success(res.data.message)
       setShowDeleteModal(false)
-      navigate('/clinic-Management')
+      navigate('/clinic-management')
     } catch (err) {
-      toast.error(err.message)
+      toast.error(err.response?.data?.message || err.message)
     }
   }
+
 
   return (
     <div style={{ fontFamily: 'inherit' }}>
@@ -1310,18 +1381,23 @@ const ClinicDetails = () => {
               </div>
             )}
 
-            {activeTab === 2 && <AddBranchForm clinicId={hospitalId} />}
+            {activeTab === 2 && (
+              <AddBranchForm
+                serverId={serverId}
+                clinicId={hospitalId}
+              />
+            )}
 
             {activeTab === 3 && (
-  <ClinicPermissionsTab
-    clinicData={clinicData}
-    // Live, unsaved subscription selection from the Additional Details tab.
-    // Lets the Permissions tab preview the new plan's feature template
-    // immediately, without waiting for Save.
-    selectedPlan={editableClinicData.subscription}
-    fetchClinicDetails={fetchClinicDetails}
-  />
-)}
+              <ClinicPermissionsTab
+                clinicData={clinicData}
+                // Live, unsaved subscription selection from the Additional Details tab.
+                // Lets the Permissions tab preview the new plan's feature template
+                // immediately, without waiting for Save.
+                selectedPlan={editableClinicData.subscription}
+                fetchClinicDetails={fetchClinicDetails}
+              />
+            )}
           </>
         )}
       </div>

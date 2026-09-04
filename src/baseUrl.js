@@ -4,11 +4,11 @@ import axios from "axios"
 
 // const ipUrl = 'localhost'
 // const ipUrl = 'physioelite-api.chiselon.online'
-const ipUrl = 'https://api.ashokfruit.shop'
+const ipUrl = 'http://localhost:9798/api'
 
 export const BASE_URL = `${ipUrl}`
 export const CLINIC_ADMIN_URL = `${ipUrl}`
-export const MainAdmin_URL = `${BASE_URL}/admin`
+export const MainAdmin_URL = `${BASE_URL}`
 export const Procedure_URL = `${ipUrl}`
 export const ClinicBase_url = `${BASE_URL}/admin`
 // export let wifiUrl = '192.168.1.7'
@@ -33,7 +33,7 @@ export const getService = 'getServiceById'
 export const Category = 'category/getServices'
 
 // login
-export const endPoint = 'admin/adminLogin'
+export const endPoint = 'SuperAdmin/auth/login'
 
 // Category Management
 export const CategoryAllData = 'admin/getCategories'
@@ -45,17 +45,19 @@ export const UpdateCategory = 'admin/updateCategory'
 export const deleteCategory = 'admin/deleteCategory'
 
 // Clinic Management
-export const ClinicAllData = 'admin/getAllClinics'
+export const ClinicAllData = 'SuperAdmin/getAllClinics'
+
+export const GetClinicById = 'SuperAdmin/clinics'
 
 export const AddClinic = 'admin/CreateClinic'
 
-export const UpdateClinic = 'admin/updateClinic'
+export const UpdateClinic = 'SuperAdmin/clinics'
 
-export const DeleteClinic = 'admin/deleteClinic'
+export const DeleteClinic = 'SuperAdmin/clinics'
 
-export const getAllQuestions = 'admin/clinicQuestions/getAll'
+export const getAllQuestions = 'SuperAdmin/clinicQuestions/getAll'
 
-export const postAllQuestionsAndAnswers = 'admin/clinicQA/postQuestionsAndAnswer'
+export const postAllQuestionsAndAnswers = 'SuperAdmin/clinicQA/postQuestionsAndAnswer'
 // Doctor Management
 export const DoctorAllData = '/clinic-admin/doctors/hospitalById'
 export const AddDoctor = 'clinic-admin/addDoctor'
@@ -63,7 +65,7 @@ export const AddDoctor = 'clinic-admin/addDoctor'
 export const UpdateDoctor = 'admin/updateDoctor'
 
 export const deleteDoctor = 'admin/deleteDoctor'
-export const GetBranches_ByClinicId = 'admin/getBranchByClinicId'
+export const GetBranches_ByClinicId = 'SuperAdmin/branches'
 
 export const getDoctorsByHospitalIdAndBranchId = 'admin/getDoctorsByHospitalIdAndBranchId'
 
@@ -188,17 +190,17 @@ export const deleteSubService = 'admin/deleteSubService'
 
 //Branch CRUD
 
-export const createBranch = 'admin/createBranch'
+export const createBranch = 'SuperAdmin/branches'
 
-export const deleteBranch = 'admin/deleteBranch'
+export const deleteBranch = 'SuperAdmin/branches'
 
-export const getBranchByClinicId = 'admin/getBranchByClinicId'
+export const getBranchByClinicId = 'SuperAdmin/branches'
 
-export const getBranchById = 'admin/getBranchById'
+export const getBranchById = 'SuperAdmin/branches'
 
-export const getAllBranches = 'admin/getAllBranches'
+export const getAllBranches = 'SuperAdmin/branches'
 
-export const updateBranches = 'admin/updateBranch'
+export const updateBranches = 'SuperAdmin/branches'
 
 // export const getBranchByClinicAndBranchId='admin/getBranchByClinicAndBranchId'
 

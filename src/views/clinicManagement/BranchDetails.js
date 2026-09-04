@@ -23,22 +23,22 @@ import {
 } from 'lucide-react'
 
 const BranchDetails = () => {
-  const { branchId, clinicId } = useParams()
+  const { serverId, branchId } = useParams()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  const [formErrors, setFormErrors]         = useState({})
-  const [activeTab, setActiveTab]           = useState(parseInt(searchParams.get('tab')) || 0)
-  const [branchData, setBranchData]         = useState(location.state?.branchData || null)
-  const [loading, setLoading]               = useState(true)
-  const [allDoctors, setAllDoctors]         = useState([])
-  const [currentPage, setCurrentPage]       = useState(1)
-  const [itemsPerPage, setItemsPerPage]     = useState(5)
+  const [formErrors, setFormErrors] = useState({})
+  const [activeTab, setActiveTab] = useState(parseInt(searchParams.get('tab')) || 0)
+  const [branchData, setBranchData] = useState(location.state?.branchData || null)
+  const [loading, setLoading] = useState(true)
+  const [allDoctors, setAllDoctors] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const [selectedDoctor, setSelectedDoctor] = useState(null)
-  const [showDoctorModal, setShowDoctorModal]   = useState(false)
-  const [showDeleteModal, setShowDeleteModal]   = useState(false)
-  const [modalVisible, setModalVisible]         = useState(false)
+  const [showDoctorModal, setShowDoctorModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [modalVisible, setModalVisible] = useState(false)
 
   /* ── sync tab from URL ── */
   useEffect(() => {
@@ -64,38 +64,37 @@ const BranchDetails = () => {
   }
 
   useEffect(() => {
-  const fetchBranch = async () => {
-    try {
-      setLoading(true)
-      const branch = await fetchBranchByBranchId(branchId)
-      if (branch?.data) {
-        setBranchData(branch.data)
-        if (branch.data.clinicId) {
-          await fetchAllDoctors(branch.data.clinicId, branchId)
+    const fetchBranch = async () => {
+      try {
+        setLoading(true)
+        const branch = await fetchBranchByBranchId(serverId, branchId)
+        if (branch?.data) {
+          setBranchData(branch.data)
+          if (branch.data.clinicId) {
+            await fetchAllDoctors(branch.data.clinicId, branchId)
+          }
+        } else if (location.state?.branchData) {
+          setBranchData(location.state.branchData)
+          if (location.state.branchData.clinicId) {
+            await fetchAllDoctors(location.state.branchData.clinicId, branchId)
+          }
         }
-      } else if (location.state?.branchData) {
-        setBranchData(location.state.branchData)
-        if (location.state.branchData.clinicId) {
-          await fetchAllDoctors(location.state.branchData.clinicId, branchId)
+      } catch (err) {
+        console.error('Error fetching branch:', err)
+        if (location.state?.branchData) {
+          setBranchData(location.state.branchData)
         }
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('Error fetching branch:', err)
-      if (location.state?.branchData) {
-        setBranchData(location.state.branchData)
-      }
-    } finally {
-      setLoading(false)
     }
-  }
-  fetchBranch()
-}, [branchId])
+    fetchBranch()
+  }, [serverId, branchId])
 
-
-  useEffect(() => {
+ useEffect(() => {
   const handleBranchRefresh = async () => {
     try {
-      const branch = await fetchBranchByBranchId(branchId)
+      const branch = await fetchBranchByBranchId(serverId, branchId)
       setBranchData(branch.data)
     } catch (err) {
       console.error('Error refreshing branch:', err)
@@ -103,7 +102,7 @@ const BranchDetails = () => {
   }
   window.addEventListener('clinic:branches:refresh', handleBranchRefresh)
   return () => window.removeEventListener('clinic:branches:refresh', handleBranchRefresh)
-}, [branchId])
+}, [serverId, branchId])
 
   /* ── delete doctor ── */
   const handleDeleteDoctor = async () => {
@@ -126,10 +125,10 @@ const BranchDetails = () => {
   }
 
   /* ── pagination ── */
-  const indexOfLastItem  = currentPage * itemsPerPage
+  const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems     = allDoctors.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages       = Math.ceil(allDoctors.length / itemsPerPage)
+  const currentItems = allDoctors.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(allDoctors.length / itemsPerPage)
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page)
@@ -334,7 +333,7 @@ const BranchDetails = () => {
 
       {/* ── Content Container ── */}
       <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid #e5e7eb' }}>
-        
+
         {/* ── Tab Bar ── */}
         <div style={{ display: 'flex', gap: '24px', overflowX: 'auto', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
           {tabsList.map((label, idx) => (
@@ -568,11 +567,11 @@ const BranchDetails = () => {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {selectedDoctor.service?.length > 0
                     ? selectedDoctor.service.map((s) => (
-                        <span key={s.serviceId} style={{
-                          padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500',
-                          background: '#e6f1fb', color: '#0c447c', border: '0.5px solid #b5d4f4',
-                        }}>{s.serviceName}</span>
-                      ))
+                      <span key={s.serviceId} style={{
+                        padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500',
+                        background: '#e6f1fb', color: '#0c447c', border: '0.5px solid #b5d4f4',
+                      }}>{s.serviceName}</span>
+                    ))
                     : <span style={{ color: '#9ca3af', fontSize: '13px' }}>No services listed</span>
                   }
                 </div>

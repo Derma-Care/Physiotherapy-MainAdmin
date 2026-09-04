@@ -124,7 +124,7 @@ const ClinicPermissionsTab = ({ clinicData, selectedPlan, fetchClinicDetails }) 
     if (!plan || !KNOWN_PLANS.includes(plan)) return
 
     try {
-      const allPermsRes = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
+      const allPermsRes = await axios.get(`${MainAdmin_URL}/SuperAdmin/getAllPermisssions`)
       const masterId = extractMasterRecordId(allPermsRes)
       const allPlans = extractPlanPermissions(allPermsRes)
       const currentPlanFeatures = allPlans[plan] || {}
@@ -165,7 +165,7 @@ const ClinicPermissionsTab = ({ clinicData, selectedPlan, fetchClinicDetails }) 
         KNOWN_PLANS.forEach((p) => {
           seededPermissions[p] = p === plan ? updatedPlanFeatures : {}
         })
-        await axios.post(`${MainAdmin_URL}/createPermissions`, { permissions: seededPermissions })
+        await axios.post(`${MainAdmin_URL}/SuperAdmin/createPermissions`, { permissions: seededPermissions })
       }
     } catch (error) {
       console.error('[ClinicPermissionsTab] Failed to register new feature(s) in Feature Management (clinic save is unaffected)', error)
@@ -284,7 +284,7 @@ const ClinicPermissionsTab = ({ clinicData, selectedPlan, fetchClinicDetails }) 
         //    feature LIST) — not to decide which actions are checked.
         let planTemplate = {}
         if (plan && KNOWN_PLANS.includes(plan)) {
-          const allPermsRes = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
+          const allPermsRes = await axios.get(`${MainAdmin_URL}/SuperAdmin/getAllPermisssions`)
           console.log('[ClinicPermissionsTab] Raw getAllPermisssions response:', allPermsRes?.data)
 
           const allPlans = extractPlanPermissions(allPermsRes)

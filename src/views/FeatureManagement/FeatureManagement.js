@@ -100,7 +100,7 @@ const FeatureManagement = () => {
     setLoading(true)
     try {
       // User requested to strictly use this exact endpoint
-      const listRes = await axios.get(`${MainAdmin_URL}/getAllPermisssions`)
+      const listRes = await axios.get(`${MainAdmin_URL}/SuperAdmin/getAllPermisssions`)
 
       const items = getPermissionsItems(listRes.data)
       const record = items.length > 0 ? items[0] : null
@@ -396,7 +396,7 @@ const FeatureManagement = () => {
         )
         toast.success(`Permissions updated successfully!`)
       } else {
-        await axios.post(`${MainAdmin_URL}/createPermissions`, payload)
+        await axios.post(`${MainAdmin_URL}/SuperAdmin/createPermissions`, payload)
         toast.success(`Permissions created successfully!`)
       }
 

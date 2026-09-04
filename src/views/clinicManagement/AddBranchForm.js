@@ -46,23 +46,23 @@ const SectionBar = ({ text }) => (
   </div>
 )
 
-const AddBranchForm = ({ clinicId }) => {
+const AddBranchForm = ({ serverId, clinicId }) => {
   const navigate = useNavigate()
 
-  const [branches, setBranches]           = useState([])
-  const [loading, setLoading]             = useState(true)
+  const [branches, setBranches] = useState([])
+  const [loading, setLoading] = useState(true)
   const [submitLoading, setSubmitLoading] = useState(false)
-  const [error, setError]                 = useState('')
-  const [success, setSuccess]             = useState('')
-  const [modalVisible, setModalVisible]   = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [modalVisible, setModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [editingBranch, setEditingBranch] = useState(null)
   const [deletingBranch, setDeletingBranch] = useState(null)
-  const [searchTerm, setSearchTerm]       = useState('')
-  const [filterCity, setFilterCity]       = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterCity, setFilterCity] = useState('')
   const [validationErrors, setValidationErrors] = useState({})
-  const [itemsPerPage, setItemsPerPage]   = useState(5)
-  const [currentPage, setCurrentPage]     = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const initialForm = {
     clinicId: clinicId || '',
@@ -75,7 +75,12 @@ const AddBranchForm = ({ clinicId }) => {
   const [formData, setFormData] = useState(initialForm)
 
   /* ── load ── */
-  useEffect(() => { loadBranches() }, [])
+  useEffect(() => {
+    if (serverId && clinicId) {
+      loadBranches()
+    }
+  }, [serverId, clinicId])
+
   useEffect(() => {
     const onRefresh = () => { loadBranches() }
     window.addEventListener('clinic:branches:refresh', onRefresh)
@@ -85,30 +90,40 @@ const AddBranchForm = ({ clinicId }) => {
   useEffect(() => { setCurrentPage(1) }, [searchTerm, filterCity])
 
   const loadBranches = async () => {
+    if (!serverId || !clinicId) {
+      console.error('Missing serverId or clinicId', { serverId, clinicId })
+      return
+    }
     try {
       setLoading(true)
-      const res = await fetchBranchById(clinicId)
-      setBranches(Array.isArray(res.data) ? res.data : [])
-      setError('')
-    } catch { setError('Failed to load branches.') }
-    finally { setLoading(false) }
+      setError(null)
+      const response = await fetchBranchById(serverId, clinicId) // was fetchBranchesByClinicId (undefined)
+      const branches = response?.data || []
+      setBranches(Array.isArray(branches) ? branches : [])
+    } catch (err) {
+      console.error('Failed to load branches:', err.response?.data || err.message)
+      setError('Failed to load branches')
+      setBranches([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const flash = (setter, msg) => { setter(msg); setTimeout(() => setter(''), 3000) }
 
-const buildBranchPayload = (currentData) => {
-  const cleanUrl = (v) => {
-    const trimmed = v?.trim() ?? ""
-    return trimmed === "" ? "" : trimmed   // explicit: whitespace-only becomes truly empty
+  const buildBranchPayload = (currentData) => {
+    const cleanUrl = (v) => {
+      const trimmed = v?.trim() ?? ""
+      return trimmed === "" ? "" : trimmed   // explicit: whitespace-only becomes truly empty
+    }
+    return {
+      ...currentData,
+      location: cleanUrl(currentData.location),
+      virtualClinicTour: cleanUrl(currentData.virtualClinicTour),
+      branchImage: currentData.branchImage || '',
+      adminName: currentData.adminName || '',
+    }
   }
-  return {
-    ...currentData,
-    location: cleanUrl(currentData.location),
-    virtualClinicTour: cleanUrl(currentData.virtualClinicTour),
-    branchImage: currentData.branchImage || '',
-    adminName: currentData.adminName || '',
-  }
-}
 
   /* ── form change ── */
   const handleChange = (e) => {
@@ -147,43 +162,43 @@ const buildBranchPayload = (currentData) => {
         errs.virtualClinicTour = 'Must be a valid URL starting with http:// or https://'
     }
     if (formData.location?.trim()) {
-  if (!/^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/.test(formData.location.trim()))
-    errs.location = 'Must be a valid URL starting with http:// or https://'
-}
+      if (!/^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/.test(formData.location.trim()))
+        errs.location = 'Must be a valid URL starting with http:// or https://'
+    }
     setValidationErrors(errs)
     return Object.keys(errs).length === 0
   }
 
-const handleSubmit = async () => {
-  if (!validateForm()) return
-  try {
-    setSubmitLoading(true)
-    const payload = buildBranchPayload(formData)
+  const handleSubmit = async () => {
+    if (!validateForm()) return
+    try {
+      setSubmitLoading(true)
+      const payload = buildBranchPayload(formData)
 
-    if (editingBranch) {
-      await updateBranchData(editingBranch.branchId, payload)
-      const updatedBranch = { ...editingBranch, ...payload }
-      setBranches((prev) => prev.map((branch) => (branch.branchId === editingBranch.branchId ? updatedBranch : branch)))
-      flash(setSuccess, 'Branch updated successfully!')
-    } else {
-      await createNewBranch(payload)
-      flash(setSuccess, 'Branch created successfully!')
-    }
-    setModalVisible(false)
-    resetForm()
-    setEditingBranch(null)
-    loadBranches()
-    try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
-  } catch (err) {
-    flash(setError, `Error ${editingBranch ? 'updating' : 'creating'} branch: ${err.message}`)
-  } finally { setSubmitLoading(false) }
-}
+      if (editingBranch) {
+        await updateBranchData(serverId, editingBranch.branchId, payload) // was updateBranchData(editingBranch.branchId, payload)
+        const updatedBranch = { ...editingBranch, ...payload }
+        setBranches((prev) => prev.map((branch) => (branch.branchId === editingBranch.branchId ? updatedBranch : branch)))
+        flash(setSuccess, 'Branch updated successfully!')
+      } else {
+        await createNewBranch(serverId, payload) // was createNewBranch(payload)
+        flash(setSuccess, 'Branch created successfully!')
+      }
+      setModalVisible(false)
+      resetForm()
+      setEditingBranch(null)
+      loadBranches()
+      try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
+    } catch (err) {
+      flash(setError, `Error ${editingBranch ? 'updating' : 'creating'} branch: ${err.message}`)
+    } finally { setSubmitLoading(false) }
+  }
 
   /* ── delete ── */
   const handleDelete = async () => {
     try {
       setSubmitLoading(true)
-      await deleteBranchById(deletingBranch.branchId)
+      await deleteBranchById(serverId, deletingBranch.branchId) // was deleteBranchById(deletingBranch.branchId)
       flash(setSuccess, 'Branch deleted successfully!')
       setDeleteModalVisible(false)
       loadBranches()
@@ -238,7 +253,7 @@ const handleSubmit = async () => {
     return matchSearch && matchCity
   })
 
-  const indexOfLastItem  = currentPage * itemsPerPage
+  const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const paginatedBranches = filteredBranches.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filteredBranches.length / itemsPerPage)
@@ -421,7 +436,9 @@ const handleSubmit = async () => {
                     <CTableDataCell className="text-center">
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
                         <button className="abf-action-btn view" title="View"
-                          onClick={() => navigate(`/branch-details/${branch.branchId}`)}>
+                          onClick={() => navigate(`/branch-details/${serverId}/${branch.branchId}`, {
+                            state: { branchData: branch },
+                          })}>
                           <Eye size={14} />
                         </button>
                         {index !== 0 && (
@@ -598,9 +615,9 @@ const handleSubmit = async () => {
             </CCol>
             <CCol md={12}>
               <Field label="Branch Image">
-                <input 
-                  type="file" 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  accept="image/*"
                   className="abf-input"
                   style={{ ...inp(false, false), cursor: 'pointer' }}
                   onChange={(e) => {
@@ -613,14 +630,14 @@ const handleSubmit = async () => {
                       }
                       reader.readAsDataURL(file)
                     }
-                  }} 
+                  }}
                 />
                 {formData.branchImage && (
                   <div style={{ marginTop: '10px' }}>
-                    <img 
-                      src={`data:image/jpeg;base64,${formData.branchImage}`} 
-                      alt="Branch Preview" 
-                      style={{ maxWidth: '120px', borderRadius: '8px', border: '1px solid #e5e7eb' }} 
+                    <img
+                      src={`data:image/jpeg;base64,${formData.branchImage}`}
+                      alt="Branch Preview"
+                      style={{ maxWidth: '120px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                     />
                   </div>
                 )}

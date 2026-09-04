@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 
-import { ClinicAllData, BASE_URL } from '../../baseUrl'
+import { ClinicAllData, MainAdmin_URL } from '../../baseUrl'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Eye, Search, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Eye, Search, X, ChevronLeft, ChevronRight, Plus, Server as ServerIcon } from 'lucide-react'
 import {
   CTable,
   CTableHead,
@@ -16,10 +16,7 @@ import {
   CModalBody,
   CModalFooter,
   CButton,
-  CFormSelect,
 } from '@coreui/react'
-import { CategoryData } from '../categoryManagement/CategoryAPI'
-import { statusapi } from '../../baseUrl'
 import LoadingIndicator from '../../Utils/loader'
 import axios from 'axios'
 
@@ -39,13 +36,6 @@ const mapBackendStatusToUI = (status) => {
     default:
       return 'pending'
   }
-}
-
-const UI_TO_BACKEND = {
-  pending: 'PENDING',
-  start: 'VERIFICATION_IN_PROGRESS',
-  verified: 'VERIFIED',
-  rejected: 'REJECTED',
 }
 
 const STATUS_LABEL = {
@@ -82,14 +72,13 @@ const ClinicManagement = ({ service, onBack }) => {
   const [statusLoading, setStatusLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterCategory, setFilterCategory] = useState('')
-  const [categories, setCategories] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const [confirmModal, setConfirmModal] = useState({
     visible: false,
     clinicId: null,
+    serverId: null,
     clinicName: '',
     fromStatus: '',
     toStatus: '',
@@ -101,39 +90,41 @@ const ClinicManagement = ({ service, onBack }) => {
     })
   }
 
-  // useEffect(() => {
-  //   const fetchCategories = async () => {
-  //     const res = await CategoryData()
-  //     setCategories(res.data)
-  //   }
-  //   fetchCategories()
-  // }, [])
-
   useEffect(() => {
     fetchClinics()
     if (location.state?.newClinic) {
-      setClinics((prev) => [...prev, location.state.newClinic])
+      // A freshly-created clinic won't have serverName attached the way the
+      // aggregated list does - refetch shortly after so it shows up with
+      // full, correct data instead of a partial optimistic row.
+      fetchClinics()
     }
-  }, [location.state?.newClinic, filterCategory])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.newClinic])
 
+  // FIX: /SuperAdmin/getAllClinics returns clinics aggregated across every
+  // registered server, wrapped as { serverId, serverName, clinic: {...} } -
+  // NOT a flat array of clinic objects. Each clinic is flattened here into
+  // { ...clinic, serverId, serverName } so the rest of this component (and
+  // every status-change / view action, which need serverId to route through
+  // the correct server) can just read plain fields off each row.
   const fetchClinics = async () => {
     setLoading(true)
+    setError(null)
     try {
-      const response = await axios.get(`${BASE_URL}/${ClinicAllData}`)
-      const clinicList = Array.isArray(response.data)
-        ? response.data
-        : response.data.hospitalCategory || response.data.data || []
+      const response = await axios.get(`${MainAdmin_URL}/${ClinicAllData}`)
+      const rawList = response.data?.data || []
 
-      const filtered = filterCategory
-        ? clinicList.filter(
-            (c) =>
-              Array.isArray(c.hospitalCategory) &&
-              c.hospitalCategory.some((cat) => cat.categoryId === filterCategory),
-          )
-        : clinicList
+      const flattened = rawList
+        .filter((entry) => entry?.clinic)
+        .map((entry) => ({
+          ...entry.clinic,
+          serverId: entry.serverId,
+          serverName: entry.serverName,
+        }))
 
-      setClinics(filtered)
-    } catch {
+      setClinics(flattened)
+    } catch (err) {
+      console.error('Failed to load clinics', err)
       setError('Failed to load clinics')
     } finally {
       setLoading(false)
@@ -141,8 +132,8 @@ const ClinicManagement = ({ service, onBack }) => {
   }
 
   /* ── Status Handlers ── */
-  const handleDropdownChange = (uiStatus, clinicId) => {
-    const clinic = clinics.find((c) => c.hospitalId === clinicId)
+  const handleDropdownChange = (uiStatus, clinicId, serverId) => {
+    const clinic = clinics.find((c) => c.hospitalId === clinicId && c.serverId === serverId)
     if (!clinic) return
     const currentUI = mapBackendStatusToUI(clinic.status)
     if (currentUI === uiStatus) return
@@ -150,6 +141,7 @@ const ClinicManagement = ({ service, onBack }) => {
     setConfirmModal({
       visible: true,
       clinicId,
+      serverId,
       clinicName: clinic.name,
       fromStatus: currentUI,
       toStatus: uiStatus,
@@ -160,13 +152,19 @@ const ClinicManagement = ({ service, onBack }) => {
     setConfirmModal({
       visible: false,
       clinicId: null,
+      serverId: null,
       clinicName: '',
       fromStatus: '',
       toStatus: '',
     })
 
+  // FIX: routed through superadmin's clinic-management proxy
+  // (/SuperAdmin/clinics/{serverId}/{clinicId}/...), which resolves serverId
+  // to the actual deployed server and forwards the request there - instead
+  // of relying on a statusapi helper that had no way to know which of
+  // possibly many servers a given clinicId belongs to.
   const handleConfirmStatusChange = async () => {
-    const { clinicId, toStatus, clinicName } = confirmModal
+    const { clinicId, serverId, toStatus, clinicName } = confirmModal
     closeModal()
 
     if (toStatus === 'pending') {
@@ -176,17 +174,19 @@ const ClinicManagement = ({ service, onBack }) => {
 
     setStatusLoading(true)
     try {
+      const base = `${MainAdmin_URL}/SuperAdmin/clinics/${serverId}/${clinicId}`
+
       if (toStatus === 'start') {
-        await statusapi.startClinic(clinicId)
+        await axios.put(`${base}/start-verification`)
       } else if (toStatus === 'verified') {
-        await statusapi.verifyClinic(clinicId)
+        await axios.put(`${base}/verify`)
       } else if (toStatus === 'rejected') {
         const reason =
           window.prompt(
             `Enter rejection reason for "${clinicName}":`,
             'Invalid documents submitted',
           ) || 'Invalid documents submitted'
-        await statusapi.rejectClinic(clinicId, reason)
+        await axios.put(`${base}/reject`, null, { params: { reason } })
       }
       await fetchClinics()
     } catch (err) {
@@ -205,12 +205,24 @@ const ClinicManagement = ({ service, onBack }) => {
     (c) =>
       c.name?.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
       c.contactNumber?.startsWith(searchTerm) ||
-      c.emailAddress?.toLowerCase().startsWith(searchTerm.toLowerCase()),
+      c.emailAddress?.toLowerCase().startsWith(searchTerm.toLowerCase()) ||
+      c.serverName?.toLowerCase().startsWith(searchTerm.toLowerCase()),
   )
+
+  // Small at-a-glance counts by status, across every server.
+  const statusCounts = clinics.reduce(
+    (acc, c) => {
+      const ui = mapBackendStatusToUI(c.status)
+      acc[ui] = (acc[ui] || 0) + 1
+      return acc
+    },
+    { pending: 0, start: 0, verified: 0, rejected: 0 },
+  )
+  const serverCount = new Set(clinics.map((c) => c.serverId)).size
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, filterCategory])
+  }, [searchTerm])
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
@@ -282,11 +294,19 @@ const ClinicManagement = ({ service, onBack }) => {
           outline: none;
           appearance: auto;
         }
-        .cm-filter-select:focus,
         .cm-search-input:focus {
           outline: none;
           border-color: #185fa5 !important;
           box-shadow: 0 0 0 3px rgba(24,95,165,0.10);
+        }
+        .cm-stat-card {
+          flex: 1;
+          min-width: 130px;
+          background: #fff;
+          border-radius: 12px;
+          border: 1px solid #e8eef5;
+          padding: 12px 16px;
+          box-shadow: 0 1px 6px rgba(24,95,165,0.05);
         }
       `}</style>
 
@@ -344,7 +364,7 @@ const ClinicManagement = ({ service, onBack }) => {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px',
+          marginBottom: '16px',
           flexWrap: 'wrap',
           gap: '12px',
         }}
@@ -354,7 +374,8 @@ const ClinicManagement = ({ service, onBack }) => {
             {service?.categoryName ? `${service.categoryName} Clinics` : 'Clinic Management'}
           </h5>
           <p style={{ color: '#6b7280', fontSize: '12px', margin: '2px 0 0' }}>
-            {filteredClinics.length} clinic{filteredClinics.length !== 1 ? 's' : ''} found
+            {filteredClinics.length} clinic{filteredClinics.length !== 1 ? 's' : ''} across{' '}
+            {serverCount} server{serverCount !== 1 ? 's' : ''}
           </p>
         </div>
         <button
@@ -381,7 +402,31 @@ const ClinicManagement = ({ service, onBack }) => {
         </button>
       </div>
 
-      {/* ── Search + Filter Bar ── */}
+      {/* ── Status Summary Cards ── */}
+      {!loading && !error && clinics.length > 0 && (
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          {[
+            { key: 'pending', label: 'Pending' },
+            { key: 'start', label: 'Started' },
+            { key: 'verified', label: 'Verified' },
+            { key: 'rejected', label: 'Rejected' },
+          ].map(({ key, label }) => (
+            <div key={key} className="cm-stat-card">
+              <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', marginBottom: '4px' }}>
+                {label}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ ...badgeStyle(key), fontSize: '11px', padding: '2px 8px' }}>●</span>
+                <span style={{ fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
+                  {statusCounts[key]}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Search Bar ── */}
       <div
         style={{
           background: '#fff',
@@ -410,7 +455,7 @@ const ClinicManagement = ({ service, onBack }) => {
           <input
             type="text"
             className="cm-search-input"
-            placeholder="Search by name, mobile, or email..."
+            placeholder="Search by name, mobile, email, or server..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -443,25 +488,6 @@ const ClinicManagement = ({ service, onBack }) => {
             </button>
           )}
         </div>
-
-        {/* <select
-          className="cm-filter-select"
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          style={{
-            padding: '8px 12px', border: '1.5px solid #e5e7eb',
-            borderRadius: '9px', fontSize: '13px', color: '#374151',
-            background: '#fff', cursor: 'pointer', minWidth: '180px',
-            transition: 'border-color 0.2s, box-shadow 0.2s',
-          }}
-        >
-          <option value="">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat.categoryId} value={cat.categoryId}>
-              {cat.categoryName}
-            </option>
-          ))}
-        </select> */}
       </div>
 
       {/* ── Table Card ── */}
@@ -509,6 +535,7 @@ const ClinicManagement = ({ service, onBack }) => {
                   {[
                     'S.No',
                     'Clinic Name',
+                    'Server',
                     'Contact Number',
                     'Email Address',
                     'City',
@@ -525,7 +552,7 @@ const ClinicManagement = ({ service, onBack }) => {
                 {currentItems.map((clinic, index) => {
                   const uiStatus = mapBackendStatusToUI(clinic.status)
                   return (
-                    <CTableRow key={clinic?.hospitalId || index}>
+                    <CTableRow key={`${clinic.serverId}-${clinic?.hospitalId || index}`}>
                       <CTableDataCell
                         style={{ color: '#9ca3af', fontWeight: '600', fontSize: '12px' }}
                       >
@@ -533,6 +560,25 @@ const ClinicManagement = ({ service, onBack }) => {
                       </CTableDataCell>
                       <CTableDataCell style={{ fontWeight: '500' }}>
                         {clinic?.name || '—'}
+                      </CTableDataCell>
+                      <CTableDataCell>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '2px 10px',
+                            borderRadius: '20px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            background: '#f1f5f9',
+                            color: '#334155',
+                          }}
+                          title={clinic.serverId}
+                        >
+                          <ServerIcon size={11} />
+                          {clinic?.serverName || clinic?.serverId || '—'}
+                        </span>
                       </CTableDataCell>
                       <CTableDataCell>{clinic?.contactNumber || '—'}</CTableDataCell>
                       <CTableDataCell>{clinic?.emailAddress || '—'}</CTableDataCell>
@@ -560,7 +606,9 @@ const ClinicManagement = ({ service, onBack }) => {
                         <select
                           className="cm-status-select"
                           value={uiStatus}
-                          onChange={(e) => handleDropdownChange(e.target.value, clinic.hospitalId)}
+                          onChange={(e) =>
+                            handleDropdownChange(e.target.value, clinic.hospitalId, clinic.serverId)
+                          }
                           disabled={statusLoading}
                           style={{
                             ...statusStyles[uiStatus],
@@ -580,12 +628,23 @@ const ClinicManagement = ({ service, onBack }) => {
                           <button
                             className="cm-action-btn view"
                             title="View"
-                            onClick={() => navigate(`/clinic-Management/${clinic.hospitalId}`)}
+                            onClick={() =>
+                              navigate(
+                                `/clinic-Management/${clinic.serverId}/${clinic.hospitalId}`,
+                                {
+                                  state: {
+                                    serverId: clinic.serverId,
+                                    clinicId: clinic.hospitalId,
+                                  },
+                                },
+                              )
+                            }
                           >
                             <Eye size={14} />
                           </button>
                         </div>
                       </CTableDataCell>
+
                     </CTableRow>
                   )
                 })}

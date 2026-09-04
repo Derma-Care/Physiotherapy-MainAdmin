@@ -1,1 +1,0 @@
-import{n as s,B as e}from"./index-BeDIqrBR.js";const n=async()=>{try{return(await s.get(`${e}/admin/getAllClinicTimings`)).data}catch(r){return console.error("Error fetching clinic timings:",r),{success:!1,message:"API Error",data:[]}}};export{n as g};
