@@ -91,6 +91,13 @@ const OPTIONAL_ADDITIONAL = [
   'others',
 ]
 
+// NOTE: `data` here is always a full copy of the previously-fetched clinic
+// record (editableClinicData), so an optional key holding `undefined` means
+// "field was never set" while an optional key holding an empty array/string
+// means "the user deliberately cleared/deleted it". Only the former should be
+// omitted from the payload — omitting the latter caused deletions (e.g.
+// removing an uploaded document) to silently revert to the old value from
+// baseData, since baseData is spread into payload first.
 const buildPayload = (data, requiredKeys, optionalKeys, baseData = {}) => {
   const payload = { ...baseData }
   requiredKeys.forEach((k) => {
@@ -99,11 +106,10 @@ const buildPayload = (data, requiredKeys, optionalKeys, baseData = {}) => {
   optionalKeys.forEach((k) => {
     const v = data[k]
 
-    // Skip only undefined and empty arrays
+    // Only skip keys that were never set. Empty arrays/strings are
+    // intentional clears and must be sent through.
     if (v === undefined) return
-    if (Array.isArray(v) && v.length === 0) return
 
-    // Send empty string also
     payload[k] = v
   })
   return payload
@@ -455,12 +461,33 @@ const ClinicDetails = () => {
         clinicData || {},
       )
 
+      // Track fields the user explicitly cleared this save (e.g. removed the
+      // hospital logo), so we can force them to stay cleared in the UI even if
+      // the backend response still comes back with the old value.
+      const clearedFields = {}
+      OPTIONAL_BASIC.forEach((k) => {
+        const wasSet = hasDocValue(clinicData?.[k])
+        const newVal = payload[k]
+        const isNowEmpty = newVal === '' || (Array.isArray(newVal) && newVal.length === 0)
+        if (wasSet && isNowEmpty) {
+          clearedFields[k] = Array.isArray(newVal) ? [] : ''
+        }
+      })
+
       await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
-      const merged = { ...(clinicData || {}), ...(editableClinicData || {}), ...payload }
-      setClinicData(merged)
-      setEditableClinicData(merged)
-      await syncBranchRecord(clinicData, merged)
+      setClinicData(payload)
+      setEditableClinicData(payload)
+      await syncBranchRecord(clinicData, payload)
       await fetchClinicDetails()
+
+      // Re-apply cleared fields on top of whatever fetchClinicDetails() just
+      // loaded, in case the backend silently kept the old value instead of
+      // actually clearing it.
+      if (Object.keys(clearedFields).length > 0) {
+        setClinicData((prev) => ({ ...prev, ...clearedFields }))
+        setEditableClinicData((prev) => ({ ...prev, ...clearedFields }))
+      }
+
       try {
         window.dispatchEvent(new Event('clinic:branches:refresh'))
       } catch (e) {
@@ -488,12 +515,31 @@ const ClinicDetails = () => {
         OPTIONAL_ADDITIONAL,
         clinicData || {},
       )
+
+      // Same idea as handleSaveBasic — remember which document/optional fields
+      // were explicitly cleared this save so we can re-force them empty after
+      // the refetch, regardless of what the backend echoes back.
+      const clearedFields = {}
+      OPTIONAL_ADDITIONAL.forEach((k) => {
+        const wasSet = hasDocValue(clinicData?.[k])
+        const newVal = payload[k]
+        const isNowEmpty = newVal === '' || (Array.isArray(newVal) && newVal.length === 0)
+        if (wasSet && isNowEmpty) {
+          clearedFields[k] = Array.isArray(newVal) ? [] : ''
+        }
+      })
+
       await axios.put(`${BASE_URL}/${UpdateClinic}/${hospitalId}`, payload)
-      const merged = { ...(clinicData || {}), ...(editableClinicData || {}), ...payload }
-      setClinicData(merged)
-      setEditableClinicData(merged)
-      await syncBranchRecord(clinicData, merged)
+      setClinicData(payload)
+      setEditableClinicData(payload)
+      await syncBranchRecord(clinicData, payload)
       await fetchClinicDetails()
+
+      if (Object.keys(clearedFields).length > 0) {
+        setClinicData((prev) => ({ ...prev, ...clearedFields }))
+        setEditableClinicData((prev) => ({ ...prev, ...clearedFields }))
+      }
+
       try {
         window.dispatchEvent(new Event('clinic:branches:refresh'))
       } catch (e) {
@@ -1313,15 +1359,15 @@ const ClinicDetails = () => {
             {activeTab === 2 && <AddBranchForm clinicId={hospitalId} />}
 
             {activeTab === 3 && (
-  <ClinicPermissionsTab
-    clinicData={clinicData}
-    // Live, unsaved subscription selection from the Additional Details tab.
-    // Lets the Permissions tab preview the new plan's feature template
-    // immediately, without waiting for Save.
-    selectedPlan={editableClinicData.subscription}
-    fetchClinicDetails={fetchClinicDetails}
-  />
-)}
+              <ClinicPermissionsTab
+                clinicData={clinicData}
+                // Live, unsaved subscription selection from the Additional Details tab.
+                // Lets the Permissions tab preview the new plan's feature template
+                // immediately, without waiting for Save.
+                selectedPlan={editableClinicData.subscription}
+                fetchClinicDetails={fetchClinicDetails}
+              />
+            )}
           </>
         )}
       </div>

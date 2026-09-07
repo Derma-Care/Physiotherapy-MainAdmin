@@ -188,6 +188,7 @@ const TABS = [
 const ONBOARD_SERVERS = [
   'https://api.ccmstestserver.online',
   'https://api.ashokfruit.shop',
+  'https://api.ccmsphysioelite.site',
 ]
 
 /* ─── Per-tab validation ─── */
@@ -290,10 +291,10 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
     if (!formData.closingTime) errs.closingTime = 'Closing time is required'
   }
   if (tabId === 2) {
-  if (!formData.subscription?.trim()) errs.subscription = 'Subscription is required'
-  if (!formData.consultationExpiration) errs.consultationExpiration = 'Consultation days are required'
-  if (!formData.freeFollowUps && formData.freeFollowUps !== 0) errs.freeFollowUps = 'Free follow ups is required'
-}
+    if (!formData.subscription?.trim()) errs.subscription = 'Subscription is required'
+    if (!formData.consultationExpiration) errs.consultationExpiration = 'Consultation days are required'
+    if (!formData.freeFollowUps && formData.freeFollowUps !== 0) errs.freeFollowUps = 'Free follow ups is required'
+  }
   if (tabId === 3) {
     if (!formData.latitude) errs.latitude = 'Latitude is required'
     else { const lat = parseFloat(formData.latitude); if (isNaN(lat) || lat < -90 || lat > 90) errs.latitude = 'Must be between -90 and 90' }
@@ -359,12 +360,12 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     tradeLicense: null, fireSafetyCertificate: null, professionalIndemnityInsurance: null,
     gstRegistrationCertificate: null, newFeatureInput: '', others: [], consultationExpiration: '',
     subscription: '',
-subscriptionDates: '',
-subscriptionStartDate: '',
-subscriptionEndDate: '',
-instagramHandle: '',
-twitterHandle: '',
-facebookHandle: '',
+    subscriptionDates: '',
+    subscriptionStartDate: '',
+    subscriptionEndDate: '',
+    instagramHandle: '',
+    twitterHandle: '',
+    facebookHandle: '',
     // NEW — which onboarding server (application) this clinic is tied to.
     // Selecting a value in Basic Info opens that server's application in a new tab.
     server: '',
@@ -800,14 +801,14 @@ facebookHandle: '',
           ? (String(formData.consultationExpiration).includes('day') ? formData.consultationExpiration : `${formData.consultationExpiration} days`)
           : '',
         subscription: formData.subscription,
-subscriptionDates: formData.subscriptionDates,
-subscriptionStartDate: formData.subscriptionStartDate,
-subscriptionEndDate: formData.subscriptionEndDate,
+        subscriptionDates: formData.subscriptionDates,
+        subscriptionStartDate: formData.subscriptionStartDate,
+        subscriptionEndDate: formData.subscriptionEndDate,
 
         // NEW — the onboarding server selected on Basic Info.
         server: formData.server,
 
-latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
+        latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
         walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
         // FIX: only the permissions actually given, not every template placeholder.
         permissions: finalPermissions,
@@ -837,19 +838,19 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
         }
 
         // NEW — explicitly push location/virtualClinicTour onto the auto-created branch record.
-  // CreateClinic on the backend creates a branch alongside the clinic, but does not
-  // appear to copy location/walkthrough into it — so we push it explicitly here.
-  if (!isEdit && response.data.data?.branchId) {
-    try {
-      await updateBranchData(response.data.data.branchId, {
-        location: clinicData.location,
-        virtualClinicTour: clinicData.walkthrough,
-      })
-    } catch (err) {
-      console.error('Failed to sync location to auto-created branch', err)
-    }
-    try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
-  }
+        // CreateClinic on the backend creates a branch alongside the clinic, but does not
+        // appear to copy location/walkthrough into it — so we push it explicitly here.
+        if (!isEdit && response.data.data?.branchId) {
+          try {
+            await updateBranchData(response.data.data.branchId, {
+              location: clinicData.location,
+              virtualClinicTour: clinicData.walkthrough,
+            })
+          } catch (err) {
+            console.error('Failed to sync location to auto-created branch', err)
+          }
+          try { window.dispatchEvent(new Event('clinic:branches:refresh')) } catch (e) { /* ignore */ }
+        }
 
         toast.success(response.data.message || (isEdit ? 'Clinic Updated Successfully' : 'Clinic Added Successfully'), { position: 'top-right' })
 
@@ -1043,75 +1044,75 @@ latitude: formData.latitude, longitude: formData.longitude, location: formData.l
           </StyledSelect>
         </Field>
         <Field label="Subscription" required error={errors.subscription}>
-  <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
-    <option value="">Select Subscription</option>
-    <option value="Basic">Basic</option>
-    <option value="Pro">Pro</option>
-    <option value="Elite">Elite</option>
-    <option value="Enterprise">Enterprise</option>
-  </StyledSelect>
-  {formData.subscription && (
-    <div style={{ fontSize: '11px', color: t.textMuted, marginTop: '5px' }}>
-      The Permissions tab will load {formData.subscription}'s default features.
-    </div>
-  )}
-</Field>
+          <StyledSelect name="subscription" value={formData.subscription} error={errors.subscription} onChange={handleInputChange}>
+            <option value="">Select Subscription</option>
+            <option value="Basic">Basic</option>
+            <option value="Pro">Pro</option>
+            <option value="Elite">Elite</option>
+            <option value="Enterprise">Enterprise</option>
+          </StyledSelect>
+          {formData.subscription && (
+            <div style={{ fontSize: '11px', color: t.textMuted, marginTop: '5px' }}>
+              The Permissions tab will load {formData.subscription}'s default features.
+            </div>
+          )}
+        </Field>
         <Field label="Subscription Mode" error={errors.subscriptionDates}>
-  <StyledSelect
-    name="subscriptionDates"
-    value={formData.subscriptionDates || ''}
-    error={errors.subscriptionDates}
-    onChange={(e) => {
-      const subscriptionType = e.target.value
+          <StyledSelect
+            name="subscriptionDates"
+            value={formData.subscriptionDates || ''}
+            error={errors.subscriptionDates}
+            onChange={(e) => {
+              const subscriptionType = e.target.value
 
-      const { startDate, endDate } =
-        calculateSubscriptionDates(subscriptionType)
+              const { startDate, endDate } =
+                calculateSubscriptionDates(subscriptionType)
 
-      setFormData(prev => ({
-        ...prev,
-        subscriptionDates: subscriptionType,
-        subscriptionStartDate: startDate,
-        subscriptionEndDate: endDate,
-      }))
+              setFormData(prev => ({
+                ...prev,
+                subscriptionDates: subscriptionType,
+                subscriptionStartDate: startDate,
+                subscriptionEndDate: endDate,
+              }))
 
-      setErrors(prev => ({
-        ...prev,
-        subscriptionDates: '',
-      }))
-    }}
-  >
-    <option value="">Select Subscription Period</option>
-    <option value="Monthly">Monthly</option>
-    <option value="Quarterly">Quarterly</option>
-    <option value="Half Yearly">Half Yearly</option>
-    <option value="Yearly">Yearly</option>
-    <option value="First Year">First Year</option>
-    <option value="Second Year">Second Year</option>
-    <option value="Third Year">Third Year</option>
-    <option value="Fourth Year">Fourth Year</option>
-    <option value="Fifth Year">Fifth Year</option>
-  </StyledSelect>
+              setErrors(prev => ({
+                ...prev,
+                subscriptionDates: '',
+              }))
+            }}
+          >
+            <option value="">Select Subscription Period</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Quarterly">Quarterly</option>
+            <option value="Half Yearly">Half Yearly</option>
+            <option value="Yearly">Yearly</option>
+            <option value="First Year">First Year</option>
+            <option value="Second Year">Second Year</option>
+            <option value="Third Year">Third Year</option>
+            <option value="Fourth Year">Fourth Year</option>
+            <option value="Fifth Year">Fifth Year</option>
+          </StyledSelect>
 
-  {formData.subscriptionStartDate &&
-    formData.subscriptionEndDate && (
-      <div
-        style={{
-          marginTop: '8px',
-          padding: '8px 10px',
-          borderRadius: t.radiusSm,
-          backgroundColor: '#f0f4ff',
-          border: `1px solid ${t.border}`,
-          fontSize: '12px',
-          color: t.primary,
-          fontWeight: '600',
-        }}
-      >
-        📅 Start Date: {formData.subscriptionStartDate}
-        <br />
-        📅 End Date: {formData.subscriptionEndDate}
-      </div>
-    )}
-</Field>
+          {formData.subscriptionStartDate &&
+            formData.subscriptionEndDate && (
+              <div
+                style={{
+                  marginTop: '8px',
+                  padding: '8px 10px',
+                  borderRadius: t.radiusSm,
+                  backgroundColor: '#f0f4ff',
+                  border: `1px solid ${t.border}`,
+                  fontSize: '12px',
+                  color: t.primary,
+                  fontWeight: '600',
+                }}
+              >
+                📅 Start Date: {formData.subscriptionStartDate}
+                <br />
+                📅 End Date: {formData.subscriptionEndDate}
+              </div>
+            )}
+        </Field>
 
         <Field label="Consultation Expiration (days)" required error={errors.consultationExpiration}>
           <Input type="text" name="consultationExpiration" value={formData.consultationExpiration}

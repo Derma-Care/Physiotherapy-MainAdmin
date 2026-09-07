@@ -1,6 +1,17 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import CIcon from '@coreui/icons-react'
 import { cilCloudDownload, cilPencil, cilFile, cilX } from '@coreui/icons'
+
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'application/zip',
+]
+const MAX_SIZE = 250 * 1024 // 250 KB, matches the rest of the app
 
 const DocumentField = ({
   label,
@@ -12,13 +23,14 @@ const DocumentField = ({
   uploadType = 'single', // 'single' or 'multiple'
 }) => {
   const fileInputRef = useRef(null)
+  const [error, setError] = useState('')
 
   // Normalize to array
   const normalizedData = Array.isArray(base64Data)
     ? base64Data
     : base64Data
-    ? [base64Data]
-    : []
+      ? [base64Data]
+      : []
 
   const getFileInfo = (data) => {
     if (!data || typeof data !== 'string') return { mime: '', ext: '', isPreviewable: false }
@@ -35,49 +47,55 @@ const DocumentField = ({
     return { mime, ext, isPreviewable }
   }
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files)
+  const readFileAsBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        reject(`"${file.name}" is not an allowed file type`)
+        return
+      }
+      if (file.size > MAX_SIZE) {
+        reject(`"${file.name}" is larger than 250 KB`)
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result.split(',')[1])
+      reader.onerror = () => reject(`Could not read "${file.name}"`)
+      reader.readAsDataURL(file)
+    })
+
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || [])
     if (!files.length) return
+    setError('')
 
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/png',
-      'image/jpeg',
-    ]
+    // Use allSettled so one bad file doesn't wipe out the good ones.
+    const results = await Promise.allSettled(files.map(readFileAsBase64))
+    const succeeded = results.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+    const failed = results.filter((r) => r.status === 'rejected').map((r) => r.reason)
 
-    const readers = files.map(file =>
-      new Promise((resolve, reject) => {
-        if (!allowedTypes.includes(file.type)) return reject('Invalid type')
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result.split(',')[1])
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
-    )
+    if (failed.length) setError(failed.join('; '))
 
-    Promise.all(readers)
-      .then((base64Files) => {
-        if (uploadType === 'multiple') {
-          const updated = [...normalizedData, ...base64Files]
-          onFileChange(updated)
-        } else {
-          onFileChange(base64Files[0])
-        }
-        // clear native input so it doesn't keep previous file(s)
-        if (fileInputRef.current) fileInputRef.current.value = ''
-      })
-      .catch((err) => console.error(err))
+    if (succeeded.length) {
+      if (uploadType === 'multiple') {
+        onFileChange([...normalizedData, ...succeeded])
+      } else {
+        // Single mode: the newly picked file replaces the existing one.
+        onFileChange(succeeded[0])
+      }
+    }
+
+    // clear native input so re-selecting the same file still fires onChange
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleRemove = (index) => {
+    setError('')
     if (uploadType === 'multiple') {
       const updated = normalizedData.filter((_, i) => i !== index)
       onFileChange(updated)
     } else {
       onFileChange('')
     }
-    // clear native input to avoid UI quirks
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -88,12 +106,13 @@ const DocumentField = ({
     a.click()
   }
 
-  // show box only when there are files; otherwise render compact row (or nothing if not editing)
+  const openPicker = () => fileInputRef.current && fileInputRef.current.click()
+
   const showBox = normalizedData.length > 0
+  const canAddMore = uploadType === 'multiple' || normalizedData.length === 0
 
   return (
     <div className="mb-3">
-      {/* If there are files, show the boxed list */}
       {showBox ? (
         <div className="border rounded p-2 bg-light">
           {normalizedData.map((data, i) => {
@@ -146,6 +165,17 @@ const DocumentField = ({
                     <CIcon icon={cilCloudDownload} size="lg" />
                   </span>
 
+                  {isEditing && uploadType === 'single' && (
+                    <span
+                      className="text-warning"
+                      style={{ cursor: 'pointer' }}
+                      title="Replace"
+                      onClick={openPicker}
+                    >
+                      <CIcon icon={cilPencil} size="lg" />
+                    </span>
+                  )}
+
                   {isEditing && (
                     <span
                       className="text-danger"
@@ -160,36 +190,51 @@ const DocumentField = ({
               </div>
             )
           })}
+
+          {isEditing && uploadType === 'multiple' && (
+            <div
+              className="d-flex align-items-center gap-2 mt-1"
+              style={{ cursor: 'pointer' }}
+              onClick={openPicker}
+            >
+              <span className="text-warning">
+                <CIcon icon={cilPencil} size="lg" />
+              </span>
+              <span className="small text-muted">Add more files</span>
+            </div>
+          )}
         </div>
       ) : (
-        // when no files
         <>
           {!isEditing ? (
             <div className="text-muted">No {label} available.</div>
           ) : (
-            // compact upload row (no gray box)
-            <div className="d-flex align-items-center gap-2">
-              <span
-                className="text-warning"
-                style={{ cursor: 'pointer' }}
-                title="Upload"
-                onClick={() => fileInputRef.current && fileInputRef.current.click()}
-              >
+            <div
+              className="d-flex align-items-center gap-2"
+              style={{ cursor: 'pointer' }}
+              onClick={openPicker}
+            >
+              <span className="text-warning">
                 <CIcon icon={cilPencil} size="lg" />
               </span>
-              <span className="small text-muted">Upload {uploadType === 'multiple' ? 'one or more files' : 'a file'}</span>
+              <span className="small text-muted">
+                Upload {uploadType === 'multiple' ? 'one or more files' : 'a file'}
+              </span>
             </div>
           )}
         </>
       )}
 
-      {/* hidden file input (shared) */}
-      {isEditing && (
+      {error && <div className="text-danger small mt-1">{error}</div>}
+
+      {/* hidden file input — always hidden, opened only via the controls above */}
+      {isEditing && canAddMore && (
         <input
           type="file"
           multiple={uploadType === 'multiple'}
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
           ref={fileInputRef}
-  className="form-control" // ✅ standard input box styling
+          style={{ display: 'none' }}
           onChange={handleFileSelect}
         />
       )}
