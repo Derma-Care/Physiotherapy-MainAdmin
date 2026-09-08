@@ -79,7 +79,8 @@ const ClinicManagement = ({ service, onBack }) => {
 
   const [clinics, setClinics] = useState([])
   const [loading, setLoading] = useState(false)
-  const [statusLoading, setStatusLoading] = useState(false)
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [updatingClinicId, setUpdatingClinicId] = useState(null)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -174,6 +175,7 @@ const ClinicManagement = ({ service, onBack }) => {
       return
     }
 
+    setUpdatingClinicId(clinicId)
     setStatusLoading(true)
     try {
       if (toStatus === 'start') {
@@ -197,6 +199,7 @@ const ClinicManagement = ({ service, onBack }) => {
       await fetchClinics()
     } finally {
       setStatusLoading(false)
+      setUpdatingClinicId(null)
     }
   }
 
@@ -232,6 +235,22 @@ const ClinicManagement = ({ service, onBack }) => {
 
   return (
     <div>
+  {statusLoading && (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'rgba(255,255,255,0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+    }}>
+      <LoadingIndicator message="Updating status, please wait..." />
+    </div>
+  )}
       <style>{`
         .cm-table thead th {
           background: #185fa5 !important;
@@ -443,25 +462,6 @@ const ClinicManagement = ({ service, onBack }) => {
             </button>
           )}
         </div>
-
-        {/* <select
-          className="cm-filter-select"
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          style={{
-            padding: '8px 12px', border: '1.5px solid #e5e7eb',
-            borderRadius: '9px', fontSize: '13px', color: '#374151',
-            background: '#fff', cursor: 'pointer', minWidth: '180px',
-            transition: 'border-color 0.2s, box-shadow 0.2s',
-          }}
-        >
-          <option value="">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat.categoryId} value={cat.categoryId}>
-              {cat.categoryName}
-            </option>
-          ))}
-        </select> */}
       </div>
 
       {/* ── Table Card ── */}
@@ -557,21 +557,25 @@ const ClinicManagement = ({ service, onBack }) => {
 
                       {/* ── Status Dropdown ── */}
                       <CTableDataCell>
-                        <select
-                          className="cm-status-select"
-                          value={uiStatus}
-                          onChange={(e) => handleDropdownChange(e.target.value, clinic.hospitalId)}
-                          disabled={statusLoading}
-                          style={{
-                            ...statusStyles[uiStatus],
-                            cursor: statusLoading ? 'not-allowed' : 'pointer',
-                          }}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="start">Started</option>
-                          <option value="verified">Verified</option>
-                          <option value="rejected">Rejected</option>
-                        </select>
+                         {updatingClinicId === clinic.hospitalId && statusLoading ? (
+                           <LoadingIndicator message="Updating status..." />
+                         ) : (
+                           <select
+                             className="cm-status-select"
+                             value={uiStatus}
+                             onChange={(e) => handleDropdownChange(e.target.value, clinic.hospitalId)}
+                             disabled={statusLoading}
+                             style={{
+                               ...statusStyles[uiStatus],
+                               cursor: statusLoading ? 'not-allowed' : 'pointer',
+                             }}
+                           >
+                             <option value="pending">Pending</option>
+                             <option value="start">Started</option>
+                             <option value="verified">Verified</option>
+                             <option value="rejected">Rejected</option>
+                           </select>
+                         )}
                       </CTableDataCell>
 
                       {/* ── View Button ── */}
