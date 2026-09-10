@@ -812,8 +812,8 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
       const isEdit = mode === 'edit' && !!currentId
       const response = isEdit
-        ? await axios.put(`${formData.server}/admin/UpdateClinic/${currentId}`, clinicData)
-        : await axios.post(`${formData.server}/admin/CreateClinic`, clinicData)
+        ? await axios.put(`${BASE_URL}/admin/UpdateClinic/${currentId}`, clinicData)
+        : await axios.post(`${BASE_URL}/admin/CreateClinic`, clinicData)
 
       if (response.data.success) {
         // Clear NABH localStorage after successful save
