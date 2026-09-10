@@ -183,13 +183,9 @@ const TABS = [
   { id: 6, label: 'Permissions', icon: '🔒' },
 ]
 
-// NEW — the two onboarding servers the clinic can be pointed at from Basic Info.
-// Selecting one opens that server's application in a new tab.
-const ONBOARD_SERVERS = [
-  'https://api.ccmstestserver.online',
-  'https://api.ashokfruit.shop',
-  'https://api.ccmsphysioelite.site',
-]
+// NEW — the onboarding server the clinic can be pointed at from Basic Info.
+// Selecting this opens that server's application in a new tab.
+const ONBOARD_SERVER = 'https://api.ccmsforkinetix.site';
 
 /* ─── Per-tab validation ─── */
 const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/
@@ -806,7 +802,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         subscriptionEndDate: formData.subscriptionEndDate,
 
         // NEW — the onboarding server selected on Basic Info.
-        server: formData.server,
+        server: ONBOARD_SERVER,
 
         latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
         walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
@@ -872,7 +868,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         toast.error(response.data.message || 'Something went wrong', { position: 'top-right' })
       }
     } catch (error) {
-      toast.error(error.message || 'Something went wrong', { position: 'top-right' })
+      toast.error(error.message || 'Something went wrong', { position: 'wrong' })
     } finally {
       setIsSubmitting(false)
     }
@@ -935,18 +931,10 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             <div style={{ flex: 1 }}>
               <StyledSelect
                 name="server"
-                value={formData.server || ''}
-                error={errors.server}
-                onChange={(e) => {
-                  const url = e.target.value
-                  setFormData(p => ({ ...p, server: url }))
-                  setErrors(p => ({ ...p, server: '' }))
-                }}
+                value={ONBOARD_SERVER}
+                disabled
               >
-                <option value="">Select Server</option>
-                {ONBOARD_SERVERS.map((url) => (
-                  <option key={url} value={url}>{url}</option>
-                ))}
+                <option value={ONBOARD_SERVER}>{ONBOARD_SERVER}</option>
               </StyledSelect>
             </div>
             <button
