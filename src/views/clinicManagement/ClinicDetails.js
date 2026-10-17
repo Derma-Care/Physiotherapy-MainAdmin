@@ -72,7 +72,13 @@ const OPTIONAL_ADDITIONAL = [
   'subscriptionDates',
   'subscriptionStartDate',
   'subscriptionEndDate',
+  'specialization',
+  'specializations',
+  'clinicType',
   'licenseNumber',
+  'gstnumber',
+  'gstNumber',
+  'youtubeUrl',
   'walkthrough',
   'location',
   'loyaltyPoints',
@@ -1091,6 +1097,24 @@ const ClinicDetails = () => {
                       </Field>
                     </CCol>
                   )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.gstnumber || editableClinicData.gstNumber)) && (
+                    <CCol md={6}>
+                      <Field label="GST Number">
+                        <input
+                          className="cd-input"
+                          style={inp(false, !isEditingAdditional)}
+                          value={editableClinicData.gstnumber || editableClinicData.gstNumber || ''}
+                          disabled={!isEditingAdditional}
+                          placeholder="e.g. 22AAAAA0000A1Z5"
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase()
+                            set('gstnumber', val)
+                            set('gstNumber', val)
+                          }}
+                        />
+                      </Field>
+                    </CCol>
+                  )}
                   <CCol md={6}>
                     <Field label="Latitude" required error={formErrors.latitude}>
                       <input
@@ -1200,6 +1224,43 @@ const ClinicDetails = () => {
                               }}
                             >
                               Open Location ↗
+                            </a>
+                          )}
+                      </Field>
+                    </CCol>
+                  )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.youtubeUrl)) && (
+                    <CCol md={6}>
+                      <Field label="YouTube URL" error={formErrors.youtubeUrl}>
+                        <input
+                          className="cd-input"
+                          style={inp(!!formErrors.youtubeUrl, !isEditingAdditional)}
+                          value={editableClinicData.youtubeUrl ?? ''}
+                          disabled={!isEditingAdditional}
+                          placeholder="https://youtube.com/..."
+                          onChange={(e) => {
+                            const v = e.target.value
+                            set('youtubeUrl', v)
+                            if (v.trim() && !/^https?:\/\/[^\s]+$/.test(v.trim()))
+                              setErr('youtubeUrl', 'Must start with http(s)://')
+                            else clearErr('youtubeUrl')
+                          }}
+                        />
+                        {!isEditingAdditional &&
+                          editableClinicData.youtubeUrl &&
+                          !formErrors.youtubeUrl && (
+                            <a
+                              href={editableClinicData.youtubeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: '12px',
+                                color: '#1a3a6b',
+                                marginTop: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              Open YouTube ↗
                             </a>
                           )}
                       </Field>

@@ -4,7 +4,7 @@ import axios from "axios"
 
 // const ipUrl = 'localhost'
 // const ipUrl = 'physioelite-api.chiselon.online'
-const ipUrl = 'https://api.ccmsforkinetix.site'
+const ipUrl = 'https://api.physioelitece.fit'
 
 export const BASE_URL = `${ipUrl}`
 export const CLINIC_ADMIN_URL = `${ipUrl}`
@@ -56,6 +56,8 @@ export const DeleteClinic = 'admin/deleteClinic'
 export const getAllQuestions = 'admin/clinicQuestions/getAll'
 
 export const postAllQuestionsAndAnswers = 'admin/clinicQA/postQuestionsAndAnswer'
+export const getAllSpecializations = 'admin/getAllSpecializations'
+export const SPECIALIZATION_API_URL = 'admin/getAllSpecializations'
 // Doctor Management
 export const DoctorAllData = '/clinic-admin/doctors/hospitalById'
 export const AddDoctor = 'clinic-admin/addDoctor'

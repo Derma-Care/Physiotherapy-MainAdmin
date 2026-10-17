@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import Select from 'react-select'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import {
   CForm,
@@ -17,6 +18,7 @@ import {
   ClinicAllData,
   getAllQuestions,
   postAllQuestionsAndAnswers,
+  SPECIALIZATION_API_URL,
 } from '../../baseUrl'
 import { CategoryData } from '../categoryManagement/CategoryAPI'
 import sendDermaCareOnboardingEmail from '../../Utils/Emailjs'
@@ -105,6 +107,50 @@ const StyledSelect = ({ error, children, ...props }) => (
   </select>
 )
 
+const getReactSelectStyles = (hasError) => ({
+  control: (base, state) => ({
+    ...base,
+    fontSize: '13px',
+    minHeight: '38px',
+    borderRadius: t.radiusSm,
+    borderColor: hasError ? t.danger : state.isFocused ? t.primary : t.border,
+    boxShadow: state.isFocused ? `0 0 0 1px ${hasError ? t.danger : t.primary}` : 'none',
+    '&:hover': {
+      borderColor: hasError ? t.danger : t.primary,
+    },
+    backgroundColor: '#fff',
+  }),
+  multiValue: (base) => ({
+    ...base,
+    backgroundColor: '#e8effc',
+    borderRadius: '4px',
+    padding: '1px 4px',
+  }),
+  multiValueLabel: (base) => ({
+    ...base,
+    color: t.primary,
+    fontWeight: '600',
+    fontSize: '12px',
+  }),
+  multiValueRemove: (base) => ({
+    ...base,
+    color: t.primary,
+    cursor: 'pointer',
+    ':hover': {
+      backgroundColor: '#d0e1fd',
+      color: '#0f294a',
+    },
+  }),
+  option: (base, state) => ({
+    ...base,
+    fontSize: '13px',
+    backgroundColor: state.isSelected ? t.primary : state.isFocused ? '#f1f5f9' : '#fff',
+    color: state.isSelected ? '#fff' : t.text,
+    cursor: 'pointer',
+  }),
+  menuPortal: (base) => ({ ...base, zIndex: 99999 }),
+})
+
 /* ─── FileField ───
    Handles three states:
    1. Fresh file picked this session -> shows filename chip (green)
@@ -186,6 +232,8 @@ const TABS = [
 // NEW — the onboarding server the clinic can be pointed at from Basic Info.
 // Selecting this opens that server's application in a new tab.
 const ONBOARD_SERVER = 'https://api.ccmsforkinetix.site';
+
+
 
 /* ─── Per-tab validation ─── */
 const websiteRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/
@@ -299,6 +347,9 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
     if (formData.location?.trim()) {
       try { new URL(formData.location) } catch { errs.location = 'Enter a valid URL' }
     }
+    if (formData.youtubeUrl?.trim()) {
+      try { new URL(formData.youtubeUrl.trim()) } catch { errs.youtubeUrl = 'Enter a valid URL' }
+    }
   }
   if (tabId === 4) {
     if (!formData.hospitalLogo) errs.hospitalLogo = 'Clinic logo is required'
@@ -340,6 +391,8 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   const [nabhScore, setNabhScore] = useState(null)
   const [nabhSubmitted, setNabhSubmitted] = useState(false)
   const [loadingPermissions, setLoadingPermissions] = useState(false)
+  const [specializations, setSpecializations] = useState([])
+  const [loadingSpecializations, setLoadingSpecializations] = useState(false)
 
   // In edit mode, treat a completed NABH questionnaire on the record as already-submitted
   // so the button doesn't force the user to redo it (they can still reopen via clearing state elsewhere if needed).
@@ -359,6 +412,13 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     subscriptionDates: '',
     subscriptionStartDate: '',
     subscriptionEndDate: '',
+    specialization: '',
+    specializationId: '',
+    specializationName: '',
+    selectedSpecializations: [],
+    customSpecialization: '',
+    gstnumber: '',
+    youtubeUrl: '',
     instagramHandle: '',
     twitterHandle: '',
     facebookHandle: '',
@@ -516,7 +576,42 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
   useEffect(() => {
     if (mode === 'edit' && initialData) {
       const { permissions: initialPermissions, ...initialRest } = initialData
-      setFormData(prev => ({ ...prev, ...initialRest }))
+      const specField = initialData.specialization
+      const specsField = initialData.specializations
+
+      let initSelectedSpecs = []
+      const rawSpecs = Array.isArray(specField)
+        ? specField
+        : Array.isArray(specsField)
+          ? specsField
+          : (specField && typeof specField === 'object')
+            ? [specField]
+            : typeof specField === 'string' && specField.trim()
+              ? specField.split(',').map((s, idx) => ({ id: `SPEC_${idx + 1}`, specializationName: s.trim() }))
+              : []
+
+      initSelectedSpecs = rawSpecs.map((item, idx) => {
+        if (typeof item === 'object' && item !== null) {
+          const name = (item.specializationName || item.heading || item.name || item.specialization || '').trim()
+          const id = item.id || item._id || item.specializationId || `SPEC_${idx + 1}`
+          return name ? { id: String(id), specializationName: name } : null
+        }
+        if (typeof item === 'string' && item.trim()) {
+          return { id: `SPEC_${idx + 1}`, specializationName: item.trim() }
+        }
+        return null
+      }).filter(Boolean)
+
+      setFormData(prev => ({
+        ...prev,
+        ...initialRest,
+        selectedSpecializations: initSelectedSpecs,
+        specializationId: initSelectedSpecs[0]?.id || '',
+        specializationName: initSelectedSpecs[0]?.specializationName || '',
+        specialization: initSelectedSpecs.map(s => s.specializationName).join(', '),
+        gstnumber: initialData.gstnumber || initialData.gstNumber || '',
+        youtubeUrl: initialData.youtubeUrl || '',
+      }))
       setClinicTypeOption(initialData.clinicType || '')
       setSelectedOption(initialData.medicinesSoldOnSite || '')
       setSelectedPharmacistOption(initialData.hasPharmacist || '')
@@ -531,6 +626,122 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       // plan-scoped effect above (keyed on initialData.subscription), not here.
     }
   }, [initialData, mode])
+
+  // Fetch all specializations from http://localhost:8081/admin/getAllSpecializations
+  useEffect(() => {
+    const fetchAllSpecializations = async () => {
+      setLoadingSpecializations(true)
+      try {
+        let apiSpecializations = []
+
+        const parseSpecializations = (responseData) => {
+          let items = []
+          const raw = responseData?.data ?? responseData
+          if (Array.isArray(raw)) {
+            for (const entry of raw) {
+              if (Array.isArray(entry?.specializations)) {
+                items.push(...entry.specializations)
+              } else if (entry && typeof entry === 'object') {
+                items.push(entry)
+              }
+            }
+          } else if (Array.isArray(responseData?.specializations)) {
+            items = responseData.specializations
+          }
+
+          return items
+            .map((item, index) => {
+              if (typeof item === 'string') {
+                const trimmed = item.trim()
+                return trimmed ? { id: `SPEC_${index + 1}`, specializationName: trimmed } : null
+              }
+              const name = (item.heading || item.specializationName || item.name || item.specialization || item.title || '').trim()
+              if (!name) return null
+              const id = item.id || item._id || item.specializationId || `SPEC_${index + 1}`
+              return { id: String(id), specializationName: name }
+            })
+            .filter(Boolean)
+        }
+
+        // Primary endpoint requested: admin/getAllSpecializations
+        try {
+          const res = await axios.get(`${BASE_URL}/${SPECIALIZATION_API_URL}`)
+          apiSpecializations = parseSpecializations(res?.data)
+        } catch (apiErr) {
+          console.warn(`Could not fetch from ${SPECIALIZATION_API_URL}:`, apiErr.message)
+          try {
+            const fallbackRes = await axios.get(`${BASE_URL}/admin/getAllSpecializations`)
+            apiSpecializations = parseSpecializations(fallbackRes?.data)
+          } catch (e1) {
+            try {
+              const localRes = await axios.get(`http://localhost:8081/admin/getAllSpecializations`)
+              apiSpecializations = parseSpecializations(localRes?.data)
+            } catch (e2) {
+              // Ignore further network failures
+            }
+          }
+        }
+
+        if (apiSpecializations.length > 0) {
+          const seen = new Set()
+          const uniqueList = []
+          for (const s of apiSpecializations) {
+            const key = s.id || s.specializationName.toLowerCase()
+            if (!seen.has(key)) {
+              seen.add(key)
+              uniqueList.push(s)
+            }
+          }
+          setSpecializations(uniqueList)
+        } else {
+          setSpecializations([])
+        }
+      } catch (err) {
+        console.error('Error fetching specializations:', err)
+        setSpecializations([])
+      } finally {
+        setLoadingSpecializations(false)
+      }
+    }
+
+    fetchAllSpecializations()
+  }, [])
+
+  useEffect(() => {
+    if (specializations.length > 0) {
+      if (formData.selectedSpecializations?.length > 0) {
+        const reconciled = formData.selectedSpecializations.map(sel => {
+          const matched = specializations.find(
+            s => s.id === sel.id || s.specializationName?.toLowerCase() === sel.specializationName?.toLowerCase()
+          )
+          return matched ? { id: matched.id, specializationName: matched.specializationName } : sel
+        })
+        if (JSON.stringify(reconciled) !== JSON.stringify(formData.selectedSpecializations)) {
+          setFormData(p => ({
+            ...p,
+            selectedSpecializations: reconciled,
+            specializationId: reconciled[0]?.id || '',
+            specializationName: reconciled[0]?.specializationName || '',
+            specialization: reconciled.map(r => r.specializationName).join(', '),
+          }))
+        }
+      } else if (!formData.specializationId && (formData.specializationName || formData.specialization)) {
+        const targetName = (formData.specializationName || formData.specialization || '').toLowerCase()
+        const matched = specializations.find(
+          s => s.specializationName?.toLowerCase() === targetName
+        )
+        if (matched) {
+          setFormData(p => ({
+            ...p,
+            selectedSpecializations: [matched],
+            specializationId: matched.id,
+            specializationName: matched.specializationName,
+            specialization: matched.specializationName,
+          }))
+        }
+      }
+    }
+  }, [specializations, formData.specializationName, formData.specialization, formData.specializationId, formData.selectedSpecializations])
 
   useEffect(() => {
     const fetchTimings = async () => {
@@ -769,6 +980,49 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
       // tab uses on save.
       const finalPermissions = sanitizePermissions(formData.permissions || {})
 
+      // Prepare specialization payload with id and specializationName (multiple selection support)
+      let specializationPayload = []
+      if (Array.isArray(formData.selectedSpecializations) && formData.selectedSpecializations.length > 0) {
+        specializationPayload = formData.selectedSpecializations.map(s => {
+          if (s.id === 'OTHER' || s.specializationName?.toLowerCase() === 'other') {
+            return {
+              id: 'OTHER',
+              specializationName: formData.customSpecialization?.trim() || 'Other',
+            }
+          }
+          return {
+            id: String(s.id),
+            specializationName: s.specializationName,
+          }
+        })
+      } else if (formData.specializationId === 'OTHER' || formData.specializationName === 'Other' || formData.specialization === 'Other') {
+        const customName = formData.customSpecialization?.trim() || 'Other'
+        specializationPayload = [
+          {
+            id: 'OTHER',
+            specializationName: customName,
+          },
+        ]
+      } else if (formData.specializationId) {
+        const matched = specializations.find(s => s.id === formData.specializationId)
+        const name = matched ? matched.specializationName : (formData.specializationName || formData.specialization || '')
+        specializationPayload = [
+          {
+            id: formData.specializationId,
+            specializationName: name,
+          },
+        ]
+      } else if (formData.specializationName || formData.specialization) {
+        const name = formData.specializationName || formData.specialization
+        const matched = specializations.find(s => s.specializationName?.toLowerCase() === name.toLowerCase())
+        specializationPayload = [
+          {
+            id: matched ? matched.id : '',
+            specializationName: name,
+          },
+        ]
+      }
+
       const clinicData = {
         name: formData.name, address: formData.address, city: formData.city,
         contactNumber: formData.contactNumber, openingTime: formData.openingTime,
@@ -791,6 +1045,8 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         gstRegistrationCertificate: await convertIfExists(formData.gstRegistrationCertificate),
         others: await convertMultiple(formData.others),
         freeFollowUps: formData.freeFollowUps,
+        gstnumber: formData.gstnumber?.trim() || '',
+        youtubeUrl: formData.youtubeUrl?.trim() || '',
         instagramHandle: formData.instagramHandle, twitterHandle: formData.twitterHandle, facebookHandle: formData.facebookHandle,
         recommended: !!formData.recommended,
         consultationExpiration: formData.consultationExpiration
@@ -803,6 +1059,9 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
         // NEW — the onboarding server selected on Basic Info.
         server: ONBOARD_SERVER,
+
+        // Clinic Specialization: List<Specialization> with id and specializationName
+        specialization: specializationPayload,
 
         latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
         walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
@@ -921,11 +1180,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
           <Input type="text" placeholder="e.g. Hyderabad Main" value={formData.branch || ''} error={errors.branch}
             onChange={e => { setFormData(p => ({ ...p, branch: e.target.value })); setErrors(p => ({ ...p, branch: '' })) }} />
         </Field>
-        {/* NEW — Onboard Server picker. Pick a server, then use "Open" to launch
-            that server's application in a new tab. Opening is done from a real
-            button click (not the select's onChange) because most browsers'
-            popup blockers treat window.open() called from a <select> change
-            event as not "user-initiated enough" and silently block it. */}
+        {/* Onboard Server field kept in comment per user request
         <Field label="Onboard Server" error={errors.server}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
             <div style={{ flex: 1 }}>
@@ -961,6 +1216,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
             </button>
           </div>
         </Field>
+        */}
         <Field label="Recommendation Status">
           <StyledSelect name="recommended" value={formData.recommended}
             onChange={e => setFormData(p => ({ ...p, recommended: e.target.value === 'true' }))}>
@@ -993,6 +1249,21 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         <Field label="License Number" error={errors.licenseNumber}>
           <Input type="text" name="licenseNumber" value={formData.licenseNumber} error={errors.licenseNumber} onChange={handleInputChange} />
         </Field>
+        <Field label="GST Number" error={errors.gstnumber}>
+          <Input
+            type="text"
+            name="gstnumber"
+            placeholder="e.g. 22AAAAA0000A1Z5"
+            value={formData.gstnumber || ''}
+            maxLength={15}
+            style={{ textTransform: 'uppercase' }}
+            onChange={e => {
+              const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+              setFormData(p => ({ ...p, gstnumber: val }))
+              setErrors(p => ({ ...p, gstnumber: '' }))
+            }}
+          />
+        </Field>
         <Field label="Issuing Authority" error={errors.issuingAuthority}>
           <Input type="text" name="issuingAuthority" value={formData.issuingAuthority} error={errors.issuingAuthority}
             onChange={handleInputChange} onKeyDown={e => { if (/[0-9]/.test(e.key)) e.preventDefault() }} />
@@ -1005,6 +1276,61 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     <>
       <SectionHeading title="Clinic Configuration" subtitle="Subscription, medicines and operations settings" />
       <FieldGrid>
+        <Field label="Clinic Specialization" error={errors.specialization}>
+          <Select
+            isMulti
+            name="specialization"
+            options={specializations.map(s => ({
+              value: s.id,
+              label: s.specializationName,
+              id: s.id,
+              specializationName: s.specializationName,
+            }))}
+            value={(formData.selectedSpecializations || []).map(s => ({
+              value: s.id,
+              label: s.specializationName,
+              id: s.id,
+              specializationName: s.specializationName,
+            }))}
+            isLoading={loadingSpecializations}
+            placeholder={loadingSpecializations ? 'Loading specializations...' : 'Select Specializations (Multiple)'}
+            styles={getReactSelectStyles(!!errors.specialization)}
+            menuPortalTarget={typeof document !== 'undefined' ? document.body : null}
+            menuPosition="fixed"
+            closeMenuOnSelect={false}
+            onChange={selectedOptions => {
+              const chosen = (selectedOptions || []).map(opt => ({
+                id: opt.id || opt.value,
+                specializationName: opt.specializationName || opt.label,
+              }))
+              setFormData(p => ({
+                ...p,
+                selectedSpecializations: chosen,
+                specializationId: chosen[0]?.id || '',
+                specializationName: chosen[0]?.specializationName || '',
+                specialization: chosen.map(c => c.specializationName).join(', '),
+              }))
+              setErrors(p => ({ ...p, specialization: '' }))
+            }}
+          />
+        </Field>
+        {(formData.selectedSpecializations?.some(s => s.id === 'OTHER' || s.specializationName?.toLowerCase() === 'other') ||
+          formData.specializationId === 'OTHER' ||
+          formData.specializationName === 'Other' ||
+          formData.specialization === 'Other') && (
+            <Field label="Specify Specialization" error={errors.customSpecialization}>
+              <Input
+                type="text"
+                name="customSpecialization"
+                placeholder="e.g. Aquatic Therapy"
+                value={formData.customSpecialization || ''}
+                onChange={e => {
+                  const val = e.target.value
+                  setFormData(p => ({ ...p, customSpecialization: val }))
+                }}
+              />
+            </Field>
+          )}
         <Field label="Clinic Type" error={errors.clinicType}>
           <StyledSelect value={clinicTypeOption} error={errors.clinicType}
             onChange={e => { setClinicTypeOption(e.target.value); setErrors(p => ({ ...p, clinicType: '' })) }}>
@@ -1177,7 +1503,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
 
       <Divider />
       <SectionHeading title="Social Media Handles" subtitle="Optional — add your clinic's social profiles" />
-      <FieldGrid cols={3}>
+      <FieldGrid cols={4}>
         <Field label="Instagram">
           <Input type="text" name="instagramHandle" placeholder="@clinic_handle" value={formData.instagramHandle} onChange={handleInputChange} />
         </Field>
@@ -1186,6 +1512,29 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         </Field>
         <Field label="Twitter">
           <Input type="text" name="twitterHandle" placeholder="@clinic_tweet" value={formData.twitterHandle} onChange={handleInputChange} />
+        </Field>
+        <Field label="YouTube URL" error={errors.youtubeUrl}>
+          <Input
+            type="url"
+            name="youtubeUrl"
+            placeholder="https://youtube.com/@clinic"
+            value={formData.youtubeUrl || ''}
+            error={errors.youtubeUrl}
+            onChange={e => {
+              const v = e.target.value
+              setFormData(p => ({ ...p, youtubeUrl: v }))
+              if (v.trim()) {
+                try {
+                  new URL(v)
+                  setErrors(p => ({ ...p, youtubeUrl: '' }))
+                } catch {
+                  setErrors(p => ({ ...p, youtubeUrl: 'Enter a valid URL' }))
+                }
+              } else {
+                setErrors(p => ({ ...p, youtubeUrl: '' }))
+              }
+            }}
+          />
         </Field>
       </FieldGrid>
     </>
