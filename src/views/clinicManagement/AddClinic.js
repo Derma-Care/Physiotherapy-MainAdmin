@@ -347,6 +347,9 @@ const validateTab = (tabId, formData, selectedOption, selectedPharmacistOption, 
     if (formData.location?.trim()) {
       try { new URL(formData.location) } catch { errs.location = 'Enter a valid URL' }
     }
+    if (formData.reviewLink?.trim()) {
+      try { new URL(formData.reviewLink.trim()) } catch { errs.reviewLink = 'Enter a valid URL' }
+    }
     if (formData.youtubeUrl?.trim()) {
       try { new URL(formData.youtubeUrl.trim()) } catch { errs.youtubeUrl = 'Enter a valid URL' }
     }
@@ -425,7 +428,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
     // NEW — which onboarding server (application) this clinic is tied to.
     // Selecting a value in Basic Info opens that server's application in a new tab.
     server: '',
-    latitude: '', longitude: '', walkthrough: '', location: '', branch: '', loyaltyPoints: '', nabhScore: null,
+    latitude: '', longitude: '', walkthrough: '', location: '', reviewLink: '', branch: '', loyaltyPoints: '', nabhScore: null,
     permissions: {},
   })
 
@@ -611,6 +614,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         specialization: initSelectedSpecs.map(s => s.specializationName).join(', '),
         gstnumber: initialData.gstnumber || initialData.gstNumber || '',
         youtubeUrl: initialData.youtubeUrl || '',
+        reviewLink: initialData.reviewLink || '',
       }))
       setClinicTypeOption(initialData.clinicType || '')
       setSelectedOption(initialData.medicinesSoldOnSite || '')
@@ -1064,7 +1068,7 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         specialization: specializationPayload,
 
         latitude: formData.latitude, longitude: formData.longitude, location: formData.location?.trim() ? formData.location.trim() : '',
-        walkthrough: formData.walkthrough, loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
+        walkthrough: formData.walkthrough, reviewLink: formData.reviewLink?.trim() ? formData.reviewLink.trim() : '', loyaltyPoints: formData.loyaltyPoints, nabhScore: formData.nabhScore, branch: formData.branch,
         // FIX: only the permissions actually given, not every template placeholder.
         permissions: finalPermissions,
       }
@@ -1498,6 +1502,25 @@ const AddClinic = ({ mode = 'add', initialData = {}, onSubmit }) => {
         <Field label="💎 Loyalty Points (% per ₹100 Spent)">
           <Input type="number" min="0" name="loyaltyPoints" placeholder="e.g. 2.5% per ₹100 spent" value={formData.loyaltyPoints || ''}
             onChange={handleInputChange} />
+        </Field>
+        <Field label="Review Link" error={errors.reviewLink}>
+          <Input
+            type="url"
+            placeholder="https://review"
+            name="reviewLink"
+            value={formData.reviewLink || ''}
+            error={errors.reviewLink}
+            onChange={e => {
+              const v = e.target.value
+              setFormData(p => ({ ...p, reviewLink: v }))
+              if (v.trim()) {
+                try { new URL(v); setErrors(p => ({ ...p, reviewLink: '' })) }
+                catch { setErrors(p => ({ ...p, reviewLink: 'Enter a valid URL' })) }
+              } else {
+                setErrors(p => ({ ...p, reviewLink: '' }))
+              }
+            }}
+          />
         </Field>
       </FieldGrid>
 

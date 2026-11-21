@@ -8,10 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Node
-/node_modules
+node_modules
 
 # Production
-/build
+build
 /dist
 /dist-ssr
 

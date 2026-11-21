@@ -4,7 +4,7 @@ import axios from "axios"
 
 // const ipUrl = 'localhost'
 // const ipUrl = 'physioelite-api.chiselon.online'
-const ipUrl = 'https://api.physioelitece.fit'
+const ipUrl = 'https://api.ccms-clinicessentials.site'
 
 export const BASE_URL = `${ipUrl}`
 export const CLINIC_ADMIN_URL = `${ipUrl}`

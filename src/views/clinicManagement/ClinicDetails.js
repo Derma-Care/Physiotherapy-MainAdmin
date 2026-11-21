@@ -81,6 +81,7 @@ const OPTIONAL_ADDITIONAL = [
   'youtubeUrl',
   'walkthrough',
   'location',
+  'reviewLink',
   'loyaltyPoints',
   'nabhScore',
   'hospitalDocuments',
@@ -451,6 +452,12 @@ const ClinicDetails = () => {
         !/^https?:\/\/[^\s]+$/.test(editableClinicData.location.trim())
       ) {
         errs.location = 'Must start with http(s)://'
+      }
+      if (
+        editableClinicData.reviewLink?.trim() &&
+        !/^https?:\/\/[^\s]+$/.test(editableClinicData.reviewLink.trim())
+      ) {
+        errs.reviewLink = 'Must start with http(s)://'
       }
     }
     setFormErrors(errs)
@@ -1279,6 +1286,43 @@ const ClinicDetails = () => {
                           placeholder="e.g. 2.5% per ₹100 spent"
                           onChange={(e) => set('loyaltyPoints', e.target.value)}
                         />
+                      </Field>
+                    </CCol>
+                  )}
+                  {(isEditingAdditional || hasDocValue(editableClinicData.reviewLink)) && (
+                    <CCol md={6}>
+                      <Field label="Review Link" error={formErrors.reviewLink}>
+                        <input
+                          className="cd-input"
+                          style={inp(!!formErrors.reviewLink, !isEditingAdditional)}
+                          value={editableClinicData.reviewLink ?? ''}
+                          disabled={!isEditingAdditional}
+                          placeholder="https://g.page/r/.../review"
+                          onChange={(e) => {
+                            const v = e.target.value
+                            set('reviewLink', v)
+                            if (v.trim() && !/^https?:\/\/[^\s]+$/.test(v.trim()))
+                              setErr('reviewLink', 'Must start with http(s)://')
+                            else clearErr('reviewLink')
+                          }}
+                        />
+                        {!isEditingAdditional &&
+                          editableClinicData.reviewLink &&
+                          !formErrors.reviewLink && (
+                            <a
+                              href={editableClinicData.reviewLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: '12px',
+                                color: '#1a3a6b',
+                                marginTop: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              Open Review Link ↗
+                            </a>
+                          )}
                       </Field>
                     </CCol>
                   )}
